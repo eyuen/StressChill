@@ -105,8 +105,8 @@ class UploadSurvey(webapp.RequestHandler):
     def post(self):
         s = Survey()
 
-        if users.get_current_user():
-            s.user = users.get_current_user()
+        #if users.get_current_user():
+        #    s.user = users.get_current_user()
         s.longitude = self.request.get('longitude')
         s.latitude = self.request.get('latitude')
         s.stressval = self.request.get('stressval')
@@ -192,6 +192,32 @@ class GetImageThumb(webapp.RequestHandler):
         self.response.out.write(req_key)
         self.response.out.write("\" width=\"180\" height=\"130\"></body></html>")
 
+
+class TestPost(webapp.RequestHandler):
+    def get(self):
+        path = os.path.join (os.path.dirname(__file__), 'views/testpost.html')
+        self.response.out.write (template.render(path, {}))
+
+class TestUpload(webapp.RequestHandler):
+    def post(self):
+        s = Survey()
+
+        s.longitude = self.request.get('longitude')
+        s.latitude = self.request.get('latitude')
+        s.stressval = float(self.request.get('stressval'))
+        s.comments = self.request.get('comments')
+        s.version = self.request.get('version')
+
+        file_content = self.request.get('file')
+        try:
+            s.photo = db.Blob(file_content)
+        except TypeError:
+            s.photo = ''
+
+        s.put()
+        self.redirect('/')
+
+
 application = webapp.WSGIApplication(
                                      [('/', HomePage),
                                       ('/map', MapPage),
@@ -201,7 +227,9 @@ application = webapp.WSGIApplication(
                                       ('/get_point_summary', GetPointSummary),
                                       ('/get_a_point', GetAPoint),
                                       ('/get_an_image', GetAnImage),
-                                      ('/get_image_thumb', GetImageThumb)],
+                                      ('/get_image_thumb', GetImageThumb),
+				      ('/testpost', TestPost),
+				      ('/testupload', TestUpload)],
                                      debug=True)
 
 def main():

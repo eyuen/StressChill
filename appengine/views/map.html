@@ -65,7 +65,7 @@
             {% for s in surveys %}
                 var marker = new GMarker(new GLatLng({{s.latitude}}, {{s.longitude}}));
                 GEvent.addListener(marker, "click", function() {
-                    var html = "<img src=\"http://we-tap.appspot.com/get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
+                    var html = "<img src=\"http://stresschill.appspot.com/get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
                                "<br />" +
                                "<p><b>StressChill value: </b>{{s.stressval}}<br/>" +
                                "<b>comments: </b>{{s.comments}}<br/>" +
