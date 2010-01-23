@@ -67,12 +67,8 @@
                 GEvent.addListener(marker, "click", function() {
                     var html = "<img src=\"http://we-tap.appspot.com/get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
                                "<br />" +
-                               "<p><b>Taste: </b>{{s.q_taste}}<br/>" +
-                               "<b>Visibility: </b>{{s.q_visibility}}<br/>" +
-                               "<b>Operable: </b>{{s.q_operable}}<br/>" +
-                               "<b>Flow: </b>{{s.q_flow}}<br/>" +
-                               "<b>Style: </b>{{s.q_style}}<br/>" +
-                               "<b>Location: </b>{{s.q_location}}" +
+                               "<p><b>StressChill value: </b>{{s.stressval}}<br/>" +
+                               "<b>comments: </b>{{s.comments}}<br/>" +
                                "</p>";
                     map.openInfoWindowHtml(new GLatLng({{s.latitude}}, {{s.longitude}}), html);
                 });

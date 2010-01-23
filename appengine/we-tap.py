@@ -70,15 +70,11 @@ def decode_survey(q, v):
 class Survey(db.Model):
     user = db.UserProperty()
     timestamp =     db.DateTimeProperty(auto_now_add=True)
-    q_taste =       db.StringProperty()
-    q_visibility =  db.StringProperty()
-    q_operable =    db.StringProperty()
-    q_flow =        db.StringProperty()
-    q_style =       db.StringProperty()
-    q_location =    db.StringProperty()
     longitude =     db.StringProperty()
     latitude =      db.StringProperty()
-    time =          db.StringProperty()
+    stressval =     db.FloatProperty()
+    comments =      db.StringProperty()
+    category =      db.StringProperty()
     version =       db.StringProperty()
     photo =         db.BlobProperty()
 
@@ -90,8 +86,8 @@ class HomePage(webapp.RequestHandler):
 class MapPage(webapp.RequestHandler):
     def get(self):
         surveys = Survey.all().fetch(10)
-        decoded = decode_surveys (surveys)
-        template_values = { 'surveys' : decoded }
+        #decoded = decode_surveys (surveys)
+        template_values = { 'surveys' : surveys }
         path = os.path.join (os.path.dirname(__file__), 'views/map.html')
         self.response.out.write (template.render(path, template_values))
 
@@ -111,16 +107,10 @@ class UploadSurvey(webapp.RequestHandler):
 
         if users.get_current_user():
             s.user = users.get_current_user()
-
-        s.q_taste = self.request.get('q_taste')
-        s.q_visibility = self.request.get('q_visibility')
-        s.q_operable = self.request.get('q_operable')
-        s.q_flow = self.request.get('q_flow')
-        s.q_style = self.request.get('q_style')
-        s.q_location = self.request.get('q_location')
         s.longitude = self.request.get('longitude')
         s.latitude = self.request.get('latitude')
-        s.time = self.request.get('time')
+        s.stressval = self.request.get('stressval')
+        s.comments = self.requrest.get('comments')
         s.version = self.request.get('version')
 
         file_content = self.request.get('file')
@@ -141,7 +131,8 @@ class GetPointSummary(webapp.RequestHandler):
             e = {}
             e['latitude'] = s.latitude
             e['longitude'] = s.longitude
-            e['q_taste'] = s.q_taste
+            e['stressval'] = s.stressval
+            e['comments'] = s.comments
             e['key'] = str(s.key())
             e['version'] = s.version
 
@@ -165,12 +156,11 @@ class GetAPoint(webapp.RequestHandler):
                 for s in surveys:
                     e = {}
                     e['photo'] = "http://we-tap.appspot.com/get_image_thumb?key=" + req_key;
-                    e['q_flow'] = s.q_flow
-                    e['q_operable'] = s.q_operable
-                    e['q_style'] = s.q_style
-                    e['q_taste'] = s.q_taste
-                    e['q_visibility'] = s.q_visibility
-                    e['q_location'] = s.q_location
+                    e['latitude'] = s.latitude
+                    e['longitude'] = s.longitude
+                    e['stressval'] = s.stressval
+                    e['comments'] = s.comments
+                    e['key'] = str(s.key())
                     e['version'] = s.version
                     self.response.out.write(json.dumps(e))
                     return
