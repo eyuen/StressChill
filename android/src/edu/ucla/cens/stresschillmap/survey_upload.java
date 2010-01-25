@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,8 +26,8 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
-import edu.ucla.cens.wetap.survey_db;
-import edu.ucla.cens.wetap.survey_db.survey_db_row;
+import edu.ucla.cens.stresschillmap.survey_db;
+import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
 public class survey_upload extends Service{
     private survey_db sdb;

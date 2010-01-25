@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -62,7 +62,8 @@ public class popup extends Activity {
         String location = "Not specified";
 
         if (req_key != null && req_key != "") {
-            String site_url = "http://we-tap.appspot.com/get_a_point?key=" + req_key;
+            String site_url = getString(R.string.map_full_point) + "?key=" + req_key;
+            
             String site_data = getUrlData (site_url);
 
             Log.d(TAG, "THE SITE URL: " + site_url);

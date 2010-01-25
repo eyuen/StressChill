@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import android.os.Bundle;
 import android.content.Context;
@@ -8,8 +8,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.util.Log;
 
-import edu.ucla.cens.wetap.survey_db;
-import edu.ucla.cens.wetap.survey_db.survey_db_row;
+import edu.ucla.cens.stresschillmap.survey_db;
+import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
 public class light_loc {
     private LocationManager lm;

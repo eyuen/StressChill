@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 
 import android.view.View;
+import android.widget.TextView;
 
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -38,11 +39,14 @@ import android.os.Message;
 import android.util.Log;
 
 public class authenticate extends Activity implements Runnable {
+    private TextView tv_email;
     private EditText et_email;
     private EditText et_pass;
     private CheckBox cb_save_login;
     private String email;
     private String pass;
+    private Button submit;
+
     private boolean save_login;
 
 	private static final String TAG = "Authentication";
@@ -57,11 +61,13 @@ public class authenticate extends Activity implements Runnable {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.authenticate);
+        tv_email = (TextView) findViewById(R.id.tv1);
         et_email = (EditText) findViewById(R.id.email);
         et_pass = (EditText) findViewById(R.id.password);
         cb_save_login = (CheckBox) findViewById(R.id.save_login);
-        Button submit = (Button) findViewById(R.id.login);
+        submit = (Button) findViewById(R.id.login);
 
+        /*
         if (null != savedInstanceState &&
             savedInstanceState.getBoolean("dialogisshowing"))
         {
@@ -85,9 +91,14 @@ public class authenticate extends Activity implements Runnable {
             et_pass.setText(pass);
             cb_save_login.setChecked(save_login);
         }
+        */
+
+        
+        cb_save_login.setOnClickListener(register_check_box);
 
         submit.setOnClickListener(new View.OnClickListener() {
             public void onClick (View view) {
+            /*
                 email = et_email.getText().toString();
                 pass = et_pass.getText().toString();
                 save_login = cb_save_login.isChecked();
@@ -98,6 +109,10 @@ public class authenticate extends Activity implements Runnable {
                                       .putBoolean("save_login", true)
                                       .commit();
                 }
+                */
+                email = "foo";
+                pass = "foo";
+                save_login = false;
 
                 showDialog (DIALOG_PROGRESS);
                 Thread thread = new Thread(authenticate.this);
@@ -105,6 +120,22 @@ public class authenticate extends Activity implements Runnable {
             }
         });
 	}
+
+    android.view.View.OnClickListener register_check_box = new android.view.View.OnClickListener() {
+        public void onClick(View v) {
+            CheckBox cb = (CheckBox) v;
+            if (cb.isChecked()) {
+                tv_email.setVisibility(0);
+                et_email.setVisibility(0);
+                submit.setText("Register");
+            } else {
+                tv_email.setVisibility(android.view.View.GONE);
+                et_email.setVisibility(android.view.View.GONE);
+                submit.setText("Login");
+            }
+        }
+    };
+
 
     @Override
     protected Dialog onCreateDialog(int id) {
@@ -132,7 +163,7 @@ public class authenticate extends Activity implements Runnable {
         Message msg = new Message();
         Bundle b = new Bundle();
 
-        b.putBoolean("authenticated", auth());
+        b.putBoolean("authenticated", false); //auth());XXX
         msg.setData(b);
 
         handler.sendMessage(msg);
@@ -169,6 +200,7 @@ public class authenticate extends Activity implements Runnable {
             request.setEntity(entity);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
+            return false;
         }
         try {
             
@@ -183,6 +215,7 @@ public class authenticate extends Activity implements Runnable {
             authToken = generateString(response.getEntity().getContent()).split("\n")[2].substring(5);
         } catch (IOException e) {
             e.printStackTrace();
+            return false;
         }
 
         Log.d(TAG, "google auth successful!");

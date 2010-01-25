@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WeTap</string>
+    <string name="app_name">Stress Chill Map</string>
     <string name="version">1</string>
 
     <string name="preferences">edu.ucla.cens.wetap.preferences</string>
@@ -11,4 +11,9 @@
     <string name="baseurl">http://we-tap.appspot.com</string>
     <string name="loginurl">http://we-tap.appspot.com/_ah/login</string>
     <string name="surveyuploadurl">"http://we-tap.appspot.com/upload_survey"</string>
+    <string name="map_full_point">"foobar"</string>
+
+    <string name="radio_group_1_option_1">Place</string>
+    <string name="radio_group_1_option_2">Environment</string>
+    <string name="radio_group_1_option_3">People</string>
 </resources>

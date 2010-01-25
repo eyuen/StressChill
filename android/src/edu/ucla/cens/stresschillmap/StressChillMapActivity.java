@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 
-public class WeTapActivity extends Activity {
+public class StressChillMapActivity extends Activity {
 
 	/* Fields */
 	private final int SPLASH_DISPLAY_LENGHT = 1; 
@@ -26,10 +26,10 @@ public class WeTapActivity extends Activity {
 			new Handler().postDelayed(new Runnable(){
 				public void run() {
 					// Create an Intent that will start the Authenticate-Activity. // 
-					WeTapActivity.this.startActivity(new Intent(
-                        WeTapActivity.this,authenticate.class));
+					StressChillMapActivity.this.startActivity(new Intent(
+                        StressChillMapActivity.this,authenticate.class));
                     Log.d(TAG, "started authentication intent");
-					WeTapActivity.this.finish(); 
+					StressChillMapActivity.this.finish(); 
 				} 
 			}, SPLASH_DISPLAY_LENGHT);
 	}

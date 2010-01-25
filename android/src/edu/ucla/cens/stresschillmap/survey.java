@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -22,7 +22,9 @@ import android.view.MenuItem;
 
 import android.widget.ImageView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
+import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.CheckBox;
 import android.app.AlertDialog;
@@ -37,23 +39,26 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Date;
 
-import edu.ucla.cens.wetap.light_loc;
-import edu.ucla.cens.wetap.survey_db;
-import edu.ucla.cens.wetap.survey_db.survey_db_row;
+import edu.ucla.cens.stresschillmap.light_loc;
+import edu.ucla.cens.stresschillmap.survey_db;
+import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
+import android.widget.SeekBar;
 
 public class survey extends Activity
 {
     private String TAG = "Survey";
     private ArrayList<ArrayList<CheckBox>> group_box_list = new ArrayList<ArrayList<CheckBox>>();
-    private Button take_picture;
+    private ImageButton take_picture;
     private Button submit_button;
     //private Button clear_history;
-    private ImageView image_thumbnail;
+    private ImageView image_preview;
     private String filename = "";
     private light_loc ll;
     private survey_db sdb;
     private SharedPreferences preferences;
+    private TextView stress_value;
+    private SeekBar seek_bar;
 
     /** Called when the activity is first created. */
     @Override
@@ -61,6 +66,12 @@ public class survey extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.survey);
+
+        stress_value = (TextView) findViewById(R.id.stress_value);
+        seek_bar = (SeekBar) findViewById(R.id.chillstress_seekbar);
+
+        seek_bar.setOnSeekBarChangeListener (seek_bar_updater);
+        /*
 
         preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
         // allow users to collect data even if they are not yet authenticated
@@ -132,17 +143,22 @@ public class survey extends Activity
 
         // add submit button
         submit_button = (Button) findViewById(R.id.upload_button);
+        */
 
         // add picture button
-        take_picture = (Button) findViewById(R.id.picture_button);
+        take_picture = (ImageButton) findViewById(R.id.image_button);
+        image_preview = (ImageView) findViewById(R.id.image_preview);
 
+        /*
         // add clear history button
         //clear_history = (Button) findViewById(R.id.clear_history_button);
         Log.d(TAG, "added buttons");
+        */
 
         // add image thumbnail view
-        image_thumbnail = (ImageView) findViewById(R.id.thumbnail);
+        //image_thumbnail = (ImageView) findViewById(R.id.image_button);
 
+        /*
         // add check box listeners
         for (int j = 0; j < group_box_list.size(); j++) {
             lcb = group_box_list.get(j);
@@ -154,15 +170,19 @@ public class survey extends Activity
 
         // add submit button listener
         submit_button.setOnClickListener(submit_button_listener);
+        */
 
         // add take picture button listener
         take_picture.setOnClickListener(take_picture_listener);
 
+        /*
         // add clear history button listener
         //clear_history.setOnClickListener(clear_history_listener);
+        */
 
         // restore previous state (if available)
         if (savedInstanceState != null && savedInstanceState.getBoolean("started")) {
+            /*
             for (int i = 0; i < group_box_list.size(); i++) {
                 lcb = group_box_list.get(i);
                 int k = savedInstanceState.getInt(Integer.toString(i));
@@ -176,12 +196,13 @@ public class survey extends Activity
                     }
                 }
             }
+            */
 
             filename = savedInstanceState.getString("filename");
             if ((null != filename) && (filename.toString() != "")) {
                 Bitmap bm = BitmapFactory.decodeFile(filename);
                 if (bm != null) {
-                    image_thumbnail.setImageBitmap(bm);
+                    image_preview.setImageBitmap(bm);
                 }
             }
         }
@@ -306,6 +327,20 @@ public class survey extends Activity
                     return;
                 }
             }
+        }
+    };
+
+    SeekBar.OnSeekBarChangeListener seek_bar_updater = new SeekBar.OnSeekBarChangeListener() {
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            return;
+        }
+        public void onProgressChanged (SeekBar sb, int progress, boolean fromUser) {
+            double adj_val = (progress - 50) / 5.0;
+
+            stress_value.setText(Double.toString(adj_val));
+        }
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            return;
         }
     };
 
@@ -450,7 +485,7 @@ public class survey extends Activity
             if ((null != filename) && (filename.toString() != "")) {
                 Bitmap bm = BitmapFactory.decodeFile(filename);
                 if (bm != null) {
-                    image_thumbnail.setImageBitmap(bm);
+                    image_preview.setImageBitmap(bm);
                 }
             }
         }

@@ -14,262 +14,164 @@
         <TextView android:id="@+id/title"
                   android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
+                  android:textStyle="bold"
                   android:textSize="35sp"
+                  android:textColor="@drawable/textcolor"
                   android:gravity="center"
-                  android:text="WeTap" />
+                  android:text="@string/app_name" />
     </TableRow>
 
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
+    <View android:layout_height="10sp" />
+
+    <TableRow>
+        <RelativeLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+            <ImageButton
+                android:id="@+id/image_button"
+                android:src="@drawable/camera"
+                android:layout_width="100sp"
+                android:layout_height="100sp"
+                android:layout_marginLeft="25sp"
+                android:scaleType="centerInside"
+            />
+
+            <ImageView
+                android:id="@+id/image_preview"
+                android:layout_width="125sp"
+                android:layout_height="100sp"
+                android:layout_marginRight="25sp"
+                android:scaleType="centerInside"
+                android:layout_toRightOf="@id/image_button"
+            />
+        </RelativeLayout>
+    </TableRow>
+
+
+    <View android:layout_height="10sp"/>
+
+    <TableRow>
+        <RelativeLayout android:id="@+id/seekbar"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            >
+            <SeekBar android:id="@+id/chillstress_seekbar"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true"
+                android:paddingLeft="10sp"
+                android:paddingRight="10sp"
+                android:layout_width="150sp"
+                android:layout_height="fill_parent"
+                android:max="100"
+                android:progress="50"
+                />
+            <TextView android:id="@+id/chill_label"
+                android:layout_toRightOf="@id/chillstress_seekbar"
+                android:layout_centerVertical="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:text="Chill" />
+            <TextView android:id="@+id/stress_label"
+                android:layout_toLeftOf="@id/chillstress_seekbar"
+                android:layout_centerVertical="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stress"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                />
+            <TextView android:id="@+id/stress_value"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true"
+                android:layout_below="@id/chillstress_seekbar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingLeft="10sp"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:text="0"
+                android:textColor="#000"
+                />
+
+        </RelativeLayout>
+    </TableRow>
+
+    <View android:layout_height="10sp" />
+
+    <TableRow>
+        <RadioGroup android:id="@+id/radio_group_1"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            >
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:text="Category:"/>
+            <RadioButton android:id="@+id/option_1"
+                android:text="@string/radio_group_1_option_1"
+                android:checked="false" />
+            <RadioButton android:id="@+id/option_2"
+                android:text="@string/radio_group_1_option_2"
+                android:checked="false" />
+            <RadioButton android:id="@+id/option_3"
+                android:text="@string/radio_group_1_option_3"
+                android:checked="false" />
+        </RadioGroup>
+    </TableRow>
+
+    <View android:layout_height="10sp"/>
 
     <TableRow>
         <RelativeLayout android:id="@+id/taste_row"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
 
-            <TextView android:id="@+id/taste_label"
+            <TextView android:id="@+id/comment_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
-                android:text="Taste:" />
-            <CheckBox android:id="@+id/taste_same"
-                android:layout_below="@id/taste_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Same as home tap"/>
-            <CheckBox android:id="@+id/taste_good"
-                android:layout_alignTop="@id/taste_same"
-                android:layout_toRightOf="@id/taste_same"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Better"/>
-            <CheckBox android:id="@+id/taste_bad"
-                android:layout_below="@id/taste_same"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Worse"/>
-            <CheckBox android:id="@+id/taste_other"
-                android:layout_alignTop="@id/taste_bad"
-                android:layout_toRightOf="@id/taste_bad"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Can't answer"/>
+                android:textStyle="bold"
+                android:text="Comments:" />
+            <View
+                android:layout_below="@id/comment_label"
+                android:id="@+id/spacer1"
+                android:layout_width="10sp"
+                android:layout_height="1sp" />
+
+            <EditText android:id="@+id/comment"
+                android:background="#FFF"
+                android:foreground="#000"
+                android:layout_toRightOf="@id/spacer1"
+                android:layout_below="@id/comment_label"
+                android:layout_width="300sp"
+                android:layout_height="100sp"
+                android:autoText="true"
+                android:editable="true"
+                android:maxLines="5"
+                />
         </RelativeLayout>
     </TableRow>
 
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-
-    <TableRow>
-
-        <RelativeLayout android:id="@+id/flow_row"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-
-            <TextView android:id="@+id/flow_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:text="Flow:" />
-            <CheckBox android:id="@+id/flow_strong"
-                android:layout_below="@id/flow_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Strong"/>
-            <CheckBox android:id="@+id/flow_trickle"
-                android:layout_alignTop="@id/flow_strong"
-                android:layout_toRightOf="@id/flow_strong"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Trickle"/>
-            <CheckBox android:id="@+id/flow_too_strong"
-                android:layout_alignTop="@id/flow_trickle"
-                android:layout_toRightOf="@id/flow_trickle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Too Strong"/>
-        </RelativeLayout>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-
-    <TableRow>
-        <RelativeLayout android:id="@+id/visibility_row"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-
-            <TextView android:id="@+id/visibility_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:text="Visibility:"/>
-            <CheckBox android:id="@+id/visibility_visible"
-                android:layout_below="@id/visibility_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Visible"/>
-            <CheckBox android:id="@+id/visibility_hidden"
-                android:layout_alignTop="@id/visibility_visible"
-                android:layout_toRightOf="@id/visibility_visible"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Hidden"/>
-        </RelativeLayout>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-    
-    <TableRow>
-        <RelativeLayout android:id="@+id/location_row"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-
-            <TextView android:id="@+id/location_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:text="Location:" />
-            <CheckBox android:id="@+id/location_indoor"
-                android:layout_below="@id/location_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Indoor"/>
-            <CheckBox android:id="@+id/location_outdoors"
-                android:layout_alignTop="@id/location_indoor"
-                android:layout_toRightOf="@id/location_indoor"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Outdoors"/>
-        </RelativeLayout>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-
-    <TableRow>
-        <RelativeLayout android:id="@+id/operable_row"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-
-            <TextView android:id="@+id/operable_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:text="Operable:" />
-            <CheckBox android:id="@+id/operable_functioning"
-                android:layout_below="@id/operable_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Working"/>
-            <CheckBox android:id="@+id/operable_broken"
-                android:layout_alignTop="@id/operable_functioning"
-                android:layout_toRightOf="@id/operable_functioning"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Broken"/>
-            <CheckBox android:id="@+id/operable_needs_repair"
-                android:layout_below="@id/operable_functioning"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Needs Repair"/>
-        </RelativeLayout>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-
-    <TableRow>
-        <RelativeLayout android:id="@+id/style_row"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content">
-
-            <TextView android:id="@+id/style_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="20sp"
-                android:text="Style:"/>
-            <CheckBox android:id="@+id/style_refilling"
-                android:layout_below="@id/style_label"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:checked="true"
-                android:text="Refilling"/>
-            <CheckBox android:id="@+id/style_drinking"
-                android:layout_alignTop="@id/style_refilling"
-                android:layout_toRightOf="@id/style_refilling"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Drinking"/>
-            <CheckBox android:id="@+id/style_both"
-                android:layout_alignTop="@id/style_drinking"
-                android:layout_toRightOf="@id/style_drinking"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Both"/>
-        </RelativeLayout>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
-
-    <TableRow>
-        <ImageView android:id="@+id/thumbnail"
-            android:src="@drawable/camera"
-            android:layout_width="180sp"
-            android:layout_height="130sp">
-        </ImageView>
-    </TableRow>
-
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
+    <View android:layout_height="10sp" />
 
     <TableRow>
         <RelativeLayout android:id="@+id/submit_row"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
 
-            <Button android:id="@+id/picture_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingRight="10sp"
-                android:text="Take Picture"/>
             <Button android:id="@+id/upload_button"
-                android:layout_alignTop="@id/picture_button"
-                android:layout_toRightOf="@id/picture_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingRight="10sp"
+                android:textStyle="bold"
+                android:textSize="20sp"
                 android:text="Upload" />
 <!--
                 <Button android:id="@+id/clear_history_button"
@@ -284,9 +186,7 @@
         </RelativeLayout>
     </TableRow>
 
-    <View
-        android:layout_height="2sp"
-        android:background="#FF909090" />
+    <View android:layout_height="10sp" />
 
 </TableLayout>
 </ScrollView>

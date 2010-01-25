@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -21,7 +21,7 @@ import android.widget.Toast;
 public class photo extends Activity implements SurfaceHolder.Callback
 {
     private static final String TAG = "Photo";
-	private final String PIC_DATA_PATH = "/sdcard/stbpics";
+	private final String PIC_DATA_PATH = "/sdcard/stbpics"; //rcp-chillstressmap";XXX
 	String fname;
     
     Camera mCamera;
