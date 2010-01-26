@@ -1,0 +1,17 @@
+{% extends "template.html" %}    
+
+{% block title %}StressChill - Test upload{% endblock %}
+
+{% block content %}
+    <div style="width:980px; height:100%;">
+        <form action="/testupload" method="post" enctype="multipart/form-data">
+                <input type="text" name="latitude"/><br/>
+                <input type="text" name="longitude"/><br />
+                <input type="text" name="stressval"/><br />
+                <input type="text" name="comments"/><br />
+                <input type="text" name="version"/><br />
+                <input type="file" name="file"/><br />
+                <input type="submit"><br />
+        </form>
+    </div>
+{% endblock %}

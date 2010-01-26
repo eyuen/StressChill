@@ -217,6 +217,13 @@ class TestUpload(webapp.RequestHandler):
         s.put()
         self.redirect('/')
 
+class DataPage(webapp.RequestHandler):
+    def get(self):
+        surveys = Survey.all().fetch(50)
+        template_values = { 'surveys' : surveys }
+        path = os.path.join (os.path.dirname(__file__), 'views/data.html')
+        self.response.out.write (template.render(path, template_values))
+
 
 application = webapp.WSGIApplication(
                                      [('/', HomePage),
@@ -229,7 +236,8 @@ application = webapp.WSGIApplication(
                                       ('/get_an_image', GetAnImage),
                                       ('/get_image_thumb', GetImageThumb),
 				      ('/testpost', TestPost),
-				      ('/testupload', TestUpload)],
+				      ('/testupload', TestUpload),
+				      ('/data', DataPage)],
                                      debug=True)
 
 def main():
