@@ -42,21 +42,18 @@ public class home extends Activity {
                 return false;
         }
         ctx.startActivity (i);
-        this.finish();
         return true;
     }
 
     View.OnClickListener survey_button_listener = new View.OnClickListener () {
         public void onClick (View v) {
             home.this.startActivity (new Intent (home.this, survey.class));
-            home.this.finish ();
         }
     };
 
     View.OnClickListener map_button_listener = new View.OnClickListener () {
         public void onClick (View v) {
             home.this.startActivity (new Intent (home.this, map.class));
-            home.this.finish ();
         }
     };
 }
