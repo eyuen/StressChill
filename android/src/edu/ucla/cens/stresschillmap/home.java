@@ -1,4 +1,4 @@
-package edu.ucla.cens.wetap;
+package edu.ucla.cens.stresschillmap;
 import android.os.Bundle;
 import android.app.Activity;
 import android.view.Menu;
