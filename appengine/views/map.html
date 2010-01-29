@@ -68,7 +68,8 @@
                     var html = "<img src=\"http://stresschill.appspot.com/get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
                                "<br />" +
                                "<p><b>StressChill value: </b>{{s.stressval}}<br/>" +
-                               "<b>comments: </b>{{s.comments}}<br/>" +
+                               "<b>Category: </b>{{s.category}}<br/>" +
+                               "<b>Comments: </b>{{s.comments}}<br/>" +
                                "</p>";
                     map.openInfoWindowHtml(new GLatLng({{s.latitude}}, {{s.longitude}}), html);
                 });

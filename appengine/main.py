@@ -12,64 +12,17 @@ from google.appengine.ext.webapp import template
 import cStringIO
 import csv
 
-def decode_surveys(surveys):
-	decoded = []
+def extract_surveys(surveys):
+	extracted = []
 	for s in surveys:
 		item = {}
-		item['q_taste'] = decode_survey("taste", s.q_taste)
-		item['q_visibility'] = decode_survey("visibility", s.q_visibility)
-		item['q_operable'] = decode_survey("operable", s.q_operable)
-		item['q_flow'] = decode_survey("flow", s.q_flow)
-		item['q_style'] = decode_survey("style", s.q_style)
-		item['q_location'] = decode_survey("location", s.q_location)
+		item['stressval'] = s.stressval
+		item['category'] = s.category
 		item['longitude'] = s.longitude
 		item['latitude'] = s.latitude
 		item['key'] = str(s.key())
-		decoded.append(item)
-	return decoded
-
-def decode_survey(q, v):
-	try:
-		ret = {
-			'taste':
-				lambda v: {
-					'0': lambda: "Same as home tap",
-					'1': lambda: "Better",
-					'2': lambda: "Worse",
-					'3': lambda: "Can't answer"
-				}[v](),
-			'visibility':
-				lambda v: {
-					'0': lambda: "Visible",
-					'1': lambda: "Hidden"
-				}[v](),
-			'operable':
-				lambda v: {
-					'0': lambda: "Working",
-					'1': lambda: "Broken",
-					'2': lambda: "Needs repair"
-				}[v](),
-			'flow':
-				lambda v: {
-					'0': lambda: "Strong",
-					'1': lambda: "Trickle",
-					'2': lambda: "Too strong"
-				}[v](),
-			'style':
-				lambda v: {
-					'0': lambda: "Refilling",
-					'1': lambda: "Drinking",
-					'2': lambda: "Both"
-				}[v](),
-			'location':
-				lambda v: {
-					'0': lambda: "Indoor",
-					'1': lambda: "Outdoors"
-				}[v]()
-		}[q](v)
-		return ret
-	except KeyError:
-		return "Not rated"
+		extracted.append(item)
+	return extracted
 
 class Survey(db.Model):
 	user = db.UserProperty()
@@ -90,8 +43,8 @@ class HomePage(webapp.RequestHandler):
 class MapPage(webapp.RequestHandler):
 	def get(self):
 		surveys = Survey.all().fetch(10)
-		#decoded = decode_surveys (surveys)
-		template_values = { 'surveys' : surveys }
+		extracted = extract_surveys (surveys)
+		template_values = { 'surveys' : extracted }
 		path = os.path.join (os.path.dirname(__file__), 'views/map.html')
 		self.response.out.write (template.render(path, template_values))
 
@@ -115,6 +68,7 @@ class UploadSurvey(webapp.RequestHandler):
 		s.latitude = self.request.get('latitude')
 		s.stressval = self.request.get('stressval')
 		s.comments = self.requrest.get('comments')
+        s.category = self.request.get('category')
 		s.version = self.request.get('version')
 
 		file_content = self.request.get('file')
