@@ -25,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.Context;
 
 import android.view.View;
 import android.widget.TextView;
@@ -39,6 +40,7 @@ import android.os.Message;
 import android.util.Log;
 
 public class authenticate extends Activity implements Runnable {
+    private Context ctx;
     private TextView tv_email;
     private EditText et_email;
     private EditText et_pass;
@@ -66,7 +68,7 @@ public class authenticate extends Activity implements Runnable {
         et_pass = (EditText) findViewById(R.id.password);
         cb_save_login = (CheckBox) findViewById(R.id.save_login);
         submit = (Button) findViewById(R.id.login);
-
+        ctx = authenticate.this;
         /*
         if (null != savedInstanceState &&
             savedInstanceState.getBoolean("dialogisshowing"))
@@ -175,11 +177,11 @@ public class authenticate extends Activity implements Runnable {
         public void handleMessage(Message msg) {
             mProgressDialog.dismiss();
             if(msg.getData().getBoolean("authenticated")) {
-                authenticate.this.startActivity(new Intent(authenticate.this, survey.class));
+                ctx.startActivity(new Intent(ctx, home.class));
                 Log.d(TAG, "started survey intent");
-                startService(new Intent(authenticate.this, survey_upload.class));
+                startService(new Intent(ctx, survey_upload.class));
                 Log.d(TAG, "started survey upload intent");
-                authenticate.this.finish();
+                this.finish();
             } else {
                 //authentication failed
                 auth_failed();

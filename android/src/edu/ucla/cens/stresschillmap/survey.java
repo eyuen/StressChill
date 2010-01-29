@@ -47,6 +47,7 @@ import android.widget.SeekBar;
 
 public class survey extends Activity
 {
+    private Context ctx;
     private String TAG = "Survey";
     private ArrayList<ArrayList<CheckBox>> group_box_list = new ArrayList<ArrayList<CheckBox>>();
     private ImageButton take_picture;
@@ -66,6 +67,8 @@ public class survey extends Activity
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.survey);
+
+        ctx = survey.this;
 
         stress_value = (TextView) findViewById(R.id.stress_value);
         seek_bar = (SeekBar) findViewById(R.id.chillstress_seekbar);
@@ -439,8 +442,8 @@ public class survey extends Activity
 
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
-            survey.this.startActivity (new Intent(survey.this, survey.class));
-            survey.this.finish();
+            ctx.startActivity (new Intent(ctx, home.class));
+            this.finish();
         }
     };
 

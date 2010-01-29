@@ -16,4 +16,7 @@
     <string name="radio_group_1_option_1">Place</string>
     <string name="radio_group_1_option_2">Environment</string>
     <string name="radio_group_1_option_3">People</string>
+
+    <string name="about_content">StressChill is a partici.. yada yada yada...</string>
+    <string name="instructions_content">Press button foo to start action bar, etc.</string>
 </resources>
