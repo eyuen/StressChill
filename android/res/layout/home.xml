@@ -28,7 +28,7 @@
         android:layout_below="@id/logo"
         android:textStyle="bold"
         android:textSize="25sp"
-        android:text="Map a Fountain!"
+        android:text="Map a Site!"
         />
 
     <View
