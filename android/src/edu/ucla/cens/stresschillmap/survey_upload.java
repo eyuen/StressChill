@@ -160,8 +160,8 @@ public class survey_upload extends Service{
 	    	Log.d(TAG, "After Request");
 	    	
 	    	MultipartEntity entity = new MultipartEntity();
-	    	entity.addPart("q_int", new StringBody(q_int.toString()));
-	    	entity.addPart("q_cat", new StringBody(q_cat.toString()));
+	    	entity.addPart("stressval", new StringBody(q_int.toString()));
+	    	entity.addPart("category", new StringBody(q_cat.toString()));
             entity.addPart("longitude", new StringBody(longitude.toString()));
             entity.addPart("latitude", new StringBody(latitude.toString()));
             entity.addPart("time", new StringBody(time.toString()));
