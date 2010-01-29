@@ -12,12 +12,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 public class survey_db {
-	public static final String KEY_Q_TASTE = "q_taste";
-    public static final String KEY_Q_VISIBILITY = "q_visibility";
-    public static final String KEY_Q_OPERABLE = "q_operable";
-    public static final String KEY_Q_FLOW = "q_flow";
-    public static final String KEY_Q_STYLE = "q_style";
-    public static final String KEY_Q_LOCATION = "q_location";
+	public static final String KEY_Q_INT = "q_int";
+    public static final String KEY_Q_CAT = "q_cat";
 	public static final String KEY_LONGITUDE = "longitude";
 	public static final String KEY_LATITUDE = "latitude";
 	public static final String KEY_TIME = "time";
@@ -37,12 +33,8 @@ public class survey_db {
 	private static final int DATABASE_VERSION = 2;
 	
 	private static final String DATABASE_CREATE = "create table survey_table (_id integer primary key autoincrement, "
-        + "q_taste text not null,"
-        + "q_visibility text not null,"
-        + "q_operable text not null,"
-        + "q_flow text not null,"
-        + "q_style text not null,"
-        + "q_location text not null,"
+        + "q_int text not null,"
+        + "q_cat text not null,"
 		+ "longitude text not null,"
 		+ "latitude text not null,"
 		+ "time text not null,"
@@ -52,12 +44,8 @@ public class survey_db {
 	
     public class survey_db_row extends Object {
     	public long row_id;
-        public String q_taste;
-        public String q_visibility;
-        public String q_operable;
-        public String q_flow;
-        public String q_style;
-        public String q_location;
+        public String q_int;
+        public String q_cat;
     	public String longitude;
     	public String latitude;
     	public String time;
@@ -119,19 +107,13 @@ public class survey_db {
 		}
 	}
 
-	public long createEntry(String q_taste, String q_visibility,
-                            String q_operable, String q_flow, String q_style,
-                            String q_location, String longitude,
-                            String latitude, String time, String version,
-                            String photo_filename)
+	public long createEntry(String q_int, String q_cat,
+                            String longitude, String latitude, String time,
+                            String version, String photo_filename)
 	{
 		ContentValues vals = new ContentValues();
-        vals.put(KEY_Q_TASTE, q_taste);
-        vals.put(KEY_Q_VISIBILITY, q_visibility);
-        vals.put(KEY_Q_OPERABLE, q_operable);
-        vals.put(KEY_Q_FLOW, q_flow);
-        vals.put(KEY_Q_STYLE, q_style);
-        vals.put(KEY_Q_LOCATION, q_location);
+        vals.put(KEY_Q_INT, q_int);
+        vals.put(KEY_Q_CAT, q_cat);
 		vals.put(KEY_LONGITUDE, longitude);
 		vals.put(KEY_LATITUDE, latitude);
 		vals.put(KEY_TIME, time);
@@ -159,6 +141,21 @@ public class survey_db {
         db.execSQL(DATABASE_CREATE);
     }
 
+    private survey_db_row populate_row (Cursor c) {
+        survey_db_row sr = new survey_db_row();
+
+        sr.row_id = c.getLong(0);
+        sr.q_int = c.getString(1);
+        sr.q_cat = c.getString(2);
+        sr.longitude = c.getString(3);
+        sr.latitude = c.getString(4);
+        sr.time = c.getString(5);
+        sr.version = c.getString(6);
+        sr.photo_filename = c.getString(7);
+
+        return sr;
+    }
+
 	public ArrayList <survey_db_row>  fetchAllEntries()
     {
 		ArrayList<survey_db_row> ret = new ArrayList<survey_db_row>();
@@ -166,8 +163,7 @@ public class survey_db {
 		try
 		{
 			Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
-                KEY_Q_TASTE, KEY_Q_VISIBILITY, KEY_Q_OPERABLE, KEY_Q_FLOW,
-                KEY_Q_STYLE, KEY_Q_LOCATION, KEY_LONGITUDE, KEY_LATITUDE,
+                KEY_Q_INT, KEY_Q_CAT, KEY_LONGITUDE, KEY_LATITUDE,
                 KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME}, null, null, null,
                 null, null);
 			int numRows = c.getCount();
@@ -176,22 +172,8 @@ public class survey_db {
 			
 			for (int i =0; i < numRows; ++i)
 			{
-				survey_db_row sr = new survey_db_row();
-
-				sr.row_id = c.getLong(0);
-                sr.q_taste = c.getString(1);
-                sr.q_visibility = c.getString(2);
-                sr.q_operable = c.getString(3);
-                sr.q_flow = c.getString(4);
-                sr.q_style = c.getString(5);
-                sr.q_location = c.getString(6);
-                sr.longitude = c.getString(7);
-                sr.latitude = c.getString(8);
-                sr.time = c.getString(9);
-                sr.version = c.getString(10);
-                sr.photo_filename = c.getString(11);
+				survey_db_row sr = populate_row (c); 
 				ret.add(sr);
-
 				c.moveToNext();
 			}
 			c.close();
@@ -209,8 +191,7 @@ public class survey_db {
         try
         {
             String[] columns = new String[] {KEY_ROWID,
-                KEY_Q_TASTE, KEY_Q_VISIBILITY, KEY_Q_OPERABLE, KEY_Q_FLOW,
-                KEY_Q_STYLE, KEY_Q_LOCATION, KEY_LONGITUDE, KEY_LATITUDE,
+                KEY_Q_INT, KEY_Q_CAT, KEY_LONGITUDE, KEY_LATITUDE,
                 KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME};
             String selection = KEY_LONGITUDE + "<>\"\"" + " AND " +
                                KEY_LATITUDE + "<>\"\"";
@@ -223,22 +204,8 @@ public class survey_db {
 
             for (int i =0; i < numRows; ++i)
             {
-                survey_db_row sr = new survey_db_row();
-
-                sr.row_id = c.getLong(0);
-                sr.q_taste = c.getString(1);
-                sr.q_visibility = c.getString(2);
-                sr.q_operable = c.getString(3);
-                sr.q_flow = c.getString(4);
-                sr.q_style = c.getString(5);
-                sr.q_location = c.getString(6);
-                sr.longitude = c.getString(7);
-                sr.latitude = c.getString(8);
-                sr.time = c.getString(9);
-                sr.version = c.getString(10);
-                sr.photo_filename = c.getString(11);
+                survey_db_row sr = populate_row (c);
                 ret.add(sr);
-
                 c.moveToNext();
             }
             c.close();
@@ -252,33 +219,21 @@ public class survey_db {
 	public survey_db_row fetchEntry(long rowId) throws SQLException
 	{
         Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
-            KEY_Q_TASTE, KEY_Q_VISIBILITY, KEY_Q_OPERABLE, KEY_Q_FLOW,
-            KEY_Q_STYLE, KEY_Q_LOCATION, KEY_LONGITUDE, KEY_LATITUDE, KEY_TIME,
+            KEY_Q_INT, KEY_Q_CAT, KEY_LONGITUDE, KEY_LATITUDE, KEY_TIME,
             KEY_VERSION, KEY_PHOTO_FILENAME}, KEY_ROWID+"="+rowId, null, null,
             null, null);
-		survey_db_row sr = new survey_db_row();
+		survey_db_row sr;
 
 		if (c != null) {
 			c.moveToFirst();
-
-            sr.row_id = c.getLong(0);
-            sr.q_taste = c.getString(1);
-            sr.q_visibility = c.getString(2);
-            sr.q_operable = c.getString(3);
-            sr.q_flow = c.getString(4);
-            sr.q_style = c.getString(5);
-            sr.q_location = c.getString(6);
-            sr.longitude = c.getString(7);
-            sr.latitude = c.getString(8);
-            sr.time = c.getString(9);
-            sr.version = c.getString(10);
-            sr.photo_filename = c.getString(11);
+            sr = populate_row (c);
 		}
 		else
 		{
+            sr = new survey_db_row();
             sr.row_id = -1;
-            sr.q_taste = sr.q_visibility = sr.q_operable = sr.q_flow =
-            sr.q_style = sr.q_location = sr.longitude = sr.latitude = sr.time =
+            sr.q_int = sr.q_cat =
+            sr.longitude = sr.latitude = sr.time =
             sr.photo_filename = null;
 		}
 		c.close();

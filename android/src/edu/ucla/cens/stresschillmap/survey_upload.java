@@ -107,9 +107,8 @@ public class survey_upload extends Service{
 						try
 						{
 							if(doPost(getString(R.string.surveyuploadurl),
-                                      sr.q_taste, sr.q_visibility,
-                                      sr.q_operable, sr.q_flow, sr.q_style,
-                                      sr.q_location, sr.longitude, sr.latitude,
+                                      sr.q_int, sr.q_cat,
+                                      sr.longitude, sr.latitude,
                                       sr.time, sr.version, sr.photo_filename))
 							{
 								if(file != null) {
@@ -147,10 +146,9 @@ public class survey_upload extends Service{
 		 * but the API seems a bit complicated. If you figure out how to use it and its more
 		 * efficient then let me know (vids@ucla.edu) Thanks.
 		 */
-	    private boolean doPost(String url, String q_taste, String q_visibility,
-                               String q_operable, String q_flow, String q_style,
-                               String q_location, String longitude,
-                               String latitude, String time, String version,
+	    private boolean doPost(String url, String q_int, String q_cat,
+                               String longitude, String latitude, String time,
+                               String version,
                                String photo_filename) throws IOException
 	    {
 	    	Log.d(TAG, "Attempting to send file:" + photo_filename);
@@ -162,17 +160,12 @@ public class survey_upload extends Service{
 	    	Log.d(TAG, "After Request");
 	    	
 	    	MultipartEntity entity = new MultipartEntity();
-	    	entity.addPart("q_taste", new StringBody(q_taste.toString()));
-	    	entity.addPart("q_visibility", new StringBody(q_visibility.toString()));
-            entity.addPart("q_operable", new StringBody(q_operable.toString()));
-            entity.addPart("q_flow", new StringBody(q_flow.toString()));
-            entity.addPart("q_style", new StringBody(q_style.toString()));
-            entity.addPart("q_location", new StringBody(q_location.toString()));
+	    	entity.addPart("q_int", new StringBody(q_int.toString()));
+	    	entity.addPart("q_cat", new StringBody(q_cat.toString()));
             entity.addPart("longitude", new StringBody(longitude.toString()));
             entity.addPart("latitude", new StringBody(latitude.toString()));
             entity.addPart("time", new StringBody(time.toString()));
             entity.addPart("version", new StringBody(version.toString()));
-
 	    	
 	    	Log.d(TAG, "After adding string");
 
