@@ -66,8 +66,8 @@ class UploadSurvey(webapp.RequestHandler):
 		#	s.user = users.get_current_user()
 		s.longitude = self.request.get('longitude')
 		s.latitude = self.request.get('latitude')
-		s.stressval = self.request.get('stressval')
-		s.comments = self.requrest.get('comments')
+		s.stressval = float(self.request.get('stressval'))
+		s.comments = self.request.get('comments')
 		s.category = self.request.get('category')
 		s.version = self.request.get('version')
 
