@@ -68,7 +68,7 @@ class UploadSurvey(webapp.RequestHandler):
 		s.latitude = self.request.get('latitude')
 		s.stressval = self.request.get('stressval')
 		s.comments = self.requrest.get('comments')
-        s.category = self.request.get('category')
+		s.category = self.request.get('category')
 		s.version = self.request.get('version')
 
 		file_content = self.request.get('file')
