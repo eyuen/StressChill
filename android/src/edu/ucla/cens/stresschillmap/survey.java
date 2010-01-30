@@ -50,7 +50,6 @@ public class survey extends Activity
 {
     private Context ctx;
     private String TAG = "Survey";
-    private ArrayList<ArrayList<CheckBox>> group_box_list = new ArrayList<ArrayList<CheckBox>>();
     private ImageButton take_picture;
     private Button submit_button;
     //private Button clear_history;
@@ -199,7 +198,7 @@ public class survey extends Activity
                 return false;
         }
         ctx.startActivity (i);
-        this.finish();
+        //this.finish();
         return true;
     }
 
@@ -221,6 +220,8 @@ public class survey extends Activity
         alert.show();
     }
 
+    /* XXX if uncommented location won't be able to be updated when other
+    * views are active
     protected void onPause() {
         if (null != ll) {
             ll.my_delete();
@@ -242,6 +243,7 @@ public class survey extends Activity
         }
         super.onStop();
     }
+    */
     protected void onStart() {
         super.onStart();
         if (null == ll) {
@@ -381,7 +383,7 @@ public class survey extends Activity
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
             ctx.startActivity (new Intent(ctx, home.class));
-            survey.this.finish();
+            //survey.this.finish();
         }
     };
 
