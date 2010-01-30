@@ -33,7 +33,7 @@ class Survey(db.Model):
 	longitude =	db.StringProperty()
 	latitude =	db.StringProperty()
 	stressval =	db.FloatProperty()
-	comments =	db.StringProperty()
+	comments =	db.TextProperty()
 	category =	db.StringProperty()
 	version =	db.StringProperty()
 	photo =		db.BlobProperty()
@@ -70,7 +70,7 @@ class UploadSurvey(webapp.RequestHandler):
 		s.longitude = self.request.get('longitude')
 		s.latitude = self.request.get('latitude')
 		s.stressval = float(self.request.get('stressval'))
-		s.comments = self.request.get('comments')
+		s.comments = str(self.request.get('comments')).replace('\n', ' ')
 		s.category = self.request.get('category')
 		s.version = self.request.get('version')
 
