@@ -184,14 +184,14 @@ public class map extends MapActivity {
         MySiteOverlay(Drawable defaultMarker) {
             super (boundCenterBottom(defaultMarker));
 
-            String point_url = "http://we-tap.appspot.com/get_point_summary";
+            String point_url = getString(R.string.map_point_summary);
             String point_data = getUrlData (point_url);
 
             try {
                 JSONObject json = new JSONObject (point_data.toString());
                 for (int i = 0;; i++) {
                     JSONObject entry = json.getJSONObject(Integer.toString(i));
-                    String text = "Taste: " + decode_survey ("taste", (String)entry.get("q_taste"));
+                    String text = "Stress Level: " + Double.toString((Double)entry.get("stressval"));
                     overlay_items.add (new OverlayItem(get_point(Float.valueOf((String)entry.get("latitude")),
                                                        Float.valueOf((String)entry.get("longitude"))),
                                              text,
@@ -200,48 +200,6 @@ public class map extends MapActivity {
             } catch (JSONException e) {}
 
             populate();
-        }
-
-        private String decode_survey (String q, String v) {
-            int k = Integer.valueOf(v);
-
-            if (q.equals("taste")) {
-                switch (k) {
-                    case 0: return "Same as home tap";
-                    case 1: return "Better";
-                    case 2: return "Worse";
-                    case 3: return "Can't answer";
-                }
-            } else if (q.equals("visibility")) {
-                switch (k) {
-                    case 0: return "Visible";
-                    case 1: return "Hidden";
-                }
-            } else if (q.equals("operable")) {
-                switch (k) {
-                    case 0: return "Working";
-                    case 1: return "Broken";
-                    case 2: return "Needs repair";
-                }
-            } else if (q.equals("flow")) {
-                switch (k) {
-                    case 0: return "Strong";
-                    case 1: return "Trickle";
-                    case 2: return "Too strong";
-                }
-            } else if (q.equals("style")) {
-                switch (k) {
-                    case 0: return "Refilling";
-                    case 1: return "Drinking";
-                    case 2: return "Both";
-                }
-            } else if (q.equals("location")) {
-                switch (k) {
-                    case 0: return "Indoor";
-                    case 1: return "Outdoors";
-                }
-            }
-            return "";
         }
 
         private GeoPoint get_point (double lat, double lon) {

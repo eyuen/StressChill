@@ -11,7 +11,8 @@
     <string name="baseurl">http://stresschill.appspot.com</string>
     <string name="loginurl">http://stresschill.appspot.com/_ah/login</string>
     <string name="surveyuploadurl">"http://stresschill.appspot.com/upload_survey"</string>
-    <string name="map_full_point">"foobar"</string>
+	<string name="map_point_summary">"http://stresschill.appspot.com/get_point_summary"</string>
+    <string name="map_full_point">"http://stresschill.appspot.com/get_a_point"</string>
 
     <string name="radio_group_1_name">What about this location led you to tag it?</string>
     <string name="radio_group_1_option_1">People</string>

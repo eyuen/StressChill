@@ -52,14 +52,10 @@ public class popup extends Activity {
         SharedPreferences perf = this.getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
         String req_key = perf.getString("site_key", "");
 
-        String flow = "Not rated";
-        String photo = ""; 
-        String operable = "Not rated";
-        String version = "Not rated";
-        String style = "Not rated";
-        String visibility = "Not rated";
-        String taste = "Not rated";
-        String location = "Not specified";
+        String photo = "";
+        String stressval = "0";
+        String category = "Not provided"; 
+        String comments = "";
 
         if (req_key != null && req_key != "") {
             String site_url = getString(R.string.map_full_point) + "?key=" + req_key;
@@ -72,30 +68,18 @@ public class popup extends Activity {
             try { entry = new JSONObject (site_data.toString()); }
             catch (JSONException e) { e.printStackTrace(); return; }
 
-            try { flow = (String) entry.get("q_flow"); }
-            catch (JSONException e) { flow = null; }
-            catch (ClassCastException e) { flow = null; }
+            try { stressval = Double.toString((Double) entry.get("stressval")); }
+            catch (JSONException e) { stressval = ""; }
+            catch (ClassCastException e) { stressval = ""; }
             try { photo = (String) entry.get("photo"); }
             catch (JSONException e) { photo = null; }
             catch (ClassCastException e) { photo = null; }
-            try { operable = (String) entry.get("q_operable"); }
-            catch (JSONException e) { operable = null; }
-            catch (ClassCastException e) { operable = null; }
-            try { version = (String) entry.get("version"); }
-            catch (JSONException e) { version = null; }
-            catch (ClassCastException e) { version = null; }
-            try { style = (String) entry.get("q_style"); }
-            catch (JSONException e) { style = null; }
-            catch (ClassCastException e) { style = null; }
-            try { visibility = (String) entry.get("q_visibility"); }
-            catch (JSONException e) { visibility = null; }
-            catch (ClassCastException e) { visibility = null; }
-            try { taste = (String) entry.get("q_taste"); }
-            catch (JSONException e) { taste = null; }
-            catch (ClassCastException e) { taste = null; }
-            try { location = (String) entry.get("q_location"); }
-            catch (JSONException e) { location = null; }
-            catch (ClassCastException e) { location = null; }
+            try { category = (String) entry.get("category"); }
+            catch (JSONException e) { category = ""; }
+            catch (ClassCastException e) { category = ""; }
+            try { comments = (String) entry.get("comments"); }
+            catch (JSONException e) { comments = ""; }
+            catch (ClassCastException e) { comments = ""; }
         }
 
         Log.d("POPUP", "about to set values from appspot");
@@ -105,73 +89,10 @@ public class popup extends Activity {
         wv.loadUrl(photo);
         Log.d("POPUP", "loaded url: " + photo);
 
-        TextView tv = (TextView) findViewById (R.id.taste_score);
-        tv.setText (decode_survey("taste", taste));
-
-        tv = (TextView) findViewById (R.id.visibility_score);
-        tv.setText (decode_survey("visibility", visibility));
-
-        tv = (TextView) findViewById (R.id.operable_score);
-        tv.setText (decode_survey("operable", operable));
-
-        tv = (TextView) findViewById (R.id.flow_score);
-        tv.setText (decode_survey("flow", flow));
-        
-        tv = (TextView) findViewById (R.id.style_score);
-        tv.setText (decode_survey("style", style));
-
-        tv = (TextView) findViewById (R.id.location_score);
-        tv.setText (decode_survey("location", location));
+        ((TextView) findViewById (R.id.item_0)).setText(stressval);
+        ((TextView) findViewById (R.id.item_1)).setText(category);
+        ((TextView) findViewById (R.id.item_2)).setText(comments);
     }
-
-    private String decode_survey (String q, String v) {
-        int k;
-
-        if (q == null || v == null) {
-            return "Not rated";
-        }
-
-        k = Integer.valueOf(v);
-
-        if (q.equals("taste")) {
-            switch (k) {
-                case 0: return "Same as home tap";
-                case 1: return "Better";
-                case 2: return "Worse";
-                case 3: return "Can't answer";
-            }
-        } else if (q.equals("visibility")) {
-            switch (k) {
-                case 0: return "Visible";
-                case 1: return "Hidden";
-            }
-        } else if (q.equals("operable")) {
-            switch (k) {
-                case 0: return "Working";
-                case 1: return "Broken";
-                case 2: return "Needs repair";
-            }
-        } else if (q.equals("flow")) {
-            switch (k) {
-                case 0: return "Strong";
-                case 1: return "Trickle";
-                case 2: return "Too strong";
-            }
-        } else if (q.equals("style")) {
-            switch (k) {
-                case 0: return "Refilling";
-                case 1: return "Drinking";
-                case 2: return "Both";
-            }
-        } else if (q.equals("location")) {
-            switch (k) {
-                case 0: return "Indoor";
-                case 1: return "Outdoors";
-            }
-        }
-        return "Not rated";
-    }
-
 
     private String getUrlData(String url) {
         String websiteData = null;
