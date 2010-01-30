@@ -40,10 +40,12 @@ public class survey_upload extends Service{
     @Override
     public void onCreate() {
         preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
+        /* XXX temporarily allow unauthorized upload... (testing and stuff)
         if (!preferences.getBoolean("authenticated", false)) {
             Log.d(TAG, "user is not authenticated... stopping this service");
             return;
         }
+        */
 
 		sdb = new survey_db(this);
 
