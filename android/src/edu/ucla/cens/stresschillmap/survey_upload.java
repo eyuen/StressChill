@@ -157,7 +157,14 @@ public class survey_upload extends Service{
 	    	Log.d(TAG, "Trying to post: "+url.toString()+" "+photo_filename.toString() + " "+ longitude.toString() + " ...");
 	    	
 	    	HttpClient httpClient = authenticate.httpClient;
+			if (null == httpClient) {
+				httpClient = new DefaultHttpClient();
+			}
 	    	HttpPost request = new HttpPost(url.toString());
+
+			if (null == request) {
+				return false;
+			}
 	    	
 	    	Log.d(TAG, "After Request");
 	    	
