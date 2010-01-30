@@ -19,16 +19,19 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.LayoutInflater;
 
 import android.widget.ImageView;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.RadioButton;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.CheckBox;
-import android.widget.RadioGroup;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.app.AlertDialog;
+import android.app.Dialog;
        
 
 import android.graphics.Bitmap;
@@ -60,10 +63,10 @@ public class survey extends Activity
     private SharedPreferences preferences;
     private TextView stress_value;
     private SeekBar seek_bar;
-    private RadioGroup radio_group_1;
-    private RadioGroup radio_group_2;
-    private RadioGroup radio_group_3;
-    private ArrayList<ArrayList<RadioButton>> radio_button_list = new ArrayList<ArrayList<RadioButton>>();
+    private View[][] view_list = new View[3][2];
+    private Spinner spinner_0;
+    private Spinner spinner_1;
+    private Spinner spinner_2;
     private TextView comment;
 
     /** Called when the activity is first created. */
@@ -102,57 +105,41 @@ public class survey extends Activity
 
         Log.d(TAG, "gps listener and db are started");
 
-        // add radio groups
-        radio_group_1 = (RadioGroup) findViewById (R.id.radio_group_1);
-        radio_group_2 = (RadioGroup) findViewById (R.id.radio_group_2);
-        radio_group_3 = (RadioGroup) findViewById (R.id.radio_group_3);
+        view_list[0][0] = findViewById(R.id.item_row_0_0);
+        view_list[0][1] = findViewById(R.id.item_row_0_1);
+        view_list[1][0] = findViewById(R.id.item_row_1_0);
+        view_list[1][1] = findViewById(R.id.item_row_1_1);
+        view_list[2][0] = findViewById(R.id.item_row_2_0);
+        view_list[2][1] = findViewById(R.id.item_row_2_1);
 
-        // add radio button ids
-        ArrayList<RadioButton> lcb;
-        lcb = new ArrayList<RadioButton>();
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_1));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_2));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_3));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_4));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_5));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_6));
-        radio_button_list.add (lcb);
-        Log.d (TAG, "added radio_group_1 options");
+        spinner_0 = (Spinner) findViewById(R.id.spinner_00);
+        ArrayAdapter adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_00, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner_0.setAdapter(adapter);
+        spinner_0.setOnItemSelectedListener(spin_listener_0);
 
-        lcb = new ArrayList<RadioButton>();
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_1));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_2));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_3));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_4));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_5));
-        radio_button_list.add (lcb);
-        Log.d (TAG, "added radio_group_2 options");
+        spinner_1 = (Spinner) findViewById(R.id.spinner_01);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_01, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner_1.setAdapter(adapter);
 
-        lcb = new ArrayList<RadioButton>();
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_1));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_2));
-        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_3));
-        radio_button_list.add (lcb);
-        Log.d (TAG, "added radio_group_3 options");
+        spinner_2 = (Spinner) findViewById(R.id.spinner_02);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_02, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner_2.setAdapter(adapter);
 
-
-        // add change listener to radio group 1
-        radio_group_1.setOnCheckedChangeListener (radio_group_1_listener);
-
-        // add submit button
+        // add buttons
         submit_button = (Button) findViewById(R.id.upload_button);
-
-        // add picture button
         take_picture = (ImageButton) findViewById(R.id.image_button);
+        
+        // add image preview
         image_preview = (ImageView) findViewById(R.id.image_preview);
 
-        // add image thumbnail view
-        image_preview = (ImageView) findViewById(R.id.image_button);
-
-        // add submit button listener
+        // add button listeners
         submit_button.setOnClickListener(submit_button_listener);
-
-        // add take picture button listener
         take_picture.setOnClickListener(take_picture_listener);
 
         // restore previous state (if available)
@@ -284,50 +271,6 @@ public class survey extends Activity
         }
     };
 
-    RadioGroup.OnCheckedChangeListener radio_group_1_listener = new RadioGroup.OnCheckedChangeListener() {
-        public void onCheckedChanged (RadioGroup group, int checkedId) {
-            List<RadioButton> lcb = radio_button_list.get(0);
-            int index = -1;
-
-            for (int i = 0; i < lcb.size(); i++) {
-                RadioButton rb = lcb.get(i);
-                if (checkedId == rb.getId()) {
-                    index = i;
-                    break;
-                }
-            }
-
-            if (-1 == index) {
-                return;
-            }
-
-            radio_group_2.setVisibility (0 == index ? View.VISIBLE : View.GONE);
-            radio_group_3.setVisibility (5 == index ? View.VISIBLE : View.GONE);
-        }
-    };
-
-    private int get_checked_index (RadioGroup group, int group_index) {
-        int id = group.getCheckedRadioButtonId();
-        List<RadioButton> lcb = radio_button_list.get(group_index);
-        int index = -1;
-
-        for (int i = 0; i < lcb.size(); i++) {
-            RadioButton rb = lcb.get (i);
-            if (id == rb.getId()) {
-                index = i;
-                break;
-            }
-        }
-
-        return index;
-    }
-
-    private String get_checked_string (int group_index, int radio_index) {
-        List<RadioButton> lcb = radio_button_list.get(group_index);
-        RadioButton rb = lcb.get (radio_index);
-        return rb.getText().toString();
-    }
-
     OnClickListener submit_button_listener = new OnClickListener() {
         public void onClick(View v) {
             Date d = new Date();
@@ -336,13 +279,27 @@ public class survey extends Activity
             String q_cat = "0";
             String q_com = comment.getText().toString();
 
-            int group_1_ans = get_checked_index (radio_group_1, 0);
-            int group_2_ans = get_checked_index (radio_group_2, 1);
-            int group_3_ans = get_checked_index (radio_group_3, 2);
+            /* figure out which category the user selected
+             * there is likely a much more efficient/clean way to do this.
+             * please do implement it if it comes to you */
+            TextView v0 = (TextView) spinner_0.getSelectedView();
+            TextView v1 = (TextView) spinner_1.getSelectedView();
+            TextView v2 = (TextView) spinner_2.getSelectedView();
 
-            if (0 == group_1_ans || 5 == group_1_ans) {
-                if ((0 == group_1_ans && -1 == group_2_ans)
-                    || (5 == group_1_ans && -1 == group_3_ans))
+            if (null == v0
+                || v0.getText().toString().equals("Select one..."))
+            {
+                Toast
+                .makeText (survey.this,
+                           "You have not answered the category question.",
+                           Toast.LENGTH_LONG)
+                .show();
+                return;
+            }
+
+            if (v0.getText().toString().equals(getString(R.string.radio_group_1_option_1))) {
+                if (null == v1
+                    || v1.getText().toString().equals("Select one..."))
                 {
                     Toast
                     .makeText (survey.this,
@@ -351,11 +308,21 @@ public class survey extends Activity
                     .show();
                     return;
                 }
-
-                q_cat = get_checked_string (0 == group_1_ans ? 1 : 2,
-                                            0 == group_1_ans ? group_2_ans : group_3_ans);
+                q_cat = v1.getText().toString();
+            } else if (v0.getText().toString().equals(getString(R.string.radio_group_1_option_6))) {
+                if (null == v2
+                    || v2.getText().toString().equals("Select one..."))
+                {
+                    Toast
+                    .makeText (survey.this,
+                               "You have not answered the sub category question.",
+                               Toast.LENGTH_LONG)
+                    .show();
+                    return;
+                }
+                q_cat = v2.getText().toString();
             } else {
-                q_cat = get_checked_string (0, group_1_ans);
+                q_cat = v0.getText().toString();
             }
 
             q_int = ((TextView)findViewById (R.id.stress_value)).getText().toString();
@@ -423,6 +390,16 @@ public class survey extends Activity
             sdb.close();
             */
         }
+    };
+
+    private Spinner.OnItemSelectedListener spin_listener_0 = new Spinner.OnItemSelectedListener() {
+        public void onItemSelected(AdapterView parent, View v, int position, long id) {
+            for (int i = 0; i < 2; i++) {
+                view_list[1][i].setVisibility (1 == position ? View.VISIBLE : View.GONE);
+                view_list[2][i].setVisibility (6 == position ? View.VISIBLE : View.GONE);
+            }
+        }
+        public void onNothingSelected(AdapterView parent) { }
     };
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

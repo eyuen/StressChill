@@ -56,9 +56,17 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             >
+            <TextView android:id="@+id/stress_label"
+                android:layout_centerVertical="true"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stress"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                />
             <SeekBar android:id="@+id/chillstress_seekbar"
                 android:layout_centerVertical="true"
-                android:layout_centerHorizontal="true"
+                android:layout_toRightOf="@id/stress_label"
                 android:paddingLeft="10sp"
                 android:paddingRight="10sp"
                 android:layout_width="150sp"
@@ -74,19 +82,9 @@
                 android:textStyle="bold"
                 android:textSize="20sp"
                 android:text="Chill" />
-            <TextView android:id="@+id/stress_label"
-                android:layout_toLeftOf="@id/chillstress_seekbar"
-                android:layout_centerVertical="true"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Stress"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                />
             <TextView android:id="@+id/stress_value"
                 android:layout_centerVertical="true"
-                android:layout_centerHorizontal="true"
-                android:layout_below="@id/chillstress_seekbar"
+                android:layout_toRightOf="@id/chill_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingLeft="10sp"
@@ -101,77 +99,65 @@
 
     <View android:layout_height="10sp" />
 
-    <TableRow>
-        <RadioGroup android:id="@+id/radio_group_1"
+    <TableRow android:id="@+id/item_row_0_0">
+        <TextView
+            android:layout_width="315sp"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:text="@string/radio_group_1_name"
+        />
+    </TableRow>
+    <TableRow android:id="@+id/item_row_0_1">
+        <Spinner
+            android:id="@+id/spinner_00"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            >
-
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:text="@string/radio_group_1_name"/>
-
-            <RadioButton android:id="@+id/radio_group_1_option_1" android:text="@string/radio_group_1_option_1" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_1_option_2" android:text="@string/radio_group_1_option_2" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_1_option_3" android:text="@string/radio_group_1_option_3" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_1_option_4" android:text="@string/radio_group_1_option_4" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_1_option_5" android:text="@string/radio_group_1_option_5" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_1_option_6" android:text="@string/radio_group_1_option_6" android:checked="false" />
-        </RadioGroup>
+            android:drawSelectorOnTop="true"
+            android:prompt="@string/radio_group_1_name"
+        />
     </TableRow>
 
     <View android:layout_height="10sp"/>
 
-    <TableRow>
-        <RadioGroup
-            android:id="@+id/radio_group_2"
+    <TableRow android:id="@+id/item_row_1_0">
+        <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-        >
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:text="@string/radio_group_2_name"
-            />
-
-            <RadioButton android:id="@+id/radio_group_2_option_1" android:text="@string/radio_group_2_option_1" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_2_option_2" android:text="@string/radio_group_2_option_2" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_2_option_3" android:text="@string/radio_group_2_option_3" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_2_option_4" android:text="@string/radio_group_2_option_4" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_2_option_5" android:text="@string/radio_group_2_option_5" android:checked="false" />
-        </RadioGroup>
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:text="@string/radio_group_2_name"
+        />
+    </TableRow>
+    <TableRow android:id="@+id/item_row_1_1">
+        <Spinner
+            android:id="@+id/spinner_01"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:drawSelectorOnTop="true"
+            android:prompt="@string/radio_group_2_name"
+        />
     </TableRow>
 
     <View android:layout_height="10sp"/>
 
-    <TableRow>
-        <RadioGroup
-            android:id="@+id/radio_group_3"
+    <TableRow android:id="@+id/item_row_2_0">
+        <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-        >
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:text="@string/radio_group_3_name"
-            />
-
-            <RadioButton android:id="@+id/radio_group_3_option_1" android:text="@string/radio_group_3_option_1" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_3_option_2" android:text="@string/radio_group_3_option_2" android:checked="false" />
-            <RadioButton android:id="@+id/radio_group_3_option_3" android:text="@string/radio_group_3_option_3" android:checked="false" />
-        </RadioGroup>
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:text="@string/radio_group_3_name"
+        />
+    </TableRow>
+    <TableRow android:id="@+id/item_row_2_1">
+        <Spinner
+            android:id="@+id/spinner_02"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:drawSelectorOnTop="true"
+            android:prompt="@string/radio_group_3_name"
+        />
     </TableRow>
 
     <View android:layout_height="10sp"/>
@@ -203,6 +189,8 @@
                 android:autoText="true"
                 android:editable="true"
                 android:maxLines="5"
+                android:gravity="top"
+                android:scrollbars="vertical"
                 />
         </RelativeLayout>
     </TableRow>
