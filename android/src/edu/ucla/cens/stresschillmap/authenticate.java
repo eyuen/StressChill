@@ -54,7 +54,7 @@ public class authenticate extends Activity implements Runnable {
 	private static final String TAG = "Authentication";
     private static final int DIALOG_PROGRESS = 1;
 
-	public static HttpClient httpClient;
+	public static HttpClient httpClient = null;
     private SharedPreferences preferences;
     private String authToken = "";
     private ProgressDialog mProgressDialog;
@@ -181,7 +181,7 @@ public class authenticate extends Activity implements Runnable {
                 Log.d(TAG, "started survey intent");
                 startService(new Intent(ctx, survey_upload.class));
                 Log.d(TAG, "started survey upload intent");
-                this.finish();
+                authenticate.this.finish();
             } else {
                 //authentication failed
                 auth_failed();
@@ -258,7 +258,7 @@ public class authenticate extends Activity implements Runnable {
             .setCancelable(false)
             .setPositiveButton("Exit", new DialogInterface.OnClickListener() {
                 public void onClick(final DialogInterface dialog, final int id) {
-                    authenticate.this.startActivity(new Intent(authenticate.this, survey.class));
+                    authenticate.this.startActivity(new Intent(authenticate.this, home.class)); //XXX
                     Log.d(TAG, "started survey intent");
                     startService(new Intent(authenticate.this, survey_upload.class));
                     Log.d(TAG, "started survey upload intent");
