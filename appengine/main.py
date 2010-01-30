@@ -12,12 +12,15 @@ from google.appengine.ext.webapp import template
 import cStringIO
 import csv
 
+BASE_URL = "http://stresschill.appspot.com"
+
 def extract_surveys(surveys):
 	extracted = []
 	for s in surveys:
 		item = {}
 		item['stressval'] = s.stressval
 		item['category'] = s.category
+		item['comments'] = s.comments
 		item['longitude'] = s.longitude
 		item['latitude'] = s.latitude
 		item['key'] = str(s.key())
@@ -113,10 +116,11 @@ class GetAPoint(webapp.RequestHandler):
 				surveys = db.GqlQuery("SELECT * FROM Survey WHERE __key__ = :1", db_key)
 				for s in surveys:
 					e = {}
-					e['photo'] = "http://we-tap.appspot.com/get_image_thumb?key=" + req_key;
+					e['photo'] = BASE_URL + "/get_image_thumb?key=" + req_key;
 					e['latitude'] = s.latitude
 					e['longitude'] = s.longitude
 					e['stressval'] = s.stressval
+					e['category'] = s.category
 					e['comments'] = s.comments
 					e['key'] = str(s.key())
 					e['version'] = s.version
@@ -146,7 +150,7 @@ class GetImageThumb(webapp.RequestHandler):
 	def get(self):
 		self.response.headers['Content-type'] = 'text/html'
 		req_key = self.request.get('key')
-		self.response.out.write("<html><body><img src=\"http://we-tap.appspot.com/get_an_image?key=")
+		self.response.out.write("<html><body><img src=\"" + BASE_URL + "/get_an_image?key=")
 		self.response.out.write(req_key)
 		self.response.out.write("\" width=\"180\" height=\"130\"></body></html>")
 
@@ -211,7 +215,7 @@ class DownloadAllData(webapp.RequestHandler):
 					s.stressval,
 					s.category,
 					s.comments,
-					"http://stresschill.appspot.com/get_an_image?key="+str(s.key())
+					BASE_URL + "/get_an_image?key="+str(s.key())
 					]
 			writer.writerow(new_row)
 
