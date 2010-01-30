@@ -113,16 +113,64 @@
                 android:layout_height="wrap_content"
                 android:textStyle="bold"
                 android:textSize="20sp"
-                android:text="Category:"/>
-            <RadioButton android:id="@+id/option_1"
-                android:text="@string/radio_group_1_option_1"
-                android:checked="false" />
-            <RadioButton android:id="@+id/option_2"
-                android:text="@string/radio_group_1_option_2"
-                android:checked="false" />
-            <RadioButton android:id="@+id/option_3"
-                android:text="@string/radio_group_1_option_3"
-                android:checked="false" />
+                android:text="@string/radio_group_1_name"/>
+
+            <RadioButton android:id="@+id/radio_group_1_option_1" android:text="@string/radio_group_1_option_1" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_1_option_2" android:text="@string/radio_group_1_option_2" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_1_option_3" android:text="@string/radio_group_1_option_3" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_1_option_4" android:text="@string/radio_group_1_option_4" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_1_option_5" android:text="@string/radio_group_1_option_5" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_1_option_6" android:text="@string/radio_group_1_option_6" android:checked="false" />
+        </RadioGroup>
+    </TableRow>
+
+    <View android:layout_height="10sp"/>
+
+    <TableRow>
+        <RadioGroup
+            android:id="@+id/radio_group_2"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+        >
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:text="@string/radio_group_2_name"
+            />
+
+            <RadioButton android:id="@+id/radio_group_2_option_1" android:text="@string/radio_group_2_option_1" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_2_option_2" android:text="@string/radio_group_2_option_2" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_2_option_3" android:text="@string/radio_group_2_option_3" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_2_option_4" android:text="@string/radio_group_2_option_4" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_2_option_5" android:text="@string/radio_group_2_option_5" android:checked="false" />
+        </RadioGroup>
+    </TableRow>
+
+    <View android:layout_height="10sp"/>
+
+    <TableRow>
+        <RadioGroup
+            android:id="@+id/radio_group_3"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+        >
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:textSize="20sp"
+                android:text="@string/radio_group_3_name"
+            />
+
+            <RadioButton android:id="@+id/radio_group_3_option_1" android:text="@string/radio_group_3_option_1" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_3_option_2" android:text="@string/radio_group_3_option_2" android:checked="false" />
+            <RadioButton android:id="@+id/radio_group_3_option_3" android:text="@string/radio_group_3_option_3" android:checked="false" />
         </RadioGroup>
     </TableRow>
 

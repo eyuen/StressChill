@@ -3,19 +3,35 @@
     <string name="app_name">Stress Chill Map</string>
     <string name="version">1</string>
 
-    <string name="preferences">edu.ucla.cens.wetap.preferences</string>
-    <string name="prefs">edu.ucla.cens.wetap.preferences</string>
+    <string name="preferences">edu.ucla.cens.stresschill.preferences</string>
+    <string name="prefs">edu.ucla.cens.stresschill.preferences</string>
     <string name="surveyuploadstarted">Surveys are being uploaded.</string>
     <string name="surveyuploadstopped">Surveys are not being uploaded.</string>
 
-    <string name="baseurl">http://we-tap.appspot.com</string>
-    <string name="loginurl">http://we-tap.appspot.com/_ah/login</string>
-    <string name="surveyuploadurl">"http://we-tap.appspot.com/upload_survey"</string>
+    <string name="baseurl">http://stresschill.appspot.com</string>
+    <string name="loginurl">http://stresschill.appspot.com/_ah/login</string>
+    <string name="surveyuploadurl">"http://stresschill.appspot.com/upload_survey"</string>
     <string name="map_full_point">"foobar"</string>
 
-    <string name="radio_group_1_option_1">Place</string>
-    <string name="radio_group_1_option_2">Environment</string>
-    <string name="radio_group_1_option_3">People</string>
+    <string name="radio_group_1_name">What about this location led you to tag it?</string>
+    <string name="radio_group_1_option_1">People</string>
+    <string name="radio_group_1_option_2">An event</string>
+    <string name="radio_group_1_option_3">A memory</string>
+    <string name="radio_group_1_option_4">A hazard</string>
+    <string name="radio_group_1_option_5">Something fun to do</string>
+    <string name="radio_group_1_option_6">The place itself</string>
+
+    <string name="radio_group_2_name">Sub Category</string>
+    <string name="radio_group_2_option_1">Family</string>
+    <string name="radio_group_2_option_2">Friends</string>
+    <string name="radio_group_2_option_3">Someone else I know</string>
+    <string name="radio_group_2_option_4">Someone I don't know</string>
+    <string name="radio_group_2_option_5">A group or crowd</string>
+
+    <string name="radio_group_3_name">Sub Category</string>
+    <string name="radio_group_3_option_1">Sights</string>
+    <string name="radio_group_3_option_2">Sounds</string>
+    <string name="radio_group_3_option_3">Smells</string>
 
     <string name="about_content">StressChill is a partici.. yada yada yada...</string>
     <string name="instructions_content">Press button foo to start action bar, etc.</string>

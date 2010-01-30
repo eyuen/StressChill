@@ -27,6 +27,7 @@ import android.widget.RadioButton;
 import android.widget.EditText;
 import android.widget.Toast;
 import android.widget.CheckBox;
+import android.widget.RadioGroup;
 import android.app.AlertDialog;
        
 
@@ -60,6 +61,10 @@ public class survey extends Activity
     private SharedPreferences preferences;
     private TextView stress_value;
     private SeekBar seek_bar;
+    private RadioGroup radio_group_1;
+    private RadioGroup radio_group_2;
+    private RadioGroup radio_group_3;
+    private ArrayList<ArrayList<RadioButton>> radio_button_list = new ArrayList<ArrayList<RadioButton>>();
 
     /** Called when the activity is first created. */
     @Override
@@ -74,7 +79,6 @@ public class survey extends Activity
         seek_bar = (SeekBar) findViewById(R.id.chillstress_seekbar);
 
         seek_bar.setOnSeekBarChangeListener (seek_bar_updater);
-        /*
 
         preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
         // allow users to collect data even if they are not yet authenticated
@@ -97,110 +101,61 @@ public class survey extends Activity
 
         Log.d(TAG, "gps listener and db are started");
 
-        // add taste boxes
-        ArrayList<CheckBox> lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.taste_same) );
-        lcb.add( (CheckBox) findViewById(R.id.taste_good) );
-        lcb.add( (CheckBox) findViewById(R.id.taste_bad) );
-        lcb.add( (CheckBox) findViewById(R.id.taste_other) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added taste boxes");
+        // add radio groups
+        radio_group_1 = (RadioGroup) findViewById (R.id.radio_group_1);
+        radio_group_2 = (RadioGroup) findViewById (R.id.radio_group_2);
+        radio_group_3 = (RadioGroup) findViewById (R.id.radio_group_3);
 
-        // add visibility boxes
-        lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.visibility_visible) );
-        lcb.add( (CheckBox) findViewById(R.id.visibility_hidden) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added visibility boxes");
+        // add radio button ids
+        ArrayList<RadioButton> lcb;
+        lcb = new ArrayList<RadioButton>();
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_1));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_2));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_3));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_4));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_5));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_1_option_6));
+        radio_button_list.add (lcb);
+        Log.d (TAG, "added radio_group_1 options");
 
-        // add operable boxes
-        lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.operable_functioning) );
-        lcb.add( (CheckBox) findViewById(R.id.operable_broken) );
-        lcb.add( (CheckBox) findViewById(R.id.operable_needs_repair) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added operable boxes");
+        lcb = new ArrayList<RadioButton>();
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_1));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_2));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_3));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_4));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_2_option_5));
+        radio_button_list.add (lcb);
+        Log.d (TAG, "added radio_group_2 options");
 
-        // add flow boxes
-        lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.flow_strong) );
-        lcb.add( (CheckBox) findViewById(R.id.flow_trickle) );
-        lcb.add( (CheckBox) findViewById(R.id.flow_too_strong) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added flow boxes");
+        lcb = new ArrayList<RadioButton>();
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_1));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_2));
+        lcb.add ((RadioButton)findViewById(R.id.radio_group_3_option_3));
+        radio_button_list.add (lcb);
+        Log.d (TAG, "added radio_group_3 options");
 
-        // add style boxes
-        lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.style_refilling) );
-        lcb.add( (CheckBox) findViewById(R.id.style_drinking) );
-        lcb.add( (CheckBox) findViewById(R.id.style_both) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added style boxes");
 
-        // add location boxes
-        lcb = new ArrayList<CheckBox>();
-        lcb.add( (CheckBox) findViewById(R.id.location_indoor) );
-        lcb.add( (CheckBox) findViewById(R.id.location_outdoors) );
-        group_box_list.add(lcb);
-        Log.d(TAG, "added location boxes");
+        // add change listener to radio group 1
+        radio_group_1.setOnCheckedChangeListener (radio_group_1_listener);
 
         // add submit button
         submit_button = (Button) findViewById(R.id.upload_button);
-        */
 
         // add picture button
         take_picture = (ImageButton) findViewById(R.id.image_button);
         image_preview = (ImageView) findViewById(R.id.image_preview);
 
-        /*
-        // add clear history button
-        //clear_history = (Button) findViewById(R.id.clear_history_button);
-        Log.d(TAG, "added buttons");
-        */
-
         // add image thumbnail view
-        //image_thumbnail = (ImageView) findViewById(R.id.image_button);
-
-        /*
-        // add check box listeners
-        for (int j = 0; j < group_box_list.size(); j++) {
-            lcb = group_box_list.get(j);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                cb.setOnClickListener(check_box_listener);
-            }
-        }
+        image_preview = (ImageView) findViewById(R.id.image_button);
 
         // add submit button listener
         submit_button.setOnClickListener(submit_button_listener);
-        */
 
         // add take picture button listener
         take_picture.setOnClickListener(take_picture_listener);
 
-        /*
-        // add clear history button listener
-        //clear_history.setOnClickListener(clear_history_listener);
-        */
-
         // restore previous state (if available)
         if (savedInstanceState != null && savedInstanceState.getBoolean("started")) {
-            /*
-            for (int i = 0; i < group_box_list.size(); i++) {
-                lcb = group_box_list.get(i);
-                int k = savedInstanceState.getInt(Integer.toString(i));
-
-                for (int j = 0; j < lcb.size(); j++) {
-                    CheckBox cb = (CheckBox) lcb.get(j);
-                    if (j == k) {
-                        cb.setChecked(true);
-                    } else {
-                        cb.setChecked(false);
-                    }
-                }
-            }
-            */
-
             filename = savedInstanceState.getString("filename");
             if ((null != filename) && (filename.toString() != "")) {
                 Bitmap bm = BitmapFactory.decodeFile(filename);
@@ -307,45 +262,9 @@ public class survey extends Activity
     public void onSaveInstanceState(Bundle savedInstanceState) {
         savedInstanceState.putBoolean("started", true);
         savedInstanceState.putString("filename", filename);
-        List<CheckBox> lcb;
-        CheckBox cb;
-
-        for (int i = 0; i < group_box_list.size(); i++) {
-            lcb = group_box_list.get(i);
-            for (int j = 0; j < lcb.size(); j++) {
-                cb = (CheckBox) lcb.get(j);
-                if (cb.isChecked()) {
-                    savedInstanceState.putInt(Integer.toString(i), j);
-                }
-            }
-        }
 
         super.onSaveInstanceState(savedInstanceState);
     }
-
-    OnClickListener check_box_listener = new OnClickListener() {
-        public void onClick(View v) {
-            List<CheckBox> lcb;
-            CheckBox cb = (CheckBox) v;
-            boolean checked = cb.isChecked();
-
-            for (int i = 0; i < group_box_list.size(); i++) {
-                lcb = group_box_list.get(i);
-                int index = lcb.indexOf(cb);
-                
-                if(-1 != index) {
-                    for (i = 0; i < lcb.size(); i++) {
-                        cb = (CheckBox) lcb.get(i);
-                        if (i != index &&
-                            cb.isChecked()) {
-                            cb.setChecked(false);
-                        }
-                    }
-                    return;
-                }
-            }
-        }
-    };
 
     SeekBar.OnSeekBarChangeListener seek_bar_updater = new SeekBar.OnSeekBarChangeListener() {
         public void onStartTrackingTouch(SeekBar seekBar) {
@@ -361,70 +280,80 @@ public class survey extends Activity
         }
     };
 
+    RadioGroup.OnCheckedChangeListener radio_group_1_listener = new RadioGroup.OnCheckedChangeListener() {
+        public void onCheckedChanged (RadioGroup group, int checkedId) {
+            List<RadioButton> lcb = radio_button_list.get(0);
+            int index = -1;
+
+            for (int i = 0; i < lcb.size(); i++) {
+                RadioButton rb = lcb.get(i);
+                if (checkedId == rb.getId()) {
+                    index = i;
+                    break;
+                }
+            }
+
+            if (-1 == index) {
+                return;
+            }
+
+            radio_group_2.setVisibility (0 == index ? View.VISIBLE : View.GONE);
+            radio_group_3.setVisibility (5 == index ? View.VISIBLE : View.GONE);
+        }
+    };
+
+    private int get_checked_index (RadioGroup group, int group_index) {
+        int id = group.getCheckedRadioButtonId();
+        List<RadioButton> lcb = radio_button_list.get(group_index);
+        int index = -1;
+
+        for (int i = 0; i < lcb.size(); i++) {
+            RadioButton rb = lcb.get (i);
+            if (id == rb.getId()) {
+                index = i;
+                break;
+            }
+        }
+
+        return index;
+    }
+
+    private String get_checked_string (int group_index, int radio_index) {
+        List<RadioButton> lcb = radio_button_list.get(group_index);
+        RadioButton rb = lcb.get (radio_index);
+        return rb.getText().toString();
+    }
+
     OnClickListener submit_button_listener = new OnClickListener() {
         public void onClick(View v) {
             Date d = new Date();
 
-            String q_taste = "0";
-            String q_visibility = "0";
-            String q_operable = "0";
-            String q_flow = "0";
-            String q_style = "0";
-            String q_location = "0";
+            String q_int = "0";
+            String q_cat = "0";
 
-            List<CheckBox> lcb = group_box_list.get(0);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_taste = Integer.toString(i);
-                    break;
+            int group_1_ans = get_checked_index (radio_group_1, 0);
+            int group_2_ans = get_checked_index (radio_group_2, 1);
+            int group_3_ans = get_checked_index (radio_group_3, 2);
+
+            if (0 == group_1_ans || 5 == group_1_ans) {
+                if ((0 == group_1_ans && -1 == group_2_ans)
+                    || (5 == group_1_ans && -1 == group_3_ans))
+                {
+                    Toast
+                    .makeText (survey.this,
+                               "You have not answered the sub category question.",
+                               Toast.LENGTH_LONG)
+                    .show();
+                    return;
                 }
+
+                q_cat = get_checked_string (0 == group_1_ans ? 1 : 2,
+                                            0 == group_1_ans ? group_2_ans : group_3_ans);
+            } else {
+                q_cat = get_checked_string (0, group_1_ans);
             }
 
-            lcb = group_box_list.get(1);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_visibility = Integer.toString(i);
-                    break;
-                }
-            }
-
-            lcb = group_box_list.get(2);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_operable = Integer.toString(i);              
-                    break;
-                }
-            }
-
-            lcb = group_box_list.get(3);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_flow = Integer.toString(i);              
-                    break;
-                }
-            }
-
-            lcb = group_box_list.get(4);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_style = Integer.toString(i);              
-                    break;
-                }
-            }
-
-            lcb = group_box_list.get(5);
-            for (int i = 0; i < lcb.size(); i++) {
-                CheckBox cb = (CheckBox) lcb.get(i);
-                if (cb.isChecked()) {
-                    q_location = Integer.toString(i);
-                    break;
-                }
-            }
+            q_int = ((TextView)findViewById (R.id.stress_value)).getText().toString();
 
             String longitude = "";
             String latitude = "";
@@ -432,8 +361,7 @@ public class survey extends Activity
             String photo_filename = filename;
 
             sdb.open();
-            long row_id = sdb.createEntry(q_taste, q_visibility, q_operable,
-                                          q_flow, q_style, q_location, longitude, latitude,
+            long row_id = sdb.createEntry(q_int, q_cat, longitude, latitude,
                                           time, getString(R.string.version), photo_filename);
             sdb.close();
 
@@ -442,12 +370,8 @@ public class survey extends Activity
             sdb.close();
 
             Log.d("SUBMIT SURVEY", Long.toString(sr.row_id) + ", " +
-                                   sr.q_taste + ", " +
-                                   sr.q_visibility + ", " +
-                                   sr.q_operable + ", " +
-                                   sr.q_flow + ", " +
-                                   sr.q_style + ", " +
-                                   sr.q_location + ", " +
+                                   sr.q_int + ", " +
+                                   sr.q_cat + ", " +
                                    sr.longitude + ", " +
                                    sr.latitude + ", " +
                                    sr.time + ", " +
@@ -457,7 +381,7 @@ public class survey extends Activity
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
             ctx.startActivity (new Intent(ctx, home.class));
-            this.finish();
+            survey.this.finish();
         }
     };
 
