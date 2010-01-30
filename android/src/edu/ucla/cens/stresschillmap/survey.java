@@ -64,6 +64,7 @@ public class survey extends Activity
     private RadioGroup radio_group_2;
     private RadioGroup radio_group_3;
     private ArrayList<ArrayList<RadioButton>> radio_button_list = new ArrayList<ArrayList<RadioButton>>();
+    private TextView comment;
 
     /** Called when the activity is first created. */
     @Override
@@ -74,6 +75,7 @@ public class survey extends Activity
 
         ctx = survey.this;
 
+        comment = (EditText) findViewById(R.id.comment);
         stress_value = (TextView) findViewById(R.id.stress_value);
         seek_bar = (SeekBar) findViewById(R.id.chillstress_seekbar);
 
@@ -332,6 +334,7 @@ public class survey extends Activity
 
             String q_int = "0";
             String q_cat = "0";
+            String q_com = comment.getText().toString();
 
             int group_1_ans = get_checked_index (radio_group_1, 0);
             int group_2_ans = get_checked_index (radio_group_2, 1);
@@ -363,7 +366,7 @@ public class survey extends Activity
             String photo_filename = filename;
 
             sdb.open();
-            long row_id = sdb.createEntry(q_int, q_cat, longitude, latitude,
+            long row_id = sdb.createEntry(q_int, q_cat, q_com, longitude, latitude,
                                           time, getString(R.string.version), photo_filename);
             sdb.close();
 

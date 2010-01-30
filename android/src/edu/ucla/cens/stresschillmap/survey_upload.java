@@ -109,7 +109,7 @@ public class survey_upload extends Service{
 						try
 						{
 							if(doPost(getString(R.string.surveyuploadurl),
-                                      sr.q_int, sr.q_cat,
+                                      sr.q_int, sr.q_cat, sr.q_com,
                                       sr.longitude, sr.latitude,
                                       sr.time, sr.version, sr.photo_filename))
 							{
@@ -148,7 +148,7 @@ public class survey_upload extends Service{
 		 * but the API seems a bit complicated. If you figure out how to use it and its more
 		 * efficient then let me know (vids@ucla.edu) Thanks.
 		 */
-	    private boolean doPost(String url, String q_int, String q_cat,
+	    private boolean doPost(String url, String q_int, String q_cat, String q_com,
                                String longitude, String latitude, String time,
                                String version,
                                String photo_filename) throws IOException
@@ -167,10 +167,16 @@ public class survey_upload extends Service{
 			}
 	    	
 	    	Log.d(TAG, "After Request");
+
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "COMMENTS: " + q_com);
 	    	
 	    	MultipartEntity entity = new MultipartEntity();
 	    	entity.addPart("stressval", new StringBody(q_int.toString()));
 	    	entity.addPart("category", new StringBody(q_cat.toString()));
+            entity.addPart("comments", new StringBody(q_com.toString()));
             entity.addPart("longitude", new StringBody(longitude.toString()));
             entity.addPart("latitude", new StringBody(latitude.toString()));
             entity.addPart("time", new StringBody(time.toString()));
