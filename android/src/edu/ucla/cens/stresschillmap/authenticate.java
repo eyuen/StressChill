@@ -256,7 +256,7 @@ public class authenticate extends Activity implements Runnable {
         builder.setTitle("Could not authenticate")
             .setMessage("You can continue to take an observation but you must be able to authenticate before any data can be uploaded.")
             .setCancelable(false)
-            .setPositiveButton("Exit", new DialogInterface.OnClickListener() {
+            .setPositiveButton("Continue", new DialogInterface.OnClickListener() {
                 public void onClick(final DialogInterface dialog, final int id) {
                     authenticate.this.startActivity(new Intent(authenticate.this, home.class)); //XXX
                     Log.d(TAG, "started survey intent");
