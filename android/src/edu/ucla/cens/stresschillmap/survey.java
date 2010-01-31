@@ -53,7 +53,7 @@ public class survey extends Activity
 {
     private Context ctx;
     private String TAG = "Survey";
-    private ImageButton take_picture;
+    private Button take_picture;
     private Button submit_button;
     //private Button clear_history;
     private ImageView image_preview;
@@ -127,7 +127,7 @@ public class survey extends Activity
 
         // add buttons
         submit_button = (Button) findViewById(R.id.upload_button);
-        take_picture = (ImageButton) findViewById(R.id.image_button);
+        take_picture = (Button) findViewById(R.id.image_button);
         
         // add image preview
         image_preview = (ImageView) findViewById(R.id.image_preview);

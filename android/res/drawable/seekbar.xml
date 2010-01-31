@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- hot: FFD373-FF5300 -->
+    <!-- cool:208E9B-2219B2 -->
+    <item
+        android:id="@+android:id/background"
+        android:drawable="@drawable/seekbar_grey" />
+    <item
+        android:id="@+android:id/SecondaryProgress"
+        android:drawable="@drawable/seekbar_hot" />
+    <item
+        android:id="@+android:id/progress"      
+        android:drawable="@drawable/seekbar_cool" />
+</layer-list> 

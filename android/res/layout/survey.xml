@@ -28,13 +28,16 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
 
-            <ImageButton
+            <Button
                 android:id="@+id/image_button"
                 android:src="@drawable/camera"
                 android:layout_width="100sp"
                 android:layout_height="100sp"
                 android:layout_marginLeft="25sp"
                 android:scaleType="centerInside"
+                android:textStyle="bold"
+                android:textSize="22sp"
+                android:text="Take a Picture"
             />
 
             <ImageView
@@ -73,6 +76,7 @@
                 android:layout_height="fill_parent"
                 android:max="100"
                 android:progress="50"
+                android:progressDrawable="@drawable/seekbar"
                 />
             <TextView android:id="@+id/chill_label"
                 android:layout_toRightOf="@id/chillstress_seekbar"
