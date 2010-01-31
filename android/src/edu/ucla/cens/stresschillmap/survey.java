@@ -94,13 +94,7 @@ public class survey extends Activity
         //    return;
         //}
 
-        LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (!lm.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                        Log.d(TAG, "no gps was enabled, so enabling the gps now");
-            alert_no_gps();
-        }
-
-        ll = new light_loc (this, lm);
+        preferences.edit().putBoolean ("light_loc", false).commit ();
         sdb = new survey_db(this);
 
         Log.d(TAG, "gps listener and db are started");
@@ -209,45 +203,6 @@ public class survey extends Activity
         alert.show();
     }
 
-    /* XXX if uncommented location won't be able to be updated when other
-    * views are active
-    protected void onPause() {
-        if (null != ll) {
-            ll.my_delete();
-            ll = null;
-        }
-        super.onPause();
-    }
-    protected void onResume() {
-        super.onResume();
-        if (null == ll) {
-            ll = new light_loc(this, (LocationManager) getSystemService(Context.LOCATION_SERVICE));
-        }
-    }
-
-    protected void onStop() {
-        if (null != ll) {
-            ll.my_delete();
-            ll = null;
-        }
-        super.onStop();
-    }
-    */
-    protected void onStart() {
-        super.onStart();
-        if (null == ll) {
-            ll = new light_loc(this, (LocationManager) getSystemService(Context.LOCATION_SERVICE));
-        }
-    }
-
-    protected void onDestroy() {
-        if (null != ll) {
-            ll.my_delete();
-            ll = null;
-        }
-        super.onDestroy();
-    }
-
     // if this activity gets killed for any reason, save the status of the
     // check boxes so that they are filled in the next time it gets run
     public void onSaveInstanceState(Bundle savedInstanceState) {
@@ -349,6 +304,12 @@ public class survey extends Activity
                                    sr.time + ", " +
                                    sr.version + ", " +
                                    sr.photo_filename + ".");
+
+            /* start location service */
+            if (!preferences.getBoolean("light_loc", false)) {
+                startService (new Intent(ctx, light_loc.class));
+                preferences.edit().putBoolean ("light_loc", true).commit ();
+            }
 
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
