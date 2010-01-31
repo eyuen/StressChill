@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <string-array name="response_00">
+        <item>Select one...</item>
+        <item>People</item>
+        <item>An event</item>
+        <item>A memory</item>
+        <item>A hazard</item>
+        <item>Something fun to do</item>
+        <item>The place itself</item>
+    </string-array>
+
+    <string-array name="response_01">
+        <item>Select one...</item>
+        <item>Family</item>
+        <item>Friends</item>
+        <item>Someone else I know</item>
+        <item>Someone I don't know</item>
+        <item>A group or crowd</item>
+    </string-array>
+
+    <string-array name="response_02">
+        <item>Select one...</item>
+        <item>Sights</item>
+        <item>Sounds</item>
+        <item>Smells</item>
+    </string-array>
+</resources>
