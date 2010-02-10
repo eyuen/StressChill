@@ -30,7 +30,7 @@
 					<td class="span-5">{{s.comments}}</td>
 					<td class="span-4">
 					{% if s.photo %}
-						<img src="http://stresschill.appspot.com/get_an_image?key={{s.key}}" width="180" height="130">	
+					<img src="{{base_url}}get_an_image?key={{s.key}}" width="180" height="130">	
 					{% else %}
 						(no photo.)
 					{% endif %}
