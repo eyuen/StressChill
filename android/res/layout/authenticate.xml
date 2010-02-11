@@ -24,7 +24,7 @@
         
     <TextView
         android:id="@+id/tv1"
-        android:visibility="gone"
+        android:visibility="invisible"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:text="Email:"
@@ -35,7 +35,7 @@
 		android:textColor="@drawable/textcolor"/>
     <EditText 
     	android:id="@+id/email" 
-        android:visibility="gone"
+        android:visibility="invisible"
     	android:layout_width="fill_parent" 
     	android:layout_height="wrap_content" 
     	android:layout_below="@+id/logo"
