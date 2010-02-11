@@ -63,6 +63,7 @@ public class map extends MapActivity {
     Drawable marker;
     MySiteOverlay site_overlay;
     MyLocationOverlay location_overlay;
+    private String TAG = "Map View";
 
     @Override
     public void onCreate(Bundle b) {
@@ -187,17 +188,59 @@ public class map extends MapActivity {
             String point_url = getString(R.string.map_point_summary);
             String point_data = getUrlData (point_url);
 
+            if (null == point_data) {
+                populate();
+                return;
+            }
+
+            int i = 0;
+
+            Log.d(TAG, "spot alpha");
+
             try {
                 JSONObject json = new JSONObject (point_data.toString());
-                for (int i = 0;; i++) {
-                    JSONObject entry = json.getJSONObject(Integer.toString(i));
-                    String text = "Stress Level: " + Double.toString((Double)entry.get("stressval"));
-                    overlay_items.add (new OverlayItem(get_point(Float.valueOf((String)entry.get("latitude")),
-                                                       Float.valueOf((String)entry.get("longitude"))),
-                                             text,
-                                             (String)entry.get("key")));
+                if (null == json) {
+                    populate();
+                    return;
                 }
-            } catch (JSONException e) {}
+
+                for (i = 0;; i++) {
+                    if (!json.has(Integer.toString(i))) {
+                        break;
+                    }
+
+                    JSONObject entry = json.getJSONObject(Integer.toString(i));
+
+                    if (!entry.has("stressval")) {
+                        continue;
+                    }
+                    String text = "Stress Level: " +
+                                  Double.toString(entry.getDouble("stressval"));
+
+                    if (!entry.has("latitude")) {
+                        continue;
+                    }
+                    Double lat = Double.valueOf(entry.getString("latitude"));
+
+                    if (!entry.has("longitude")) {
+                        continue;
+                    }
+                    Double lon = Double.valueOf(entry.getString("longitude"));
+
+                    if (!entry.has("key")) {
+                        continue;
+                    }
+                    String key = entry.getString("key");
+
+                    overlay_items.add (new OverlayItem (get_point(lat, lon), text, key));
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (java.lang.NullPointerException e) {
+                e.printStackTrace();
+            } catch (java.lang.OutOfMemoryError e) { 
+                e.printStackTrace();
+            }
 
             populate();
         }
@@ -217,10 +260,13 @@ public class map extends MapActivity {
                 websiteData = generateString(data);
             } catch (ClientProtocolException e) {
                 e.printStackTrace();
+                return "";
             } catch (IOException e) {
                 e.printStackTrace();
+                return "";
             } catch (URISyntaxException e) {
                 e.printStackTrace();
+                return "";
             }
             return websiteData;
         }
