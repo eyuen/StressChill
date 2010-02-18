@@ -81,21 +81,48 @@
     	android:inputType="textPassword"
     	android:height="40px"/>
 
+    <TextView
+        android:id="@+id/pass2_label"
+        android:visibility="invisible"
+        android:layout_width="75px"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/password"
+        android:text="Confirm Pass:"
+        android:layout_marginTop="10px"
+        android:paddingLeft="5px"
+        android:background="@drawable/background"
+        android:textColor="@drawable/textcolor" />
+    <EditText
+        android:id="@+id/password2"
+        android:visibility="invisible"
+        android:layout_width="fill_parent" 
+        android:layout_height="wrap_content" 
+        android:layout_below="@+id/password"
+        android:layout_marginLeft="75px"
+        android:inputType="textPassword"
+        android:height="40px"/>
+
+
     <CheckBox
         android:id="@+id/save_login"
-        android:layout_below="@id/tv2"
-        android:layout_marginTop="20px"
+        android:layout_below="@id/password2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Register a new account"/>
-    
+        android:text="Save for next time."/>
     <Button
         android:id="@+id/login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Login" 
-        android:layout_below="@+id/password"
+        android:layout_below="@+id/password2"
         android:layout_alignParentRight="true"/>
+    <CheckBox
+        android:id="@+id/cb_register"
+        android:layout_below="@id/save_login"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Register a new account"/>
+
 
 </RelativeLayout>
 </ScrollView>
