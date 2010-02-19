@@ -55,6 +55,7 @@ import net.oauth.OAuthException;
 import net.oauth.OAuthMessage;
 import net.oauth.OAuthProblemException;
 import net.oauth.client.OAuthClient;
+import net.oauth.client.OAuthResponseMessage;
 import net.oauth.client.httpclient4.HttpClient4;
 
 public class authenticate extends Activity implements Runnable {
@@ -246,13 +247,6 @@ public class authenticate extends Activity implements Runnable {
             tokens.access_token = preferences.getString(user + "_at", "");
             tokens.token_secret = preferences.getString(user + "_ts", "");
             tokens.request_token = preferences.getString(user + "_rt", "");
-            if (tokens.access_token.equals("")
-                || tokens.token_secret.equals("")
-                || tokens.request_token.equals(""))
-            {
-                Toast.makeText(ctx, "invalid tokens are in the database... big problem", Toast.LENGTH_LONG);
-                return false;
-            }
             return true;
         }
         return false;
@@ -297,6 +291,9 @@ public class authenticate extends Activity implements Runnable {
         
         try {
             OAuthMessage message = client.invoke(accessor, null, HACK_AUTHORIZATION_URL, params);
+            if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                return null;
+            }
             access_token = message.getParameter("oauth_token");
             access_token_secret = message.getParameter("oauth_token_secret");
         } catch (IOException e) {
@@ -335,6 +332,9 @@ public class authenticate extends Activity implements Runnable {
                 ArrayList<Map.Entry<String, String>> params = new ArrayList<Map.Entry<String, String>>();
                 params.add(new OAuth.Parameter("oauth_callback", CALLBACK_URL));
                 OAuthMessage message = client.getRequestTokenResponse(accessor, null, params);
+                if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    return null;
+                }
                 // "6.1.2.  Service Provider Issues an Unauthorized Request Token"
                 request_token = message.getParameter("oauth_token");
                 String callback_confirmed = message.getParameter("oauth_callback_confirmed");
@@ -375,6 +375,9 @@ public class authenticate extends Activity implements Runnable {
 
             try {
                 OAuthMessage message = client.invoke(accessor, "GET", accessor.consumer.serviceProvider.userAuthorizationURL, params);
+                if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    return null;
+                }
                 String response = message.readBodyAsString();
                 Log.d(TAG, "response: " + response);
                 String key = "oauth_verifier=";
@@ -410,6 +413,9 @@ public class authenticate extends Activity implements Runnable {
 
             try {
                 OAuthMessage message = client.getAccessToken(accessor, null, params);
+                if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    return null;
+                }
                 // "6.3.2.  Service Provider Grants an Access Token"
                 access_token = message.getParameter("oauth_token");
                 access_token_secret = message.getParameter("oauth_token_secret");
