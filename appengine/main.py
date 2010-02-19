@@ -325,6 +325,87 @@ class BaseHandler(webapp.RequestHandler):
 			return False
 # End BaseHandler class
 
+class RequestTokenHandler(BaseHandler):
+	def handler(self):
+		oauth_request = self.construct_request('Request')
+		if not oauth_request:
+			self.send_oauth_error(oauth.OAuthError('could not create oauth_request'))
+			return
+
+		try:
+			token = self.oauth_server.fetch_request_token(oauth_request)
+
+			self.response.out.write(token.to_string())
+			logging.debug('Request Token created')
+		except oauth.OAuthError, err:
+			self.send_oauth_error(err)
+	# end handler method
+# End RequestTokenHandler class
+
+
+# required fields: 
+# - username: string 
+# - password: string, sha1 of plaintext password
+# TODO: Change this back into a normal user authorize....
+#	redirect to login page, have user authorize app, and redirect to callback if one provided...
+class UserAuthorize(BaseHandler):
+	def handler(self):
+		oauth_request = self.construct_request('Authorize')
+		if not oauth_request:
+			self.send_oauth_error(oauth.OAuthError('could not create oauth_request'))
+			return
+	
+		try:
+			username = None
+			password = None
+			# set by construct_request
+			if 'username' in self.paramdict:
+				username = self.paramdict['username']
+			if 'password' in self.paramdict:
+				password = self.paramdict['password']
+
+			if not username or not password:
+				self.response.set_status(401, 'missing username or password')
+				logging.error('missing username or password')
+				return
+
+			ukey = UserTable().check_valid_password(username, password)
+
+			if not ukey:
+				self.response.set_status(401, 'incorrect username or password')
+				logging.error('incorrect username or password')
+				return
+
+			# perform user authorize
+			token = self.oauth_server.fetch_request_token(oauth_request)
+			token = self.oauth_server.authorize_token(token, ukey)
+			logging.debug(token)
+
+			logging.debug(token.to_string())
+
+			self.response.out.write(token.get_callback_url())
+			logging.debug(token.get_callback_url())
+		except oauth.OAuthError, err:
+			self.send_oauth_error(err)
+	# end handler method
+# End UserAuthorize Class
+
+class AccessTokenHandler(BaseHandler):
+	def handler(self):
+		oauth_request = self.construct_request('Access')
+		if not oauth_request:
+			self.send_oauth_error(oauth.OAuthError('could not create oauth_request'))
+			return
+
+		try:
+			token = self.oauth_server.fetch_access_token(oauth_request)
+
+			self.response.out.write(token.to_string())
+		except oauth.OAuthError, err:
+			self.send_oauth_error(err)
+	# end handler method
+# End AccessTokenHandler Class
+
 # cheat for mobile phone so no back and forth with redirects...
 # access as if fetching request token
 # also send username, sha1 of password
@@ -435,6 +516,42 @@ class ProtectedResourceHandler(BaseHandler):
 			self.send_oauth_error(err)
 	# end handler method
 # End ProtectedResourceHandler Class
+
+class ProtectedResourceHandler2(webapp.RequestHandler):
+	def post(self):
+		self.handle()
+	def get(self):
+		self.handle()
+	def handle(self):
+		req_token = self.request.get('oauth_token')
+		if req_token != '':
+			try :
+				tokens = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token)
+				for t in tokens:
+					s = Survey()
+
+					s.user = t.user
+					s.longitude = self.request.get('longitude')
+					s.latitude = self.request.get('latitude')
+					s.stressval = float(self.request.get('stressval'))
+					s.comments = str(self.request.get('comments')).replace('\n', ' ')
+					s.category = self.request.get('category')
+					s.version = self.request.get('version')
+
+					file_content = self.request.get('file')
+					try:
+						s.photo = db.Blob(file_content)
+					except TypeError:
+						s.photo = ''
+
+					s.put()
+					self.error(200)
+					return
+			except (db.Error):
+				self.error(401)
+				return
+		self.error(401)
+
 
 
 class CreateConsumer(webapp.RequestHandler):
@@ -553,8 +670,12 @@ application = webapp.WSGIApplication(
 									  ('/testupload', TestUpload),
 									  ('/data', DataPage),
 									  ('/data_download_all.csv', DownloadAllData),
+									  ('/request_token', RequestTokenHandler),
+									  ('/authorize', UserAuthorize),
+									  ('/access_token', AccessTokenHandler),
 									  ('/authorize_access', AuthorizeAccessHandler),
 									  ('/protected_upload', ProtectedResourceHandler),
+									  ('/protected_upload2', ProtectedResourceHandler2),
 									  ('/create_consumer', CreateConsumer),
 									  ('/get_consumer', GetConsumer),
 									  ('/create_user', CreateUser),
