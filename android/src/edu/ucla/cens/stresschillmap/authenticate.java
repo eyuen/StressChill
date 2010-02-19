@@ -86,18 +86,19 @@ public class authenticate extends Activity implements Runnable {
     private ProgressDialog mProgressDialog;
     private String auth_fail_string = "login";
 
-    private String REQUEST_TOKEN_URL = "https://eyuentest.appspot.com/request_token";
-    private String ACCESS_TOKEN_URL = "https://eyuentest.appspot.com/access_token";
-    private String AUTHORIZATION_URL = "https://eyuentest.appspot.com/authorize";
-    private String CALLBACK_URL = "http://printer.example.com/request_token_ready";
-    private String RESOURCE_URL = "http://eyuentest.appspot.com/some_resource";
+    public static String REQUEST_TOKEN_URL = "https://stresschill.appspot.com/request_token";
+    public static String ACCESS_TOKEN_URL = "https://stresschill.appspot.com/access_token";
+    public static String AUTHORIZATION_URL = "https://stresschill.appspot.com/authorize";
+    public static String HACK_AUTHORIZATION_URL = "https://stresschill.appspot.com/authorize_access";
+    public static String CALLBACK_URL = "http://printer.example.com/request_token_ready";
+    public static String RESOURCE_URL = "http://stresschill.appspot.com/protected_upload";
 
-    private static final String CONSUMER_KEY = "JD3ySne8uWyQu7ds";
-    private static final String CONSUMER_SECRET = "5d9d6WV7QBgAbbNu";
+    public static final String CONSUMER_KEY = "Tq5YzEAjm55bt3pb";
+    public static final String CONSUMER_SECRET = "UMy9WYPDR4armmHr";
 
     public static token_store tokens;
 
-    private class token_store {
+    public class token_store {
         public String access_token;
         public String token_secret;
         public String request_token;
@@ -149,7 +150,9 @@ public class authenticate extends Activity implements Runnable {
 
         submit.setOnClickListener(new View.OnClickListener() {
             public void onClick (View view) {
+                auth_type = LOGIN;
                 if (cb_register.isChecked()) {
+                    auth_type = REGISTER;
                     email = et_email.getText().toString();
                     pass2 = et_pass2.getText().toString();
                 }
@@ -224,7 +227,7 @@ public class authenticate extends Activity implements Runnable {
 
         if (stored_pass.equals("")) {
             /* login using the internet and our oauth consumer stuff */
-            tokens = get_access_token_properly(user, pass);
+            tokens = get_access_token_hack(user, pass);
             if (null == tokens) {
                 Log.d(TAG, "couldnt get access token properly");
                 return false;
@@ -271,6 +274,48 @@ public class authenticate extends Activity implements Runnable {
         }
     };
 
+    private token_store get_access_token_hack(String user, String pass) {
+        if (null == user || user.equals("")
+            || null == pass || pass.equals(""))
+        {
+            return null;
+        }
+
+        String access_token = "";
+        String access_token_secret = "";
+        token_store ts = new token_store();
+
+        OAuthServiceProvider provider = new OAuthServiceProvider(REQUEST_TOKEN_URL, HACK_AUTHORIZATION_URL, ACCESS_TOKEN_URL);
+        OAuthConsumer consumer = new OAuthConsumer(CALLBACK_URL, CONSUMER_KEY, CONSUMER_SECRET, provider);
+        OAuthAccessor accessor = new OAuthAccessor(consumer);
+        OAuthClient client = new OAuthClient(new HttpClient4());
+
+        ArrayList<Map.Entry<String, String>> params = new ArrayList<Map.Entry<String, String>>();
+        params.add(new OAuth.Parameter("username", user));
+        params.add(new OAuth.Parameter("password", sha1sum(pass).toString()));
+        params.add(new OAuth.Parameter("oauth_callback", CALLBACK_URL));
+        
+        try {
+            OAuthMessage message = client.invoke(accessor, null, HACK_AUTHORIZATION_URL, params);
+            access_token = message.getParameter("oauth_token");
+            access_token_secret = message.getParameter("oauth_token_secret");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        } catch (OAuthException e) {
+            e.printStackTrace();
+            return null;
+        } catch (java.net.URISyntaxException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        ts.access_token = access_token;
+        ts.token_secret = access_token_secret;
+        ts.request_token = "";
+        return ts;
+    }
+
     private token_store get_access_token_properly(String user, String pass) {
         if (null == user || null == pass) {
             return null;
@@ -299,12 +344,15 @@ public class authenticate extends Activity implements Runnable {
             } catch (IOException e) {
                 Log.d(TAG, "IOException");
                 e.printStackTrace();
+                return null;
             } catch (OAuthException e) {
                 Log.d(TAG, "OAuthException");
                 e.printStackTrace();
+                return null;
             } catch (java.net.URISyntaxException e) {
                 Log.d(TAG, "java.net.URISyntaxException");
                 e.printStackTrace();
+                return null;
             }
             Log.d(TAG, "step 2: acquire a request token");
             Log.d(TAG, "request_token: " + request_token.toString());
