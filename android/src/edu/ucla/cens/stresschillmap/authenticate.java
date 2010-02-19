@@ -131,8 +131,8 @@ public class authenticate extends Activity implements Runnable {
                 et_email.setVisibility(0);
                 submit.setText("Register");
             } else {
-                tv_email.setVisibility(android.view.View.GONE);
-                et_email.setVisibility(android.view.View.GONE);
+                tv_email.setVisibility(android.view.View.INVISIBLE);
+                et_email.setVisibility(android.view.View.INVISIBLE);
                 submit.setText("Login");
             }
         }

@@ -7,8 +7,8 @@
         android:drawable="@drawable/seekbar_grey" />
     <item
         android:id="@+android:id/SecondaryProgress"
-        android:drawable="@drawable/seekbar_hot" />
+        android:drawable="@drawable/seekbar_hot2" />
     <item
         android:id="@+android:id/progress"      
-        android:drawable="@drawable/seekbar_cool" />
+        android:drawable="@drawable/seekbar_cool2" />
 </layer-list> 
