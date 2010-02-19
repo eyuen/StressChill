@@ -7,16 +7,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.client.DefaultHttpClient;
+import java.util.*;
+import java.net.URL;
 
 import android.app.Activity;
 import android.app.Service;
@@ -26,8 +18,44 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
+import net.oauth.OAuth;
+import net.oauth.OAuthAccessor;
+import net.oauth.OAuthConsumer;
+import net.oauth.OAuthServiceProvider;
+import net.oauth.OAuthException;
+import net.oauth.OAuthMessage;
+import net.oauth.client.OAuthClient;
+import net.oauth.client.OAuthResponseMessage;
+import net.oauth.client.httpclient4.HttpClient4;
+import net.oauth.http.HttpMessageDecoder;
+import net.oauth.http.HttpResponseMessage;
+import net.oauth.http.HttpMessage;
+
+
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.HttpStatus;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.params.ClientPNames;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.CoreConnectionPNames;
+import org.apache.http.params.HttpParams;
+
+
 import edu.ucla.cens.stresschillmap.survey_db;
 import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
+import edu.ucla.cens.stresschillmap.authenticate.token_store;
 
 public class survey_upload extends Service{
     private survey_db sdb;
@@ -36,7 +64,6 @@ public class survey_upload extends Service{
 	PostThread post;
 	private static final String TAG = "SurveyUploadThread";
 
-    
     @Override
     public void onCreate() {
         preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
@@ -155,69 +182,116 @@ public class survey_upload extends Service{
 	    {
 	    	Log.d(TAG, "Attempting to send file:" + photo_filename);
 	    	Log.d(TAG, "Trying to post: "+url.toString()+" "+photo_filename.toString() + " "+ longitude.toString() + " ...");
-	    	
-	    	HttpClient httpClient = authenticate.httpClient;
-			if (null == httpClient) {
-				httpClient = new DefaultHttpClient();
-			}
-	    	HttpPost request = new HttpPost(url.toString());
 
-			if (null == request) {
-				return false;
-			}
-	    	
-	    	Log.d(TAG, "After Request");
+            OAuthServiceProvider provider = new OAuthServiceProvider(authenticate.REQUEST_TOKEN_URL,
+                                                                     authenticate.AUTHORIZATION_URL,
+                                                                     authenticate.ACCESS_TOKEN_URL);
+            OAuthConsumer consumer = new OAuthConsumer(authenticate.CALLBACK_URL,
+                                                       authenticate.CONSUMER_KEY,
+                                                       authenticate.CONSUMER_SECRET,
+                                                       provider);
+            OAuthAccessor accessor = new OAuthAccessor(consumer);
+            OAuthClient client = new OAuthClient(new HttpClient4());
 
-            Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "COMMENTS: " + q_com);
-	    	
-	    	MultipartEntity entity = new MultipartEntity();
-	    	entity.addPart("stressval", new StringBody(q_int.toString()));
-	    	entity.addPart("category", new StringBody(q_cat.toString()));
-            entity.addPart("comments", new StringBody(q_com.toString()));
-            entity.addPart("longitude", new StringBody(longitude.toString()));
-            entity.addPart("latitude", new StringBody(latitude.toString()));
-            entity.addPart("time", new StringBody(time.toString()));
-            entity.addPart("version", new StringBody(version.toString()));
-	    	
-	    	Log.d(TAG, "After adding string");
+            accessor.requestToken = authenticate.tokens.request_token;
+            accessor.accessToken = authenticate.tokens.access_token;
+            accessor.tokenSecret = authenticate.tokens.token_secret;
 
-            if (photo_filename == null || photo_filename.equals("")) {
-                Log.d(TAG, "ADDING empty string as file contents");
-                entity.addPart("file", new StringBody(""));
-            } else {
-                Log.d(TAG, "ADDING the actual file body of: >>" + photo_filename + "<<");
-    	    	File file = new File(photo_filename.toString());
-	        	entity.addPart("file", new FileBody(file));
+            try {
+                ArrayList<Map.Entry<String, String>> params = new ArrayList<Map.Entry<String, String>>();
+                params.add(new OAuth.Parameter("stressval", q_int.toString()));
+                params.add(new OAuth.Parameter("category", q_cat.toString()));
+                params.add(new OAuth.Parameter("comments", q_com.toString()));
+                params.add(new OAuth.Parameter("longitude", longitude.toString()));
+                params.add(new OAuth.Parameter("latitude", latitude.toString()));
+                params.add(new OAuth.Parameter("time", time.toString()));
+                params.add(new OAuth.Parameter("version", version.toString()));
+
+                /* pulled from OAuthClient.java:249
+                 * OAuthClient.invoke(accessor, null, URL, params); */
+                OAuthMessage request_;
+                net.oauth.ParameterStyle style;
+                {
+                    OAuthMessage request = accessor.newRequestMessage(null, authenticate.RESOURCE_URL, params);
+                    Object accepted = accessor.consumer.getProperty(OAuthConsumer.ACCEPT_ENCODING);
+                    if (accepted != null) {
+                        request.getHeaders().add(new OAuth.Parameter(HttpMessage.ACCEPT_ENCODING, accepted.toString()));
+                    }
+                    Object ps = accessor.consumer.getProperty("parameterStyle");
+                    style = (ps == null) ? net.oauth.ParameterStyle.BODY
+                            : Enum.valueOf(net.oauth.ParameterStyle.class, ps.toString());
+
+                    request_ = request;
+                }
+
+                /* pulled from OAuthClient.java:315
+                 * OAuthClient.access() */
+                HttpMessage request;
+                {
+                    HttpMessage httpRequest = HttpMessage.newRequest(request_, style);
+                    request = httpRequest;
+                }
+
+                /* pulled from WeTap/survey_upload.java:160 and HttpClient4.java:60 */
+                Map<String, Object> parameters = client.getHttpParameters();
+                HttpResponse response;
+                {
+                    String CONNECT_TIMEOUT = "connectTimeout";
+                    String READ_TIMEOUT = "readTimeout";
+                    String FOLLOW_REDIRECTS = "followRedirects";
+
+                    HttpPost httpRequest = new HttpPost(request.url.toExternalForm());
+
+                    for (Map.Entry<String, String> header : request.headers) {
+                        httpRequest.addHeader(header.getKey(), header.getValue());
+                    }
+/*
+                    HttpParams params_ = httpRequest.getParams();
+                    for (Map.Entry<String, Object> p : parameters.entrySet()) {
+                        String name = p.getKey();
+                        String value = p.getValue.toString();
+                        if (FOLLOW_REDIRECTS.equals(name)) {
+                            params_.setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, Boolean.parseBoolean(value));
+                        } else if (READ_TIMEOUT.equals(name)) {
+                            params_.setIntParameter(CoreConnectionPNames.SO_TIMEOUT, Integer.parseInt(value));
+                        } else if (CONNECT_TIMEOUT.equals(name)) {
+                            params_.setIntParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, Integer.parseInt(value));
+                        }
+                    }
+*/
+                    try {
+                        MultipartEntity entity = new MultipartEntity();
+                        if (photo_filename == null || photo_filename.equals("")) {
+                            Log.d(TAG, "ADDING empty string as file contents");
+                            entity.addPart("file", new StringBody(""));
+                        } else {
+                            Log.d(TAG, "ADDING the actual file body of: >>" + photo_filename + "<<");
+                            File file = new File(photo_filename.toString());
+                            entity.addPart("file", new FileBody(file));
+                        }
+                        httpRequest.setEntity(entity);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+
+                    HttpClient client_ = new DefaultHttpClient(); //clientPool.getHttpClient(new URL(httpRequest.getURI().toString()));
+                    HttpResponse httpResponse = client_.execute(httpRequest);
+                    response = httpResponse;
+                }
+
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    return true;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (OAuthException e) {
+                e.printStackTrace();
+            } catch (java.net.URISyntaxException e) {
+                e.printStackTrace();
             }
-	    	
-	    	Log.d(TAG, "After adding file");
-	    	
-	    	request.setEntity(entity);
-	    	
-	    	Log.d(TAG, "After setting entity");
-	    	
-	    	HttpResponse response = httpClient.execute(request);
-	    	
-	    	Log.d(TAG, "Doing HTTP Reqest");
 
-	    	int status = response.getStatusLine().getStatusCode();
-	    	//Log.d(TAG, generateString(response.getEntity().getContent()));
-	    	Log.d(TAG, "Status Message: "+Integer.toString(status));
-	    	
-	    	if(status == HttpStatus.SC_OK)
-	    	{
-		    	Log.d(TAG, "Sent file.");
-	    		return true;
-	    	}
-	    	else
-	    	{
-		    	Log.d(TAG, "File not sent.");
-	    		return false;
-	    	}
-	    	
+            return false;
 	    }
 	    
 	    public String generateString(InputStream stream) {
