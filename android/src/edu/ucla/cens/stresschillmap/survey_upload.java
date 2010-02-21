@@ -64,6 +64,8 @@ public class survey_upload extends Service{
 	PostThread post;
 	private static final String TAG = "SurveyUploadThread";
 
+    private static HttpClient httpClient = new DefaultHttpClient();
+
     @Override
     public void onCreate() {
         preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
@@ -135,7 +137,7 @@ public class survey_upload extends Service{
                         Log.d(TAG, "FILENAME: " + sr.photo_filename);
 						try
 						{
-							if(doPost(getString(R.string.surveyuploadurl),
+							if(doPost2(getString(R.string.surveyuploadurl),
                                       sr.q_int, sr.q_cat, sr.q_com,
                                       sr.longitude, sr.latitude,
                                       sr.time, sr.version, sr.photo_filename))
@@ -175,6 +177,80 @@ public class survey_upload extends Service{
 		 * but the API seems a bit complicated. If you figure out how to use it and its more
 		 * efficient then let me know (vids@ucla.edu) Thanks.
 		 */
+        private boolean doPost2(String url, String q_int, String q_cat, String q_com,
+                               String longitude, String latitude, String time,
+                               String version,
+                               String photo_filename) throws IOException
+        {
+
+            url = "http://stresschill.appspot.com/protected_upload2";
+
+            Log.d(TAG, "Attempting to send file:" + photo_filename);
+            Log.d(TAG, "Trying to post: "+url.toString()+" "+photo_filename.toString() + " "+ longitude.toString() + " ...");
+            
+            if (null == httpClient) {
+                httpClient = new DefaultHttpClient();
+            }
+            HttpPost request = new HttpPost(url.toString());
+
+            if (null == request) {
+                return false;
+            }
+            
+            Log.d(TAG, "After Request");
+
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "access token: " + authenticate.tokens.access_token);
+            Log.d(TAG, "COMMENTS: " + q_com);
+            Log.d(TAG, "COMMENTS: " + q_com);
+            
+            MultipartEntity entity = new MultipartEntity();
+            entity.addPart("stressval", new StringBody(q_int.toString()));
+            entity.addPart("category", new StringBody(q_cat.toString()));
+            entity.addPart("comments", new StringBody(q_com.toString()));
+            entity.addPart("longitude", new StringBody(longitude.toString()));
+            entity.addPart("latitude", new StringBody(latitude.toString()));
+            entity.addPart("time", new StringBody(time.toString()));
+            entity.addPart("version", new StringBody(version.toString()));
+            entity.addPart("oauth_token", new StringBody(authenticate.tokens.access_token));
+            
+            Log.d(TAG, "After adding string");
+
+            if (photo_filename == null || photo_filename.equals("")) {
+                Log.d(TAG, "ADDING empty string as file contents");
+                entity.addPart("file", new StringBody(""));
+            } else {
+                Log.d(TAG, "ADDING the actual file body of: >>" + photo_filename + "<<");
+                File file = new File(photo_filename.toString());
+                entity.addPart("file", new FileBody(file));
+            }
+            
+            Log.d(TAG, "After adding file");
+            
+            request.setEntity(entity);
+            
+            Log.d(TAG, "After setting entity");
+            
+            HttpResponse response = httpClient.execute(request);
+            
+            Log.d(TAG, "Doing HTTP Reqest");
+
+            int status = response.getStatusLine().getStatusCode();
+            //Log.d(TAG, generateString(response.getEntity().getContent()));
+            Log.d(TAG, "Status Message: "+Integer.toString(status));
+            
+            if(status == HttpStatus.SC_OK)
+            {
+                Log.d(TAG, "Sent file.");
+                return true;
+            }
+            else
+            {
+                Log.d(TAG, "File not sent.");
+                return false;
+            }
+        }
 	    private boolean doPost(String url, String q_int, String q_cat, String q_com,
                                String longitude, String latitude, String time,
                                String version,
