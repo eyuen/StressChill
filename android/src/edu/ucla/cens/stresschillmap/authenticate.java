@@ -184,7 +184,7 @@ public class authenticate extends Activity implements Runnable {
                 return false;
             }
 
-            Log.d(TAG, "registering new account: " + user + ", " + pass1);
+            Log.d(TAG, "registering new account: " + user);
             HttpClient httpClient = new DefaultHttpClient();
             HttpPost request = new HttpPost(getString(R.string.register_user));
 
@@ -223,7 +223,6 @@ public class authenticate extends Activity implements Runnable {
     /* user : plain text,
      * pass : plaintext password */
     private boolean login_user (String user, String pass) {
-        Log.d(TAG, "login_user (String user, String pass) = " + user + ", " + pass + ".");
         String stored_pass = preferences.getString(user + "_un", "");
 
         if (stored_pass.equals("")) {
@@ -249,6 +248,7 @@ public class authenticate extends Activity implements Runnable {
             tokens.request_token = preferences.getString(user + "_rt", "");
             return true;
         }
+        Log.d(TAG, "login_user(): failed to login");
         return false;
     }
 
@@ -506,7 +506,8 @@ public class authenticate extends Activity implements Runnable {
             mProgressDialog.dismiss();
             switch (auth_type) {
                 case LOGIN:
-                    if(msg.getData().getBoolean("authenticated")) {
+                    Log.d(TAG, "handler(): doing login");
+                    if(preferences.getBoolean("authenticated", false)) {
                         ctx.startActivity(new Intent(ctx, home.class));
                         Log.d(TAG, "started survey intent");
                         startService(new Intent(ctx, survey_upload.class));
@@ -514,21 +515,27 @@ public class authenticate extends Activity implements Runnable {
                         authenticate.this.finish();
                         return;
                     } else {
+                        Log.d(TAG, "handler(): login failed");
                         auth_fail_string = "login";
                     }
                     break;
                 case REGISTER:
-                    if (msg.getData().getBoolean("registered")) {
+                    Log.d(TAG, "handler(): doing register");
+                    if (preferences.getBoolean("registered", false)) {
+                        Log.d(TAG, "handler(): registered successfully");
                         ctx.startActivity(new Intent(ctx, authenticate.class));
                         authenticate.this.finish();
                         return;
                     } else {
+                        Log.d(TAG, "handler(): register failed");
                         auth_fail_string = "register";
                     }
                     break;
                 default:
+                    Log.d(TAG, "handler(): this msg should never be seen");
                     auth_failed();
             }
+            Log.d(TAG, "handler(): auth failed... calling auth_failed()");
             auth_failed();
         }
     };
@@ -537,13 +544,18 @@ public class authenticate extends Activity implements Runnable {
         if (cb_register.isChecked()) {
             if (register_user (email, user, pass1, pass2)) {
                 preferences.edit().putBoolean("registered", true).commit();
+                auth_type = REGISTER;
+                Log.d(TAG, "auth(): register_user(): successfully created a new account");
                 return true;
             }
         } else if (login_user (user, pass1)) {
+            auth_type = LOGIN;
             preferences.edit().putBoolean("authenticated", true).commit();
+            Log.d(TAG, "auth(): login_user(): successfully logged user in");
             return true;
         }
 
+        Log.d(TAG, "auth(): failed to authenticate (create account / login)");
         return false;
     }
 
