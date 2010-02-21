@@ -523,14 +523,26 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 	def get(self):
 		self.handle()
 	def handle(self):
+		logging.debug('\n\nProtected Resource 2------')
+		logging.debug(self.request.method)
+		logging.debug(self.request.url)
+		logging.debug(self.request.headers)
+
+		# get any extra parameters required by server
+		self.paramdict = {}
+		for j in self.request.arguments():
+			self.paramdict[j] = self.request.get(j)
+		logging.debug('parameters received: ' +str(self.paramdict))
+
 		req_token = self.request.get('oauth_token')
+
 		if req_token != '':
 			try :
 				tokens = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token)
 				for t in tokens:
 					s = Survey()
 
-					s.user = t.user
+					s.username = t.user
 					s.longitude = self.request.get('longitude')
 					s.latitude = self.request.get('latitude')
 					s.stressval = float(self.request.get('stressval'))
@@ -547,9 +559,12 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					s.put()
 					self.error(200)
 					return
+				logging.error('if you got here, token lookup failed.')
 			except (db.Error):
+				logging.error('error inserting to database')
 				self.error(401)
 				return
+		logging.error('request token empty')
 		self.error(401)
 
 
