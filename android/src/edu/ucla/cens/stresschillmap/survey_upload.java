@@ -140,7 +140,9 @@ public class survey_upload extends Service{
 							if(doPost2(getString(R.string.surveyuploadurl),
                                       sr.q_int, sr.q_cat, sr.q_com,
                                       sr.longitude, sr.latitude,
-                                      sr.time, sr.version, sr.photo_filename))
+                                      sr.time, sr.version, sr.photo_filename,
+                                      sr.access_token, sr.token_secret,
+                                      sr.request_token))
 							{
 								if(file != null) {
 									file.delete();
@@ -179,8 +181,9 @@ public class survey_upload extends Service{
 		 */
         private boolean doPost2(String url, String q_int, String q_cat, String q_com,
                                String longitude, String latitude, String time,
-                               String version,
-                               String photo_filename) throws IOException
+                               String version, String photo_filename,
+                               String access_token, String token_secret,
+                               String request_token) throws IOException
         {
 
             url = "http://stresschill.appspot.com/protected_upload2";
@@ -200,10 +203,6 @@ public class survey_upload extends Service{
             Log.d(TAG, "After Request");
 
             Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "access token: " + authenticate.tokens.access_token);
-            Log.d(TAG, "COMMENTS: " + q_com);
-            Log.d(TAG, "COMMENTS: " + q_com);
             
             MultipartEntity entity = new MultipartEntity();
             entity.addPart("stressval", new StringBody(q_int.toString()));
@@ -213,7 +212,7 @@ public class survey_upload extends Service{
             entity.addPart("latitude", new StringBody(latitude.toString()));
             entity.addPart("time", new StringBody(time.toString()));
             entity.addPart("version", new StringBody(version.toString()));
-            entity.addPart("oauth_token", new StringBody(authenticate.tokens.access_token));
+            entity.addPart("oauth_token", new StringBody(access_token));
             
             Log.d(TAG, "After adding string");
 
