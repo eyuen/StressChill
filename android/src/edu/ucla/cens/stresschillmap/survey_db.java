@@ -21,6 +21,9 @@ public class survey_db {
 	public static final String KEY_PHOTO_FILENAME = "photo_filename";
     public static final String KEY_VERSION = "version";
 	public static final String KEY_ROWID = "_id";
+    public static final String KEY_ACCESS_TOKEN = "access_token";
+    public static final String KEY_TOKEN_SECRET = "token_secret";
+    public static final String KEY_REQUEST_TOKEN = "request_token";
 	private static boolean databaseOpen = false;
 	private static Object dbLock = new Object();
 	public static final String TAG = "survey_db";
@@ -31,7 +34,7 @@ public class survey_db {
 	
 	private static final String DATABASE_NAME = "survey_db";
 	private static final String DATABASE_TABLE = "survey_table";
-	private static final int DATABASE_VERSION = 2;
+	private static final int DATABASE_VERSION = 5;
 	
 	private static final String DATABASE_CREATE = "create table survey_table (_id integer primary key autoincrement, "
         + "q_int text not null,"
@@ -41,7 +44,10 @@ public class survey_db {
 		+ "latitude text not null,"
 		+ "time text not null,"
         + "version text not null,"
-		+ "photo_filename text not null"
+        + "photo_filename text not null,"
+        + "access_token text not null,"
+        + "token_secret text not null,"
+        + "request_token text not null"
 		+ ");";
 	
     public class survey_db_row extends Object {
@@ -54,6 +60,9 @@ public class survey_db {
     	public String time;
         public String version;
     	public String photo_filename;
+        public String access_token;
+        public String token_secret;
+        public String request_token;
     }
 	
 	private static class DatabaseHelper extends SQLiteOpenHelper
@@ -123,6 +132,9 @@ public class survey_db {
 		vals.put(KEY_TIME, time);
         vals.put(KEY_VERSION, version);
 		vals.put(KEY_PHOTO_FILENAME, photo_filename);
+        vals.put(KEY_ACCESS_TOKEN, authenticate.tokens.access_token);
+        vals.put(KEY_TOKEN_SECRET, authenticate.tokens.token_secret);
+        vals.put(KEY_REQUEST_TOKEN, authenticate.tokens.request_token);
 		
 		long rowid = db.insert(DATABASE_TABLE, null, vals);
 		return rowid;
@@ -157,6 +169,9 @@ public class survey_db {
         sr.time =           c.getString(6);
         sr.version =        c.getString(7);
         sr.photo_filename = c.getString(8);
+        sr.access_token =   c.getString(9);
+        sr.token_secret =   c.getString(10);
+        sr.request_token =  c.getString(11);
 
         return sr;
     }
@@ -169,7 +184,8 @@ public class survey_db {
 		{
 			Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
                 KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
-                KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME}, null, null, null,
+                KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
+                KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN}, null, null, null,
                 null, null);
 			int numRows = c.getCount();
 			
@@ -197,7 +213,8 @@ public class survey_db {
         {
             String[] columns = new String[] {KEY_ROWID,
                 KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
-                KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME};
+                KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
+                KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN};
             String selection = KEY_LONGITUDE + "<>\"\"" + " AND " +
                                KEY_LATITUDE + "<>\"\"";
 
@@ -225,7 +242,8 @@ public class survey_db {
 	{
         Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
             KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE, KEY_TIME,
-            KEY_VERSION, KEY_PHOTO_FILENAME}, KEY_ROWID+"="+rowId, null, null,
+            KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
+            KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN}, KEY_ROWID+"="+rowId, null, null,
             null, null);
 		survey_db_row sr;
 
@@ -239,7 +257,8 @@ public class survey_db {
             sr.row_id = -1;
             sr.q_int = sr.q_cat = sr.q_com =
             sr.longitude = sr.latitude = sr.time =
-            sr.photo_filename = null;
+            sr.photo_filename = sr.access_token = sr.token_secret =
+            sr.request_token = null;
 		}
 		c.close();
 		return sr;
