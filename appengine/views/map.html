@@ -3,13 +3,28 @@
 {% block title %}StressChill - Google Map{% endblock %}
 
 {% block includes %}
-	<script type="text/javascript" src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22maps%22%2C%22version%22%3A%222%22%7D%5D%7D&key=ABQIAAAAxbmfF4s8V6aW7q4K7J8svRTXw6k_TLS-0RyRs7gX4irNy_p4hhS6tILPc6aj98CdQTvlKQ-g-D0Mzg"></script>
+	<script type="text/javascript" src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22maps%22%2C%22version%22%3A%222%22%7D%5D%7D&key=ABQIAAAAmETJki-B8W5YjNZW6zEKOBTXw6k_TLS-0RyRs7gX4irNy_p4hhRryLQFDoh5-CFGGzUvcpgFvNsFdA"></script>
+<!--	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=false&amp;key=ABQIAAAAmETJki-B8W5YjNZW6zEKOBTXw6k_TLS-0RyRs7gX4irNy_p4hhRryLQFDoh5-CFGGzUvcpgFvNsFdA" type="text/javascript"></script>	
+-->
 {% endblock %}
 
 {% block javascript %}
 
     // Load Google Maps API
-    google.load("maps", "2");
+	google.load("maps", "2");
+
+	var stressicon = new GIcon();
+	stressicon.image = 'http://labs.google.com/ridefinder/images/mm_20_red.png';
+	stressicon.iconSize = new GSize(12, 20);
+	stressicon.iconAnchor = new GPoint(6, 20);
+	stressicon.infoWindowAnchor = new GPoint(5, 1);
+
+	var chillicon = new GIcon();
+	chillicon.image = 'http://labs.google.com/ridefinder/images/mm_20_blue.png';
+	chillicon.iconSize = new GSize(12, 20);
+	chillicon.iconAnchor = new GPoint(6, 20);
+	chillicon.infoWindowAnchor = new GPoint(5, 1);
+
 
     function initialize() {
         if (GBrowserIsCompatible()) {
@@ -62,10 +77,19 @@
             map.enableGoogleBar();
  
             // Add markers to the map
-            {% for s in surveys %}
-                var marker = new GMarker(new GLatLng({{s.latitude}}, {{s.longitude}}));
-                GEvent.addListener(marker, "click", function() {
+			{% for s in surveys %}
+				{% if s.stress %}
+				var icon = stressicon;
+				{% else %}
+				var icon = chillicon;
+				{% endif %}
+                var marker = new GMarker(new GLatLng({{s.latitude}}, {{s.longitude}}), icon);
+				GEvent.addListener(marker, "click", function() {
+				{% if s.photo %}
 				var html = "<img src=\"{{base_url}}get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
+				{% else %}
+				var html = "<i>(no image.)</i>" +
+				{% endif %}
                                "<br />" +
                                "<p><b>StressChill value: </b>{{s.stressval}}<br/>" +
                                "<b>Category: </b>{{s.category}}<br/>" +

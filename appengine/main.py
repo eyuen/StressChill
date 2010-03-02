@@ -30,8 +30,25 @@ def extract_surveys(surveys):
 	for s in surveys:
 		item = {}
 		item['stressval'] = s.stressval
-		item['category'] = s.category
-		item['comments'] = s.comments
+
+		if item['stressval'] < 0:
+			item['stress'] = True
+		else:
+			item['stress'] = False
+
+		if not s.category:
+			item['category'] = s.category
+		else:
+			item['category'] = cgi.escape(s.category, True)
+
+		if not s.comments:
+			item['comments'] = s.comments
+		else:
+			item['comments'] = cgi.escape(s.comments, True)
+
+		if s.photo:
+			item['photo'] = True
+
 		item['longitude'] = s.longitude
 		item['latitude'] = s.latitude
 		item['key'] = str(s.key())
@@ -49,6 +66,7 @@ class Survey(db.Model):
 	category =	db.StringProperty()
 	version =	db.StringProperty()
 	photo =		db.BlobProperty()
+	hasphoto =	db.BooleanProperty()
 
 class HomePage(webapp.RequestHandler):
 	def get(self):
@@ -209,13 +227,13 @@ class TestUpload(webapp.RequestHandler):
 
 class DataPage(webapp.RequestHandler):
 	def get(self):
-
 		if os.environ.get('HTTP_HOST'):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
-		surveys = Survey.all().fetch(50)
+		surveys = Survey.all().fetch(200)
+		extracted = extract_surveys (surveys)
 		template_values = { 'surveys' : surveys, 'base_url' : base_url }
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
 		self.response.out.write (template.render(path, template_values))
@@ -670,6 +688,31 @@ class ConfirmUser(webapp.RequestHandler):
 
 		self.response.out.write('user added')
 
+class SummaryHandler(webapp.RequestHandler):
+	def get(self):
+		self.handle()
+	def post(self):
+		self.handle()
+	def handle(self):
+		result = db.GqlQuery("SELECT * FROM Survey")
+
+		categories = []
+
+		for row in result:
+			if row.category not in categories:
+				categories.append(row.category)
+
+		summary = []
+		data = []
+
+		for cat in categories:
+			cnt = db.GqlQuery("SELECT * FROM Survey WHERE category = :1", cat).count()
+			row = { 'category':str(cat), 'count':str(cnt) }
+			data.append(row)
+
+		template_values = { 'summary' : data }
+		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
+		self.response.out.write (template.render(path, template_values))
 
 application = webapp.WSGIApplication(
 									 [('/', HomePage),
@@ -694,7 +737,8 @@ application = webapp.WSGIApplication(
 									  ('/create_consumer', CreateConsumer),
 									  ('/get_consumer', GetConsumer),
 									  ('/create_user', CreateUser),
-									  ('/confirm_user', ConfirmUser)],
+									  ('/confirm_user', ConfirmUser),
+									  ('/summary', SummaryHandler)],
 									 debug=True)
 
 def main():

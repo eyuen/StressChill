@@ -1,0 +1,33 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Summary{% endblock %}
+
+{% block content %}
+	<div class="span-24 last">
+		<p>
+			<a href="/data_download_all.csv">Download All Data (.csv)</a>
+			</p>
+		<div class="span-8">
+			<table>
+				<thead>
+					<tr>
+						<th class="span-4">Category</th>
+						<th class="span-4">Count</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for s in summary %}
+					<tr>
+						<td class="span-4">{{s.category}}</td>
+						<td class="span-4">{{s.count}}</td>
+					</tr>
+					{% endfor %}
+
+				</tbody>
+			</table>
+		</div>
+		<div class="span-16">
+			&nbsp;
+		</div>
+	</div>
+{% endblock%}
