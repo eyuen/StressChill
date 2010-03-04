@@ -85,8 +85,8 @@
 				{% endif %}
                 var marker = new GMarker(new GLatLng({{s.latitude}}, {{s.longitude}}), icon);
 				GEvent.addListener(marker, "click", function() {
-				{% if s.photo %}
-				var html = "<img src=\"{{base_url}}get_an_image?key={{s.key}}\" width=\"180\" height=\"130\">" +
+				{% if s.hasphoto %}
+				var html = "<img src=\"{{base_url}}get_an_image?key={{s.photo_key}}\" width=\"180\" height=\"130\">" +
 				{% else %}
 				var html = "<i>(no image.)</i>" +
 				{% endif %}

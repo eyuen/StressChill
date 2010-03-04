@@ -29,8 +29,8 @@
 					<td class="span-3">{{s.longitude}}</td>
 					<td class="span-5">{{s.comments}}</td>
 					<td class="span-4">
-					{% if s.photo %}
-					<a href="{{base_url}}get_an_image?key={{s.key}}" target="photo_viewer"><img src="{{base_url}}get_an_image?key={{s.key}}" width="180" height="130"></a>
+					{% if s.hasphoto %}
+					<a href="{{base_url}}get_an_image?key={{s.photo_key}}" target="photo_viewer"><img src="{{base_url}}get_an_image?key={{s.photo_key}}" width="180" height="130"></a>
 					{% else %}
 						(no photo.)
 					{% endif %}

@@ -8,22 +8,20 @@ from datastore import *
 from time import time
 
 import logging
+
 from google.appengine.api import urlfetch
 
-
-from google.appengine.api import users
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
 from google.appengine.ext.db import stats
 from google.appengine.ext.webapp import template
+from google.appengine.api import memcache
 
 import cStringIO
 import csv
 from datastore import *
-
-BASE_URL = "http://stresschill.appspot.com"
 
 def extract_surveys(surveys):
 	extracted = []
@@ -46,15 +44,23 @@ def extract_surveys(surveys):
 		else:
 			item['comments'] = cgi.escape(s.comments, True)
 
-		if s.photo:
-			item['photo'] = True
+		if s.hasphoto:
+			item['hasphoto'] = True
+			item['photo_key'] = s.photo_ref.key()
+		else:
+			item['hasphoto'] = False
+			item['photo_key'] = None
 
+		item['timestamp'] = s.timestamp
 		item['longitude'] = s.longitude
 		item['latitude'] = s.latitude
 		item['key'] = str(s.key())
 		extracted.append(item)
 	return extracted
+# End extract_surveys function
 
+# original model to hold data collected from phone survey
+# to-be replaced by SurveyData and SurveyPhoto
 class Survey(db.Model):
 	user = db.UserProperty()
 	username = db.StringProperty()
@@ -67,12 +73,37 @@ class Survey(db.Model):
 	version =	db.StringProperty()
 	photo =		db.BlobProperty()
 	hasphoto =	db.BooleanProperty()
+# End Survey Class
 
+# model to hold image blob
+class SurveyPhoto(db.Model):
+	photo = db.BlobProperty()
+# End SurveyPhoto Class
+
+# model to hold survey data
+class SurveyData(db.Model):
+	user = db.ReferenceProperty(UserTable)
+	username = db.StringProperty()
+	timestamp =	db.DateTimeProperty(auto_now_add=True)
+	longitude =	db.StringProperty()
+	latitude =	db.StringProperty()
+	stressval =	db.FloatProperty()
+	comments =	db.TextProperty()
+	category =	db.StringProperty()
+	version =	db.StringProperty()
+	hasphoto =	db.BooleanProperty()
+	photo_ref = db.ReferenceProperty(SurveyPhoto)
+# End SurveyData Class
+
+# main page: /
 class HomePage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/home.html')
 		self.response.out.write (template.render(path, {}))
+	# end get method
+# End HomePage Class
 
+# map page: /map
 class MapPage(webapp.RequestHandler):
 	def get(self):
 		if os.environ.get('HTTP_HOST'):
@@ -80,47 +111,36 @@ class MapPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
-		surveys = Survey.all().fetch(1000)
+		surveys = SurveyData.all().fetch(1000)
 		extracted = extract_surveys (surveys)
 		template_values = { 'surveys' : extracted, 'base_url' : base_url }
 		path = os.path.join (os.path.dirname(__file__), 'views/map.html')
 		self.response.out.write (template.render(path, template_values))
+	# end get method
+# End MapPage Class
 
+# client link page: /client
 class ClientsPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/clients.html')
 		self.response.out.write (template.render(path, {}))
+	# end get method
+# End ClientsPage Class
 
+# about page: /about
 class AboutPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/about.html')
 		self.response.out.write (template.render(path, {}))
+	# end get method
+# End AboutPage Class
 
-class UploadSurvey(webapp.RequestHandler):
-	def post(self):
-		s = Survey()
-
-		#if users.get_current_user():
-		#	s.user = users.get_current_user()
-		s.longitude = self.request.get('longitude')
-		s.latitude = self.request.get('latitude')
-		s.stressval = float(self.request.get('stressval'))
-		s.comments = str(self.request.get('comments')).replace('\n', ' ')
-		s.category = self.request.get('category')
-		s.version = self.request.get('version')
-
-		file_content = self.request.get('file')
-		try:
-			s.photo = db.Blob(file_content)
-		except TypeError:
-			s.photo = ''
-
-		s.put()
-		self.redirect('/')
-
+# handler for: /get_point_summary
 class GetPointSummary(webapp.RequestHandler):
+	# returns json string of all survey data
+	# TODO: this needs to be changed to return only a subset of the surveys, add paging
 	def get(self):
-		surveys = db.GqlQuery("SELECT * FROM Survey ORDER BY timestamp DESC LIMIT 1000")
+		surveys = db.GqlQuery("SELECT * FROM SurveyData ORDER BY timestamp DESC LIMIT 1000")
 		d = {}
 		i = 0
 		for s in surveys:
@@ -131,6 +151,10 @@ class GetPointSummary(webapp.RequestHandler):
 			e['comments'] = s.comments
 			e['key'] = str(s.key())
 			e['version'] = s.version
+			if s.hasphoto:
+				e['photo_key'] = s.photo_ref.key()
+			else:
+				e['photo_key'] = None
 
 			d[i] = e;
 			i = i + 1
@@ -140,8 +164,13 @@ class GetPointSummary(webapp.RequestHandler):
 			self.response.out.write(json.dumps(d))
 		else:
 			self.response.out.write("no data so far")
+	# end get method
+# End GetPointSummary Class
 
+# handler for: /get_a_point
 class GetAPoint(webapp.RequestHandler):
+	# input: key - datastore key from SurveyData 
+	# returns survey data associated with given key as json string
 	def get(self):
 		if os.environ.get('HTTP_HOST'):
 			base_url = os.environ['HTTP_HOST']
@@ -154,40 +183,54 @@ class GetAPoint(webapp.RequestHandler):
 		if req_key != '':
 			try :
 				db_key = db.Key(req_key)
-				surveys = db.GqlQuery("SELECT * FROM Survey WHERE __key__ = :1", db_key)
-				for s in surveys:
-					e = {}
-					e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + req_key;
-					e['latitude'] = s.latitude
-					e['longitude'] = s.longitude
-					e['stressval'] = s.stressval
-					e['category'] = s.category
-					e['comments'] = s.comments
-					e['key'] = str(s.key())
-					e['version'] = s.version
-					self.response.out.write(json.dumps(e))
-					return
+				s = db.GqlQuery("SELECT * FROM SurveyData WHERE __key__ = :1", db_key).get()
+				e = {}
+				e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + req_key;
+				e['latitude'] = s.latitude
+				e['longitude'] = s.longitude
+				e['stressval'] = s.stressval
+				e['category'] = s.category
+				e['comments'] = s.comments
+				e['key'] = str(s.key())
+				e['version'] = s.version
+				if s.hasphoto:
+					e['photo_key'] = s.photo_ref.key()
+				else:
+					e['photo_key'] = None
+				self.response.out.write(json.dumps(e))
+
 			except (db.Error):
 				self.response.out.write("No data has been uploaded :[")
 				return
 		self.response.out.write("No data has been uploaded :[")
+	# end get method
+# End GetAPoint Class
 
+# handler for: /get_an_image
 class GetAnImage(webapp.RequestHandler):
+	# input: key - datastore key from SurveyPhoto 
+	# returns image as jpeg
 	def get(self):
 		self.response.headers['Content-type'] = 'image/jpeg'
 		req_key = self.request.get('key')
 		if req_key != '':
 			try :
 				db_key = db.Key(req_key)
-				surveys = db.GqlQuery("SELECT * FROM Survey WHERE __key__ = :1", db_key)
-				for s in surveys:
+				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
+				if s:
 					self.response.out.write(s.photo)
-					return
+				else:
+					self.response.set_status(401, 'Image not found.')
 			except (db.Error):
-				return
-		return
+				self.response.set_status(401, 'Image not found.')
+		else:
+			self.response.set_status(401, 'No Image requested.')
+	# end get method
+# End GetAnImage Class
 
+# handler for: /get_image_thumb
 class GetImageThumb(webapp.RequestHandler):
+	# input: key - datastore key from SurveyPhoto 
 	def get(self):
 		if os.environ.get('HTTP_HOST'):
 			base_url = os.environ['HTTP_HOST']
@@ -199,47 +242,80 @@ class GetImageThumb(webapp.RequestHandler):
 		self.response.out.write("<html><body><img src=\"http://" + base_url + "/get_an_image?key=")
 		self.response.out.write(req_key)
 		self.response.out.write("\" width=\"180\" height=\"130\"></body></html>")
+	# end get method
+# end GetImageThumb Class
 
-
-class TestPost(webapp.RequestHandler):
-	def get(self):
-		path = os.path.join (os.path.dirname(__file__), 'views/testpost.html')
-		self.response.out.write (template.render(path, {}))
-
-class TestUpload(webapp.RequestHandler):
-	def post(self):
-		s = Survey()
-
-		s.longitude = self.request.get('longitude')
-		s.latitude = self.request.get('latitude')
-		s.stressval = float(self.request.get('stressval'))
-		s.comments = self.request.get('comments')
-		s.version = self.request.get('version')
-
-		file_content = self.request.get('file')
-		try:
-			s.photo = db.Blob(file_content)
-		except TypeError:
-			s.photo = ''
-
-		s.put()
-		self.redirect('/')
-
+# list data page: /data
 class DataPage(webapp.RequestHandler):
+	# display data in table format
+	# TODO: page results
 	def get(self):
 		if os.environ.get('HTTP_HOST'):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
-		surveys = Survey.all().fetch(200)
+		surveys = SurveyData.all().fetch(200)
 		extracted = extract_surveys (surveys)
-		template_values = { 'surveys' : surveys, 'base_url' : base_url }
+		template_values = { 'surveys' : extracted, 'base_url' : base_url }
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
 		self.response.out.write (template.render(path, template_values))
+	# end get method
+# End DataPage Class
 
+# debugging stuff...
+class DataDebugPage(webapp.RequestHandler):
+	def get(self):
+		if os.environ.get('HTTP_HOST'):
+			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
+		else:
+			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		surveys = SurveyData.all().fetch(20)
+		extracted = extract_surveys (surveys)
+		template_values = { 'surveys' : surveys, 'base_url' : base_url }
+		path = os.path.join (os.path.dirname(__file__), 'views/data_debug.html')
+		self.response.out.write (template.render(path, template_values))
+		''' #fix database
+		for s in surveys:
+			if s.photo:
+				s.hasphoto = True
+				s.put()
+		'''
+		'''
+		#copy database
+		for s in surveys:
+			new_survey = SurveyData()
+
+			new_survey.username = s.username
+			new_survey.timestamp = s.timestamp
+			new_survey.longitude = s.longitude
+			new_survey.latitude = s.latitude
+			new_survey.stressval = s.stressval
+			new_survey.comments = s.comments
+			new_survey.category = s.category
+			new_survey.version = s.version
+
+			if s.photo:
+				new_survey.hasphoto = True
+				new_photo = SurveyPhoto()
+				new_photo.photo = s.photo
+				new_photo.put()
+				new_survey.photo_ref = new_photo.key()
+			else:
+				new_survey.hasphoto = False
+				new_survey.photo_ref = None
+
+			new_survey.put()
+		'''
+		#extracted = extract_surveys (surveys)
+		#template_values = { 'surveys' : surveys, 'base_url' : base_url }
+		#path = os.path.join (os.path.dirname(__file__), 'views/data_debug.html')
+		#self.response.out.write (template.render(path, template_values))
+
+# handler for: /data_download_all.csv
 class DownloadAllData(webapp.RequestHandler):
+	# returns csv of all data
 	def get(self):
 		output = cStringIO.StringIO()
 		writer = csv.writer(output, delimiter=',')
@@ -278,8 +354,10 @@ class DownloadAllData(webapp.RequestHandler):
 
 		self.response.headers['Content-type'] = 'text/csv'
 		self.response.out.write(output.getvalue())
+	# end get method
+# End DownloadAllData
 
-# base clase to be extended by other handlers needing oauth
+# base class to be extended by other handlers needing oauth
 class BaseHandler(webapp.RequestHandler):
 	def __init__(self, *args, **kwargs):
 		self.oauth_server = oauth.OAuthServer(DataStore())
@@ -343,6 +421,7 @@ class BaseHandler(webapp.RequestHandler):
 			return False
 # End BaseHandler class
 
+# handler for: /request_token
 class RequestTokenHandler(BaseHandler):
 	def handler(self):
 		oauth_request = self.construct_request('Request')
@@ -360,7 +439,7 @@ class RequestTokenHandler(BaseHandler):
 	# end handler method
 # End RequestTokenHandler class
 
-
+# handler for: /authorize
 # required fields: 
 # - username: string 
 # - password: string, sha1 of plaintext password
@@ -408,6 +487,7 @@ class UserAuthorize(BaseHandler):
 	# end handler method
 # End UserAuthorize Class
 
+# handler for: /access_token
 class AccessTokenHandler(BaseHandler):
 	def handler(self):
 		oauth_request = self.construct_request('Access')
@@ -424,9 +504,13 @@ class AccessTokenHandler(BaseHandler):
 	# end handler method
 # End AccessTokenHandler Class
 
+# handler for: /authorize_access
 # cheat for mobile phone so no back and forth with redirects...
 # access as if fetching request token
 # also send username, sha1 of password
+# required fields: 
+# - username: string 
+# - password: string, sha1 of plaintext password
 # returns access token
 class AuthorizeAccessHandler(BaseHandler):
 	def handler(self):
@@ -483,6 +567,7 @@ class AuthorizeAccessHandler(BaseHandler):
 # End AuthorizeAccessHandler Class
 
 # res1
+# currently not used. 
 class ProtectedResourceHandler(BaseHandler):
 	def handler(self):
 		oauth_request = self.construct_request('Protected')
@@ -499,11 +584,11 @@ class ProtectedResourceHandler(BaseHandler):
 				return
 			logging.debug('token string: '+token.to_string())
 
-			s = Survey()
+			s = SurveyData()
 
 			# check user 
 			if 'username' in params:
-				username = params['username']
+				s.username = params['username']
 
 			if 'longitude' in params:
 				s.longitude = params['longitude']
@@ -522,10 +607,19 @@ class ProtectedResourceHandler(BaseHandler):
 
 			if 'file' in params:
 				file_content = params['file']
-				try:
-					s.photo = db.Blob(file_content)
-				except TypeError:
-					s.photo = ''
+				if file_content:
+					try:
+						new_photo = SurveyPhoto()
+						new_photo.photo = db.Blob(file_content)
+						new_photo.put()
+						s.photo_ref = new_photo.key()
+						s.hasphoto = True
+					except TypeError:
+						s.photo_ref = None
+						s.hasphoto = False
+				else:
+					s.photo_ref = None
+					s.hasphoto = False
 
 			s.put()
 			self.redirect('/')
@@ -535,6 +629,10 @@ class ProtectedResourceHandler(BaseHandler):
 	# end handler method
 # End ProtectedResourceHandler Class
 
+# handler for: /protected_upload2
+# required fields:
+#	- oauth_token: string containing access key
+# this is a temporary hack...
 class ProtectedResourceHandler2(webapp.RequestHandler):
 	def post(self):
 		self.handle()
@@ -556,37 +654,52 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 		if req_token != '':
 			try :
-				tokens = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token)
-				for t in tokens:
-					s = Survey()
+				t = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token).get()
 
-					s.username = t.user
-					s.longitude = self.request.get('longitude')
-					s.latitude = self.request.get('latitude')
-					s.stressval = float(self.request.get('stressval'))
-					s.comments = str(self.request.get('comments')).replace('\n', ' ')
-					s.category = self.request.get('category')
-					s.version = self.request.get('version')
-
-					file_content = self.request.get('file')
-					try:
-						s.photo = db.Blob(file_content)
-					except TypeError:
-						s.photo = ''
-
-					s.put()
-					self.error(200)
+				if not t:
+					logging.error('if you got here, token lookup failed.')
+					self.error(401)
 					return
-				logging.error('if you got here, token lookup failed.')
+
+				s = SurveyData()
+
+				s.username = t.user
+				s.longitude = self.request.get('longitude')
+				s.latitude = self.request.get('latitude')
+				s.stressval = float(self.request.get('stressval'))
+				s.comments = str(self.request.get('comments')).replace('\n', ' ')
+				s.category = self.request.get('category')
+				s.version = self.request.get('version')
+
+				file_content = self.request.get('file')
+
+				if file_content:
+					try:
+						new_photo = SurveyPhoto()
+						new_photo.photo = db.Blob(file_content)
+						new_photo.put()
+						s.photo_ref = new_photo.key()
+						s.hasphoto = True
+					except TypeError:
+						s.photo_ref = None
+						s.hasphoto = False
+				else:
+					s.photo_ref = None
+					s.hasphoto = False
+
+				s.put()
+
 			except (db.Error):
 				logging.error('error inserting to database')
 				self.error(401)
 				return
-		logging.error('request token empty')
-		self.error(401)
+		else:
+			logging.error('request token empty')
+			self.error(401)
 
 
-
+# handler for /create_consumer
+# form to create a consumer key & setup permissions to access resources
 class CreateConsumer(webapp.RequestHandler):
 	def get(self):
 		self.handle()
@@ -608,6 +721,8 @@ class CreateConsumer(webapp.RequestHandler):
 		''')
 # End CreateConsumer class
 
+# handler for: /get_consumer
+# create consumer key/secret & add to resource table
 class GetConsumer(webapp.RequestHandler):
 	def get(self):
 		self.handle()
@@ -641,9 +756,8 @@ class GetConsumer(webapp.RequestHandler):
 	# end handle
 # End GetConsumer class
 		
-
-# End GetConsumer class
-
+# handler for: /create_user
+# form to set up new user
 class CreateUser(webapp.RequestHandler):
 	def get(self):
 		self.handle()
@@ -665,6 +779,14 @@ class CreateUser(webapp.RequestHandler):
 		''')
 # End CreateUser class
 
+# handler for: /confirm_user
+# adds user
+# required fields:
+#	- username: string
+#	- password: string
+#	- confirmpassword: string - must match password
+# optional:
+#	- email: string
 class ConfirmUser(webapp.RequestHandler):
 	def post(self):
 		username = self.request.get('username')
@@ -687,12 +809,20 @@ class ConfirmUser(webapp.RequestHandler):
 			return
 
 		self.response.out.write('user added')
+	# end post method
+# End ConfirmUser Class
 
+# handler for: /summary
+# displays count of each category
 class SummaryHandler(webapp.RequestHandler):
 	def get(self):
 		self.handle()
+	# end get method
+
 	def post(self):
 		self.handle()
+	# end post method
+
 	def handle(self):
 		result = db.GqlQuery("SELECT * FROM Survey")
 
@@ -713,19 +843,18 @@ class SummaryHandler(webapp.RequestHandler):
 		template_values = { 'summary' : data }
 		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
 		self.response.out.write (template.render(path, template_values))
+	# end handle method
+# End SummaryHandler Class
 
 application = webapp.WSGIApplication(
 									 [('/', HomePage),
 									  ('/map', MapPage),
 									  ('/clients', ClientsPage),
 									  ('/about', AboutPage),
-									  ('/upload_survey', UploadSurvey),
 									  ('/get_point_summary', GetPointSummary),
 									  ('/get_a_point', GetAPoint),
 									  ('/get_an_image', GetAnImage),
 									  ('/get_image_thumb', GetImageThumb),
-									  ('/testpost', TestPost),
-									  ('/testupload', TestUpload),
 									  ('/data', DataPage),
 									  ('/data_download_all.csv', DownloadAllData),
 									  ('/request_token', RequestTokenHandler),
@@ -738,7 +867,8 @@ application = webapp.WSGIApplication(
 									  ('/get_consumer', GetConsumer),
 									  ('/create_user', CreateUser),
 									  ('/confirm_user', ConfirmUser),
-									  ('/summary', SummaryHandler)],
+									  ('/summary', SummaryHandler),
+									  ('/data_debug', DataDebugPage)],
 									 debug=True)
 
 def main():
