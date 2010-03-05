@@ -8,4 +8,4 @@
 android update project  \
 --target 3              \
 --path ./android        \
---name WeTap
+--name StressChillMap
