@@ -4,3 +4,22 @@ android and the only server implementation runs on appengine.
 
 See the appropriate android and appengine documentation for instructions on how
 to build and deploy the code on each platform.
+
+# Android Notes
+
+To build the Android application without Eclipse (the .apk) you will need to
+update StressChill/android with the `android' tool. I've included a small
+script to do this for you. From StressChill/ run:
+
+    ./tools/update-build-files.sh
+
+This will update almost all of the necessary files.
+
+
+For whatever reason, `android' does not update
+StressChill/android/default.properties correctly. You will need to open up that
+file and change the last line to
+
+    target=Google Inc.:Google APIs:3
+
+This may vary depending on which target you are building for.
