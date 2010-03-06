@@ -99,71 +99,138 @@
 
     <View android:layout_height="10sp" />
 
-    <TableRow android:id="@+id/item_row_0_0">
-        <TextView
-            android:layout_width="315sp"
-            android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:text="@string/radio_group_1_name"
-        />
-    </TableRow>
-    <TableRow android:id="@+id/item_row_0_1">
-        <Spinner
-            android:id="@+id/spinner_00"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:drawSelectorOnTop="true"
-            android:prompt="@string/radio_group_1_name"
-        />
-    </TableRow>
+    <TextView
+        android:id="@+id/question_00"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_00"
+    />
+    <Spinner
+        android:id="@+id/spinner_00"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_00"
+    />
 
-    <View android:layout_height="10sp"/>
+    <TextView
+        android:id="@+id/question_01"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_01"
+    />
+    <Spinner
+        android:id="@+id/spinner_01"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_01"
+    />
 
-    <TableRow android:id="@+id/item_row_1_0">
-        <TextView
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:text="@string/radio_group_2_name"
-        />
-    </TableRow>
-    <TableRow android:id="@+id/item_row_1_1">
-        <Spinner
-            android:id="@+id/spinner_01"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:drawSelectorOnTop="true"
-            android:prompt="@string/radio_group_2_name"
-        />
-    </TableRow>
+    <TextView
+        android:id="@+id/question_02"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_02"
+    />
+    <Spinner
+        android:id="@+id/spinner_02"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_02"
+    />
 
-    <View android:layout_height="10sp"/>
+    <TextView
+        android:id="@+id/question_03"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_03"
+    />
+    <Spinner
+        android:id="@+id/spinner_03"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_03"
+    />
 
-    <TableRow android:id="@+id/item_row_2_0">
-        <TextView
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:text="@string/radio_group_3_name"
-        />
-    </TableRow>
-    <TableRow android:id="@+id/item_row_2_1">
-        <Spinner
-            android:id="@+id/spinner_02"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:drawSelectorOnTop="true"
-            android:prompt="@string/radio_group_3_name"
-        />
-    </TableRow>
+    <TextView
+        android:id="@+id/question_04"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_04"
+    />
+    <Spinner
+        android:id="@+id/spinner_04"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_04"
+    />
 
-    <View android:layout_height="10sp"/>
+    <TextView
+        android:id="@+id/question_05"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_05"
+    />
+    <Spinner
+        android:id="@+id/spinner_05"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_05"
+    />
+
+    <TextView
+        android:id="@+id/question_06"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_06"
+    />
+    <Spinner
+        android:id="@+id/spinner_06"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_06"
+    />
+
+    <TextView
+        android:id="@+id/question_07"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="@string/question_07"
+    />
+    <Spinner
+        android:id="@+id/spinner_07"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:drawSelectorOnTop="true"
+        android:prompt="@string/question_07"
+    />
+
+    <View android:layout_height="10sp" />
 
     <TableRow>
-        <RelativeLayout android:id="@+id/taste_row"
+         <RelativeLayout android:id="@+id/taste_row"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content">
 
@@ -172,15 +239,15 @@
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:text="Comments:" />
+                 android:text="Comments:" />
             <View
-                android:layout_below="@id/comment_label"
+                 android:layout_below="@id/comment_label"
                 android:id="@+id/spacer1"
                 android:layout_width="10sp"
                 android:layout_height="1sp" />
 
             <EditText android:id="@+id/comment"
-                android:background="#FFF"
+                 android:background="#FFF"
                 android:foreground="#000"
                 android:layout_toRightOf="@id/spacer1"
                 android:layout_below="@id/comment_label"

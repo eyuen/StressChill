@@ -15,25 +15,14 @@
     <string name="map_full_point">"http://stresschill.appspot.com/get_a_point"</string>
     <string name="register_user">"http://stresschill.appspot.com/confirm_user"</string>
 
-    <string name="radio_group_1_name">What about this location led you to tag it?</string>
-    <string name="radio_group_1_option_1">People</string>
-    <string name="radio_group_1_option_2">An event</string>
-    <string name="radio_group_1_option_3">A memory</string>
-    <string name="radio_group_1_option_4">A hazard</string>
-    <string name="radio_group_1_option_5">Something fun to do</string>
-    <string name="radio_group_1_option_6">The place itself</string>
-
-    <string name="radio_group_2_name">Sub Category</string>
-    <string name="radio_group_2_option_1">Family</string>
-    <string name="radio_group_2_option_2">Friends</string>
-    <string name="radio_group_2_option_3">Someone else I know</string>
-    <string name="radio_group_2_option_4">Someone I don't know</string>
-    <string name="radio_group_2_option_5">A group or crowd</string>
-
-    <string name="radio_group_3_name">Sub Category</string>
-    <string name="radio_group_3_option_1">Sights</string>
-    <string name="radio_group_3_option_2">Sounds</string>
-    <string name="radio_group_3_option_3">Smells</string>
+    <string name="question_00">"I am tagging this place now because of..."</string>
+    <string name="question_01">"The personal interactions I have here and now:"</string>
+    <string name="question_02">"My sense of this place here and now:"</string>
+    <string name="question_03">"My feelings about the amount of time I spend here:"</string>
+    <string name="question_04">"How I view the activity I participate in here and now:"</string>
+    <string name="question_05">"The physical condition of somehting here and now:"</string>
+    <string name="question_06">"My health and safety here and now:"</string>
+    <string name="question_07">"A response I had to being here and now:"</string>
 
     <string name="about_content">StressChill is a partici.. yada yada yada...</string>
     <string name="instructions_content">Press button foo to start action bar, etc.</string>
