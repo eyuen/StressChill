@@ -39,6 +39,11 @@ def extract_surveys(surveys):
 		else:
 			item['category'] = cgi.escape(s.category, True)
 
+		if not s.subcategory:
+			item['subcategory'] = s.subcategory
+		else:
+			item['subcategory'] = cgi.escape(s.subcategory, True)
+
 		if not s.comments:
 			item['comments'] = s.comments
 		else:
@@ -70,6 +75,7 @@ class Survey(db.Model):
 	stressval =	db.FloatProperty()
 	comments =	db.TextProperty()
 	category =	db.StringProperty()
+	subcategory = db.StringProperty()
 	version =	db.StringProperty()
 	photo =		db.BlobProperty()
 	hasphoto =	db.BooleanProperty()
@@ -90,6 +96,7 @@ class SurveyData(db.Model):
 	stressval =	db.FloatProperty()
 	comments =	db.TextProperty()
 	category =	db.StringProperty()
+	subcategory = db.StringProperty()
 	version =	db.StringProperty()
 	hasphoto =	db.BooleanProperty()
 	photo_ref = db.ReferenceProperty(SurveyPhoto)
@@ -190,6 +197,7 @@ class GetAPoint(webapp.RequestHandler):
 				e['longitude'] = s.longitude
 				e['stressval'] = s.stressval
 				e['category'] = s.category
+				e['subcategory'] = s.subcategory
 				e['comments'] = s.comments
 				e['key'] = str(s.key())
 				e['version'] = s.version
@@ -294,6 +302,7 @@ class DataDebugPage(webapp.RequestHandler):
 			new_survey.stressval = s.stressval
 			new_survey.comments = s.comments
 			new_survey.category = s.category
+			new_survey.subcategory = s.subcategory
 			new_survey.version = s.version
 
 			if s.photo:
@@ -326,6 +335,7 @@ class DownloadAllData(webapp.RequestHandler):
 						'longitude',
 						'stress_value',
 						'category',
+						'subcategory',
 						'comments',
 						'image_url'
 						]
@@ -347,6 +357,7 @@ class DownloadAllData(webapp.RequestHandler):
 					s.longitude,
 					s.stressval,
 					s.category,
+					s.subcategory,
 					s.comments,
 					'http://' + base_url + "/get_an_image?key="+str(s.key())
 					]
@@ -669,6 +680,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				s.stressval = float(self.request.get('stressval'))
 				s.comments = str(self.request.get('comments')).replace('\n', ' ')
 				s.category = self.request.get('category')
+				s.subcategory = self.request.get('subcategory')
 				s.version = self.request.get('version')
 
 				file_content = self.request.get('file')
