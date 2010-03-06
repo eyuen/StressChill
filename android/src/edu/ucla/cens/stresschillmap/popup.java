@@ -55,6 +55,7 @@ public class popup extends Activity {
         String photo = "";
         String stressval = "0";
         String category = "Not provided"; 
+        String subcategory = "None";
         String comments = "";
 
         if (req_key != null && req_key != "") {
@@ -77,6 +78,9 @@ public class popup extends Activity {
             try { category = (String) entry.get("category"); }
             catch (JSONException e) { category = ""; }
             catch (ClassCastException e) { category = ""; }
+            try { subcategory = (String) entry.get("subcategory"); }
+            catch (JSONException e) { subcategory = ""; }
+            catch (ClassCastException e) { subcategory = ""; }
             try { comments = (String) entry.get("comments"); }
             catch (JSONException e) { comments = ""; }
             catch (ClassCastException e) { comments = ""; }
@@ -91,7 +95,8 @@ public class popup extends Activity {
 
         ((TextView) findViewById (R.id.item_0)).setText(stressval);
         ((TextView) findViewById (R.id.item_1)).setText(category);
-        ((TextView) findViewById (R.id.item_2)).setText(comments);
+        ((TextView) findViewById (R.id.item_2)).setText(subcategory);
+        ((TextView) findViewById (R.id.item_3)).setText(comments);
     }
 
     private String getUrlData(String url) {
