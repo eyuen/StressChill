@@ -18,10 +18,14 @@ from google.appengine.ext import db
 from google.appengine.ext.db import stats
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
+from google.appengine.api import images
 
 import cStringIO
 import csv
 from datastore import *
+
+# number of observations shown per page
+PAGE_SIZE = 2
 
 def extract_surveys(surveys):
 	extracted = []
@@ -78,6 +82,7 @@ class Survey(db.Model):
 # model to hold image blob
 class SurveyPhoto(db.Model):
 	photo = db.BlobProperty()
+	thumb = db.BlobProperty()
 # End SurveyPhoto Class
 
 # model to hold survey data
@@ -211,14 +216,36 @@ class GetAnImage(webapp.RequestHandler):
 	# input: key - datastore key from SurveyPhoto 
 	# returns image as jpeg
 	def get(self):
-		self.response.headers['Content-type'] = 'image/jpeg'
 		req_key = self.request.get('key')
 		if req_key != '':
 			try :
 				db_key = db.Key(req_key)
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
+					self.response.headers['Content-type'] = 'image/jpeg'
 					self.response.out.write(s.photo)
+				else:
+					self.response.set_status(401, 'Image not found.')
+			except (db.Error):
+				self.response.set_status(401, 'Image not found.')
+		else:
+			self.response.set_status(401, 'No Image requested.')
+	# end get method
+# End GetAnImage Class
+
+# handler for: /get_a_thumb
+class GetAThumb(webapp.RequestHandler):
+	# input: key - datastore key from SurveyPhoto 
+	# returns image as jpeg
+	def get(self):
+		req_key = self.request.get('key')
+		if req_key != '':
+			try :
+				db_key = db.Key(req_key)
+				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
+				if s:
+					self.response.headers['Content-type'] = 'image/jpeg'
+					self.response.out.write(s.thumb)
 				else:
 					self.response.set_status(401, 'Image not found.')
 			except (db.Error):
@@ -239,7 +266,7 @@ class GetImageThumb(webapp.RequestHandler):
 
 		self.response.headers['Content-type'] = 'text/html'
 		req_key = self.request.get('key')
-		self.response.out.write("<html><body><img src=\"http://" + base_url + "/get_an_image?key=")
+		self.response.out.write("<html><body><img src=\"http://" + base_url + "/get_a_thumb?key=")
 		self.response.out.write(req_key)
 		self.response.out.write("\" width=\"180\" height=\"130\"></body></html>")
 	# end get method
@@ -255,9 +282,45 @@ class DataPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
-		surveys = SurveyData.all().fetch(200)
+		bookmark = self.request.get('bookmark')
+
+		template_values = { 'base_url' : base_url }
+
+		forward = True
+		if bookmark.startswith('-'):
+			forward = False
+			bookmark = bookmark[1:]
+		
+		if bookmark:
+			db_key = db.Key(bookmark)
+			if forward:
+				surveys = SurveyData.all().filter('__key__ >', db_key).order('__key__').fetch(PAGE_SIZE+1)
+			else:
+				surveys = SurveyData.all().filter('__key__ <', db_key).order('-__key__').fetch(PAGE_SIZE+1)
+				surveys.reverse()
+		else:
+			surveys = SurveyData.all().order('__key__').fetch(PAGE_SIZE+1)
+
+		if len(surveys) == PAGE_SIZE + 1:
+			if forward:
+				template_values['next'] = str(surveys[-2].key())
+				surveys = surveys[:PAGE_SIZE]
+				template_values['back'] = str(surveys[0].key())
+			else:
+				template_values['next'] = str(surveys[-1].key())
+				surveys = surveys[1:]
+				template_values['back'] = str(surveys[1].key())
+		else:
+			if forward:
+				template_values['back'] = str(surveys[0].key())
+			else:
+				template_values['next'] = str(surveys[-2].key())
+
+
+
 		extracted = extract_surveys (surveys)
-		template_values = { 'surveys' : extracted, 'base_url' : base_url }
+		template_values['surveys'] = extracted 
+
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
 		self.response.out.write (template.render(path, template_values))
 	# end get method
@@ -270,12 +333,24 @@ class DataDebugPage(webapp.RequestHandler):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+		'''
+		# create thumbnails
+		imagelist = SurveyPhoto.all().fetch(20, 119)
 
+		for i in imagelist:
+			img = images.Image(i.photo)
+			img.resize(width=180, height=130)
+			i.thumb = img.execute_transforms(output_encoding=images.JPEG)
+			i.put()
+		'''
+
+		'''
 		surveys = SurveyData.all().fetch(20)
 		extracted = extract_surveys (surveys)
 		template_values = { 'surveys' : surveys, 'base_url' : base_url }
 		path = os.path.join (os.path.dirname(__file__), 'views/data_debug.html')
 		self.response.out.write (template.render(path, template_values))
+		'''
 		''' #fix database
 		for s in surveys:
 			if s.photo:
@@ -341,6 +416,12 @@ class DownloadAllData(webapp.RequestHandler):
 			base_url = os.environ['SERVER_NAME']
 
 		for s in surveys:
+			photo_url = ''
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
 			new_row = [
 					s.timestamp,
 					s.latitude,
@@ -348,7 +429,7 @@ class DownloadAllData(webapp.RequestHandler):
 					s.stressval,
 					s.category,
 					s.comments,
-					'http://' + base_url + "/get_an_image?key="+str(s.key())
+					photo_url
 					]
 			writer.writerow(new_row)
 
@@ -622,7 +703,6 @@ class ProtectedResourceHandler(BaseHandler):
 					s.hasphoto = False
 
 			s.put()
-			self.redirect('/')
 
 		except oauth.OAuthError, err:
 			self.send_oauth_error(err)
@@ -675,9 +755,17 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				if file_content:
 					try:
+						# upload image as blob to SurveyPhoto
 						new_photo = SurveyPhoto()
 						new_photo.photo = db.Blob(file_content)
+						# create a thumbnail of image to store in SurveyPhoto
+						tmb = images.Image(new_photo.photo)
+						tmb.resize(width=180, height=130)
+						# execute resize
+						new_photo.thumb = tmb.execute_transforms(output_encoding=images.JPEG)
+						# insert
 						new_photo.put()
+						# set reference to photo for SurveyData
 						s.photo_ref = new_photo.key()
 						s.hasphoto = True
 					except TypeError:
@@ -696,6 +784,8 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 		else:
 			logging.error('request token empty')
 			self.error(401)
+	# end handle method
+# End ProtectedResourceHandler2 Class
 
 
 # handler for /create_consumer
@@ -719,6 +809,7 @@ class CreateConsumer(webapp.RequestHandler):
 </body>
 </html>
 		''')
+	# end handle method
 # End CreateConsumer class
 
 # handler for: /get_consumer
@@ -777,6 +868,7 @@ class CreateUser(webapp.RequestHandler):
 </body>
 </html>
 		''')
+	# end handle method
 # End CreateUser class
 
 # handler for: /confirm_user
@@ -854,6 +946,7 @@ application = webapp.WSGIApplication(
 									  ('/get_point_summary', GetPointSummary),
 									  ('/get_a_point', GetAPoint),
 									  ('/get_an_image', GetAnImage),
+									  ('/get_a_thumb', GetAThumb),
 									  ('/get_image_thumb', GetImageThumb),
 									  ('/data', DataPage),
 									  ('/data_download_all.csv', DownloadAllData),

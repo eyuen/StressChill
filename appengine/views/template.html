@@ -15,7 +15,7 @@
 	</script>
 </head>
 
-<body onload="initialize()" onunload="GUnload()">
+<body {% block onload%}{% endblock %} {% block onunload %}{% endblock %}>
 	<div class="container">
 		<div class="span-24 last">
 			<h1>StressChill</h1>

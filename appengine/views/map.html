@@ -2,11 +2,15 @@
 
 {% block title %}StressChill - Google Map{% endblock %}
 
+
 {% block includes %}
 	<script type="text/javascript" src="http://www.google.com/jsapi?autoload=%7B%22modules%22%3A%5B%7B%22name%22%3A%22maps%22%2C%22version%22%3A%222%22%7D%5D%7D&key=ABQIAAAAmETJki-B8W5YjNZW6zEKOBTXw6k_TLS-0RyRs7gX4irNy_p4hhRryLQFDoh5-CFGGzUvcpgFvNsFdA"></script>
 <!--	<script src="http://maps.google.com/maps?file=api&amp;v=2&amp;sensor=false&amp;key=ABQIAAAAmETJki-B8W5YjNZW6zEKOBTXw6k_TLS-0RyRs7gX4irNy_p4hhRryLQFDoh5-CFGGzUvcpgFvNsFdA" type="text/javascript"></script>	
 -->
 {% endblock %}
+
+{% block onload %}onload="initialize()"{% endblock %}
+{% block onunload %}onunload="GUnload()"{% endblock %}
 
 {% block javascript %}
 
@@ -86,7 +90,7 @@
                 var marker = new GMarker(new GLatLng({{s.latitude}}, {{s.longitude}}), icon);
 				GEvent.addListener(marker, "click", function() {
 				{% if s.hasphoto %}
-				var html = "<img src=\"{{base_url}}get_an_image?key={{s.photo_key}}\" width=\"180\" height=\"130\">" +
+				var html = "<img src=\"{{base_url}}get_a_thumb?key={{s.photo_key}}\" width=\"180\" height=\"130\">" +
 				{% else %}
 				var html = "<i>(no image.)</i>" +
 				{% endif %}
