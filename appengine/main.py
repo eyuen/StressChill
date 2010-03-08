@@ -25,7 +25,7 @@ import csv
 from datastore import *
 
 # number of observations shown per page
-PAGE_SIZE = 2
+PAGE_SIZE = 20
 
 def extract_surveys(surveys):
 	extracted = []
