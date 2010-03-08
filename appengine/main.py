@@ -295,28 +295,23 @@ class DataPage(webapp.RequestHandler):
 			db_key = db.Key(bookmark)
 			if forward:
 				surveys = SurveyData.all().filter('__key__ >', db_key).order('__key__').fetch(PAGE_SIZE+1)
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['next'] = str(surveys[-2].key())
+					surveys = surveys[:PAGE_SIZE]
+
+				template_values['back'] = '-'+str(surveys[0].key())
 			else:
 				surveys = SurveyData.all().filter('__key__ <', db_key).order('-__key__').fetch(PAGE_SIZE+1)
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['back'] = '-'+str(surveys[-2].key())
+					surveys = surveys[:PAGE_SIZE]
+				template_values['next'] = str(surveys[0].key())
 				surveys.reverse()
 		else:
 			surveys = SurveyData.all().order('__key__').fetch(PAGE_SIZE+1)
-
-		if len(surveys) == PAGE_SIZE + 1:
-			if forward:
+			if len(surveys) == PAGE_SIZE + 1:
 				template_values['next'] = str(surveys[-2].key())
 				surveys = surveys[:PAGE_SIZE]
-				template_values['back'] = str(surveys[0].key())
-			else:
-				template_values['next'] = str(surveys[-1].key())
-				surveys = surveys[1:]
-				template_values['back'] = str(surveys[1].key())
-		else:
-			if forward:
-				template_values['back'] = str(surveys[0].key())
-			else:
-				template_values['next'] = str(surveys[-2].key())
-
-
 
 		extracted = extract_surveys (surveys)
 		template_values['surveys'] = extracted 
