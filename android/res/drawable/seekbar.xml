@@ -4,11 +4,11 @@
     <!-- cool:208E9B-2219B2 -->
     <item
         android:id="@+android:id/background"
-        android:drawable="@drawable/seekbar_grey" />
+        android:drawable="@drawable/seekbar_greyx2" />
     <item
         android:id="@+android:id/SecondaryProgress"
-        android:drawable="@drawable/seekbar_hot2" />
+        android:drawable="@drawable/seekbar_hot2x2" />
     <item
         android:id="@+android:id/progress"      
-        android:drawable="@drawable/seekbar_cool2" />
+        android:drawable="@drawable/seekbar_cool2x2" />
 </layer-list> 

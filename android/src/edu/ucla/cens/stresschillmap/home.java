@@ -1,21 +1,59 @@
 package edu.ucla.cens.stresschillmap;
 import android.os.Bundle;
+import android.util.Log;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.content.Intent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.widget.Button;
+import android.location.LocationManager;
 
 public class home extends Activity {
+    final public static String TAG = "Home Activity";
+    private Context ctx;
+
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate (b);
         setContentView (R.layout.home);
 
+        ctx = home.this;
+
+        LocationManager lm = (LocationManager) getSystemService (
+            Context.LOCATION_SERVICE);
+        if (!lm.isProviderEnabled (LocationManager.GPS_PROVIDER)) {
+            Log.d(TAG, "no gps was enabled, so enabling the gps now");
+            alert_no_gps ();
+        }
+        lm = null;
+
         ((Button) findViewById (R.id.start_survey)).setOnClickListener (survey_button_listener);
         ((Button) findViewById (R.id.start_map)).setOnClickListener (map_button_listener);
+    }
+
+    private void alert_no_gps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Yout GPS seems to be disabled, You need GPS to run this application. do you want to enable it?")
+               .setCancelable(false)
+               .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        home.this.startActivityForResult(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS), 3);
+                    }
+                })
+               .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        home.this.finish();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
+    protected void onActivityResult (int requestCode, int resultCode, Intent data) {
     }
 
     @Override
@@ -29,7 +67,6 @@ public class home extends Activity {
 
     @Override
     public boolean onOptionsItemSelected (MenuItem index) {
-        Context ctx = home.this;
         Intent i;
         switch (index.getItemId()) {
             case 0:

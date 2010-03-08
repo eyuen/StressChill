@@ -1,29 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <resources>
+    <!-- I am tagging this place now because of... -->
     <string-array name="response_00">
         <item>Select one...</item>
-        <item>People</item>
-        <item>An event</item>
-        <item>A memory</item>
-        <item>A hazard</item>
-        <item>Something fun to do</item>
-        <item>The place itself</item>
+        <item>Personal interactions I have here</item>
+        <item>My sense of this place here and now</item>
+        <item>The amount of time I spend here</item>
+        <item>The activity I participate in here</item>
+        <item>Physical condition of something</item>
+        <item>My health and safety here and now</item>
+        <item>A response to being here and now</item>
     </string-array>
 
+    <!-- The *personal interactions* I have here and now -->
     <string-array name="response_01">
         <item>Select one...</item>
-        <item>Family</item>
         <item>Friends</item>
-        <item>Someone else I know</item>
-        <item>Someone I don't know</item>
-        <item>A group or crowd</item>
+        <item>Family</item>
+        <item>Teacher</item>
+        <item>Employer</item>
+        <item>People I don't know</item>
+        <item>Animals or pets (or robots)</item>
     </string-array>
 
+    <!-- My sense of *this place* here and now: -->
     <string-array name="response_02">
         <item>Select one...</item>
-        <item>Sights</item>
-        <item>Sounds</item>
-        <item>Smells</item>
+        <item>Sight</item>
+        <item>Smell</item>
+        <item>Sound</item>
+        <item>Indoor climate</item>
+        <item>The weather</item>
+    </string-array>
+
+    <!-- My feelings about *the amount of time* I spend here: -->
+    <string-array name="response_03">
+        <item>Select one...</item>
+        <item>It's long</item>
+        <item>It's short</item>
+    </string-array>
+
+    <!-- How I view *the activity* I participate in here and now: -->
+    <string-array name="response_04">
+        <item>Select one...</item>
+        <item>A responsibility</item>
+        <item>An expectation</item>
+        <item>Work</item>
+        <item>Something voluntary</item>
+    </string-array>
+
+    <!-- The *physical condition* of somehting here and now: -->
+    <string-array name="response_05">
+        <item>Select one...</item>
+        <item>Old</item>
+        <item>New</item>
+    </string-array>
+
+    <!-- My *health and safety* here and now: -->
+    <string-array name="response_06">
+        <item>Select one...</item>
+        <item>Physically</item>
+        <item>Emotionally</item>
+        <item>Spiritually</item>
+        <item>Financially</item>
+    </string-array>
+
+    <!-- A *response* I had to being here and now: -->
+    <string-array name="response_07">
+        <item>Select one...</item>
+        <item>Memory</item>
+        <item>Thought</item>
+        <item>Feeling</item>
     </string-array>
 </resources>

@@ -43,6 +43,11 @@ def extract_surveys(surveys):
 		else:
 			item['category'] = cgi.escape(s.category, True)
 
+		if not s.subcategory:
+			item['subcategory'] = s.subcategory
+		else:
+			item['subcategory'] = cgi.escape(s.subcategory, True)
+
 		if not s.comments:
 			item['comments'] = s.comments
 		else:
@@ -50,7 +55,7 @@ def extract_surveys(surveys):
 
 		if s.hasphoto:
 			item['hasphoto'] = True
-			item['photo_key'] = s.photo_ref.key()
+			item['photo_key'] = str(s.photo_ref.key())
 		else:
 			item['hasphoto'] = False
 			item['photo_key'] = None
@@ -74,6 +79,7 @@ class Survey(db.Model):
 	stressval =	db.FloatProperty()
 	comments =	db.TextProperty()
 	category =	db.StringProperty()
+	subcategory = db.StringProperty()
 	version =	db.StringProperty()
 	photo =		db.BlobProperty()
 	hasphoto =	db.BooleanProperty()
@@ -95,6 +101,7 @@ class SurveyData(db.Model):
 	stressval =	db.FloatProperty()
 	comments =	db.TextProperty()
 	category =	db.StringProperty()
+	subcategory = db.StringProperty()
 	version =	db.StringProperty()
 	hasphoto =	db.BooleanProperty()
 	photo_ref = db.ReferenceProperty(SurveyPhoto)
@@ -157,7 +164,7 @@ class GetPointSummary(webapp.RequestHandler):
 			e['key'] = str(s.key())
 			e['version'] = s.version
 			if s.hasphoto:
-				e['photo_key'] = s.photo_ref.key()
+				e['photo_key'] = str(s.photo_ref.key())
 			else:
 				e['photo_key'] = None
 
@@ -190,19 +197,24 @@ class GetAPoint(webapp.RequestHandler):
 				db_key = db.Key(req_key)
 				s = db.GqlQuery("SELECT * FROM SurveyData WHERE __key__ = :1", db_key).get()
 				e = {}
-				e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + req_key;
+				try:
+					e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + str(s.photo_ref.key());
+				except (AttributeError):
+					e['photo'] = ''
 				e['latitude'] = s.latitude
 				e['longitude'] = s.longitude
 				e['stressval'] = s.stressval
 				e['category'] = s.category
+				e['subcategory'] = s.subcategory
 				e['comments'] = s.comments
 				e['key'] = str(s.key())
 				e['version'] = s.version
 				if s.hasphoto:
-					e['photo_key'] = s.photo_ref.key()
+					e['photo_key'] = str(s.photo_ref.key())
 				else:
 					e['photo_key'] = None
 				self.response.out.write(json.dumps(e))
+				return
 
 			except (db.Error):
 				self.response.out.write("No data has been uploaded :[")
@@ -364,6 +376,7 @@ class DataDebugPage(webapp.RequestHandler):
 			new_survey.stressval = s.stressval
 			new_survey.comments = s.comments
 			new_survey.category = s.category
+			new_survey.subcategory = s.subcategory
 			new_survey.version = s.version
 
 			if s.photo:
@@ -396,6 +409,7 @@ class DownloadAllData(webapp.RequestHandler):
 						'longitude',
 						'stress_value',
 						'category',
+						'subcategory',
 						'comments',
 						'image_url'
 						]
@@ -423,6 +437,7 @@ class DownloadAllData(webapp.RequestHandler):
 					s.longitude,
 					s.stressval,
 					s.category,
+					s.subcategory,
 					s.comments,
 					photo_url
 					]
@@ -744,6 +759,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				s.stressval = float(self.request.get('stressval'))
 				s.comments = str(self.request.get('comments')).replace('\n', ' ')
 				s.category = self.request.get('category')
+				s.subcategory = self.request.get('subcategory')
 				s.version = self.request.get('version')
 
 				file_content = self.request.get('file')

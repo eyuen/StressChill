@@ -138,7 +138,7 @@ public class survey_upload extends Service{
 						try
 						{
 							if(doPost2(getString(R.string.surveyuploadurl),
-                                      sr.q_int, sr.q_cat, sr.q_com,
+                                      sr.q_int, sr.q_cat, sr.q_sub, sr.q_com,
                                       sr.longitude, sr.latitude,
                                       sr.time, sr.version, sr.photo_filename,
                                       sr.access_token, sr.token_secret,
@@ -179,7 +179,7 @@ public class survey_upload extends Service{
 		 * but the API seems a bit complicated. If you figure out how to use it and its more
 		 * efficient then let me know (vids@ucla.edu) Thanks.
 		 */
-        private boolean doPost2(String url, String q_int, String q_cat, String q_com,
+        private boolean doPost2(String url, String q_int, String q_cat, String q_sub, String q_com,
                                String longitude, String latitude, String time,
                                String version, String photo_filename,
                                String access_token, String token_secret,
@@ -207,6 +207,7 @@ public class survey_upload extends Service{
             MultipartEntity entity = new MultipartEntity();
             entity.addPart("stressval", new StringBody(q_int.toString()));
             entity.addPart("category", new StringBody(q_cat.toString()));
+            entity.addPart("subcategory", new StringBody(q_sub.toString()));
             entity.addPart("comments", new StringBody(q_com.toString()));
             entity.addPart("longitude", new StringBody(longitude.toString()));
             entity.addPart("latitude", new StringBody(latitude.toString()));

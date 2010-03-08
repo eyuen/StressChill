@@ -14,6 +14,7 @@ import android.util.Log;
 public class survey_db {
 	public static final String KEY_Q_INT = "q_int";
     public static final String KEY_Q_CAT = "q_cat";
+    public static final String KEY_Q_SUB = "q_sub";
     public static final String KEY_Q_COM = "q_com";
 	public static final String KEY_LONGITUDE = "longitude";
 	public static final String KEY_LATITUDE = "latitude";
@@ -34,11 +35,12 @@ public class survey_db {
 	
 	private static final String DATABASE_NAME = "survey_db";
 	private static final String DATABASE_TABLE = "survey_table";
-	private static final int DATABASE_VERSION = 5;
+	private static final int DATABASE_VERSION = 6;
 	
 	private static final String DATABASE_CREATE = "create table survey_table (_id integer primary key autoincrement, "
         + "q_int text not null,"
         + "q_cat text not null,"
+        + "q_sub text not null,"
         + "q_com text not null,"
 		+ "longitude text not null,"
 		+ "latitude text not null,"
@@ -54,6 +56,7 @@ public class survey_db {
     	public long row_id;
         public String q_int;
         public String q_cat;
+        public String q_sub;
         public String q_com;
     	public String longitude;
     	public String latitude;
@@ -119,13 +122,14 @@ public class survey_db {
 		}
 	}
 
-	public long createEntry(String q_int, String q_cat, String q_com,
-                            String longitude, String latitude, String time,
-                            String version, String photo_filename)
+	public long createEntry(String q_int, String q_cat, String q_sub,
+                            String q_com, String longitude, String latitude,
+                            String time, String version, String photo_filename)
 	{
 		ContentValues vals = new ContentValues();
         vals.put(KEY_Q_INT, q_int);
         vals.put(KEY_Q_CAT, q_cat);
+        vals.put(KEY_Q_SUB, q_sub);
         vals.put(KEY_Q_COM, q_com);
 		vals.put(KEY_LONGITUDE, longitude);
 		vals.put(KEY_LATITUDE, latitude);
@@ -163,15 +167,16 @@ public class survey_db {
         sr.row_id =         c.getLong(0);
         sr.q_int =          c.getString(1);
         sr.q_cat =          c.getString(2);
-        sr.q_com =          c.getString(3);
-        sr.longitude =      c.getString(4);
-        sr.latitude =       c.getString(5);
-        sr.time =           c.getString(6);
-        sr.version =        c.getString(7);
-        sr.photo_filename = c.getString(8);
-        sr.access_token =   c.getString(9);
-        sr.token_secret =   c.getString(10);
-        sr.request_token =  c.getString(11);
+        sr.q_sub =          c.getString(3);
+        sr.q_com =          c.getString(4);
+        sr.longitude =      c.getString(5);
+        sr.latitude =       c.getString(6);
+        sr.time =           c.getString(7);
+        sr.version =        c.getString(8);
+        sr.photo_filename = c.getString(9);
+        sr.access_token =   c.getString(10);
+        sr.token_secret =   c.getString(11);
+        sr.request_token =  c.getString(12);
 
         return sr;
     }
@@ -183,7 +188,7 @@ public class survey_db {
 		try
 		{
 			Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
-                KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
+                KEY_Q_INT, KEY_Q_CAT, KEY_Q_SUB, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
                 KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
                 KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN}, null, null, null,
                 null, null);
@@ -212,7 +217,7 @@ public class survey_db {
         try
         {
             String[] columns = new String[] {KEY_ROWID,
-                KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
+                KEY_Q_INT, KEY_Q_CAT, KEY_Q_SUB, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE,
                 KEY_TIME, KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
                 KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN};
             String selection = KEY_LONGITUDE + "<>\"\"" + " AND " +
@@ -241,7 +246,7 @@ public class survey_db {
 	public survey_db_row fetchEntry(long rowId) throws SQLException
 	{
         Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID,
-            KEY_Q_INT, KEY_Q_CAT, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE, KEY_TIME,
+            KEY_Q_INT, KEY_Q_CAT, KEY_Q_SUB, KEY_Q_COM, KEY_LONGITUDE, KEY_LATITUDE, KEY_TIME,
             KEY_VERSION, KEY_PHOTO_FILENAME, KEY_ACCESS_TOKEN,
             KEY_TOKEN_SECRET, KEY_REQUEST_TOKEN}, KEY_ROWID+"="+rowId, null, null,
             null, null);
@@ -255,7 +260,7 @@ public class survey_db {
 		{
             sr = new survey_db_row();
             sr.row_id = -1;
-            sr.q_int = sr.q_cat = sr.q_com =
+            sr.q_int = sr.q_cat = sr.q_sub = sr.q_com =
             sr.longitude = sr.latitude = sr.time =
             sr.photo_filename = sr.access_token = sr.token_secret =
             sr.request_token = null;

@@ -63,10 +63,8 @@ public class survey extends Activity
     private SharedPreferences preferences;
     private TextView stress_value;
     private SeekBar seek_bar;
-    private View[][] view_list = new View[3][2];
-    private Spinner spinner_0;
-    private Spinner spinner_1;
-    private Spinner spinner_2;
+    private View[][] view_list = new View[8][2];
+    private Spinner[] spinner = new Spinner[8];
     private TextView comment;
 
     /** Called when the activity is first created. */
@@ -102,31 +100,72 @@ public class survey extends Activity
 
         Log.d(TAG, "gps listener and db are started");
 
-        view_list[0][0] = findViewById(R.id.item_row_0_0);
-        view_list[0][1] = findViewById(R.id.item_row_0_1);
-        view_list[1][0] = findViewById(R.id.item_row_1_0);
-        view_list[1][1] = findViewById(R.id.item_row_1_1);
-        view_list[2][0] = findViewById(R.id.item_row_2_0);
-        view_list[2][1] = findViewById(R.id.item_row_2_1);
+        view_list[0][0] = findViewById(R.id.question_00);
+        view_list[0][1] = findViewById(R.id.spinner_00);
+        view_list[1][0] = findViewById(R.id.question_01);
+        view_list[1][1] = findViewById(R.id.spinner_01);
+        view_list[2][0] = findViewById(R.id.question_02);
+        view_list[2][1] = findViewById(R.id.spinner_02);
+        view_list[3][0] = findViewById(R.id.question_03);
+        view_list[3][1] = findViewById(R.id.spinner_03);
+        view_list[4][0] = findViewById(R.id.question_04);
+        view_list[4][1] = findViewById(R.id.spinner_04);
+        view_list[5][0] = findViewById(R.id.question_05);
+        view_list[5][1] = findViewById(R.id.spinner_05);
+        view_list[6][0] = findViewById(R.id.question_06);
+        view_list[6][1] = findViewById(R.id.spinner_06);
+        view_list[7][0] = findViewById(R.id.question_07);
+        view_list[7][1] = findViewById(R.id.spinner_07);
 
-        spinner_0 = (Spinner) findViewById(R.id.spinner_00);
+        int si = 0;
+        spinner[si] = (Spinner) findViewById(R.id.spinner_00);
         ArrayAdapter adapter = ArrayAdapter.createFromResource(
             this, R.array.response_00, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner_0.setAdapter(adapter);
-        spinner_0.setOnItemSelectedListener(spin_listener_0);
+        spinner[si].setAdapter(adapter);
+        spinner[si++].setOnItemSelectedListener(spin_listener_0);
 
-        spinner_1 = (Spinner) findViewById(R.id.spinner_01);
+        spinner[si] = (Spinner) findViewById(R.id.spinner_01);
         adapter = ArrayAdapter.createFromResource(
             this, R.array.response_01, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner_1.setAdapter(adapter);
+        spinner[si++].setAdapter(adapter);
 
-        spinner_2 = (Spinner) findViewById(R.id.spinner_02);
+        spinner[si] = (Spinner) findViewById(R.id.spinner_02);
         adapter = ArrayAdapter.createFromResource(
             this, R.array.response_02, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner_2.setAdapter(adapter);
+        spinner[si++].setAdapter(adapter);
+
+        spinner[si] = (Spinner) findViewById(R.id.spinner_03);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_03, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner[si++].setAdapter(adapter);
+
+        spinner[si] = (Spinner) findViewById(R.id.spinner_04);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_04, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner[si++].setAdapter(adapter);
+
+        spinner[si] = (Spinner) findViewById(R.id.spinner_05);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_05, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner[si++].setAdapter(adapter);
+
+        spinner[si] = (Spinner) findViewById(R.id.spinner_06);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_06, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner[si++].setAdapter(adapter);
+
+        spinner[si] = (Spinner) findViewById(R.id.spinner_07);
+        adapter = ArrayAdapter.createFromResource(
+            this, R.array.response_07, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner[si++].setAdapter(adapter);
 
         // add buttons
         submit_button = (Button) findViewById(R.id.upload_button);
@@ -235,54 +274,38 @@ public class survey extends Activity
 
             String q_int = "0";
             String q_cat = "0";
+            String q_sub = "0";
             String q_com = comment.getText().toString();
 
             /* figure out which category the user selected
              * there is likely a much more efficient/clean way to do this.
              * please do implement it if it comes to you */
-            TextView v0 = (TextView) spinner_0.getSelectedView();
-            TextView v1 = (TextView) spinner_1.getSelectedView();
-            TextView v2 = (TextView) spinner_2.getSelectedView();
+            int main_index = spinner[0].getSelectedItemPosition();
 
-            if (null == v0
-                || v0.getText().toString().equals("Select one..."))
+            if (main_index < 1 || spinner.length <= main_index)
             {
                 Toast
                 .makeText (survey.this,
-                           "You have not answered the category question.",
+                           "You have not answered the main category question.",
                            Toast.LENGTH_LONG)
                 .show();
                 return;
             }
 
-            if (v0.getText().toString().equals(getString(R.string.radio_group_1_option_1))) {
-                if (null == v1
-                    || v1.getText().toString().equals("Select one..."))
-                {
-                    Toast
-                    .makeText (survey.this,
-                               "You have not answered the sub category question.",
-                               Toast.LENGTH_LONG)
-                    .show();
-                    return;
-                }
-                q_cat = v1.getText().toString();
-            } else if (v0.getText().toString().equals(getString(R.string.radio_group_1_option_6))) {
-                if (null == v2
-                    || v2.getText().toString().equals("Select one..."))
-                {
-                    Toast
-                    .makeText (survey.this,
-                               "You have not answered the sub category question.",
-                               Toast.LENGTH_LONG)
-                    .show();
-                    return;
-                }
-                q_cat = v2.getText().toString();
-            } else {
-                q_cat = v0.getText().toString();
+            TextView sub_view = (TextView) spinner[main_index].getSelectedView();
+            if (null == sub_view
+                || sub_view.getText().toString().equals("Select one..."))
+            {
+                Toast
+                .makeText (survey.this,
+                           "You have not answered the sub category question.",
+                           Toast.LENGTH_LONG)
+                .show();
+                return;
             }
 
+            q_cat = ((TextView) spinner[0].getSelectedView()).getText().toString();
+            q_sub = sub_view.getText().toString();
             q_int = ((TextView)findViewById (R.id.stress_value)).getText().toString();
 
             String longitude = "";
@@ -291,7 +314,7 @@ public class survey extends Activity
             String photo_filename = filename;
 
             sdb.open();
-            long row_id = sdb.createEntry(q_int, q_cat, q_com, longitude, latitude,
+            long row_id = sdb.createEntry(q_int, q_cat, q_sub, q_com, longitude, latitude,
                                           time, getString(R.string.version), photo_filename);
             sdb.close();
 
@@ -302,6 +325,7 @@ public class survey extends Activity
             Log.d("SUBMIT SURVEY", Long.toString(sr.row_id) + ", " +
                                    sr.q_int + ", " +
                                    sr.q_cat + ", " +
+                                   sr.q_sub + ", " +
                                    sr.longitude + ", " +
                                    sr.latitude + ", " +
                                    sr.time + ", " +
@@ -346,9 +370,9 @@ public class survey extends Activity
                 sdb.open();
                 sdb.deleteEntry(sr.row_id);
                 sdb.close();
-            }
+             }
 
-/*
+            /*
             sdb.open();
             sdb.refresh_db();
             sdb.close();
@@ -359,8 +383,13 @@ public class survey extends Activity
     private Spinner.OnItemSelectedListener spin_listener_0 = new Spinner.OnItemSelectedListener() {
         public void onItemSelected(AdapterView parent, View v, int position, long id) {
             for (int i = 0; i < 2; i++) {
-                view_list[1][i].setVisibility (1 == position ? View.VISIBLE : View.GONE);
-                view_list[2][i].setVisibility (6 == position ? View.VISIBLE : View.GONE);
+                view_list[position][i].setVisibility (View.VISIBLE);
+            }
+            for (int i = 1; i < view_list.length; i++) {
+                if (i == position) continue;
+                for (int j = 0; j < 2; j++) {
+                    view_list[i][j].setVisibility (View.GONE);
+                }
             }
         }
         public void onNothingSelected(AdapterView parent) { }
