@@ -294,32 +294,44 @@ class DataPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		# get bookmark
 		bookmark = self.request.get('bookmark')
+
+		logging.debug(self.request.get('bookmark'))
 
 		template_values = { 'base_url' : base_url }
 
 		forward = True
+
+		# determine direction to retreive records
+		# if starts with '-', going backwards
 		if bookmark.startswith('-'):
 			forward = False
 			bookmark = bookmark[1:]
 		
+		# if bookmark set, retrieve page relative to bookmark
 		if bookmark:
 			db_key = db.Key(bookmark)
 			if forward:
 				surveys = SurveyData.all().filter('__key__ >', db_key).order('__key__').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to display
 				if len(surveys) == PAGE_SIZE + 1:
 					template_values['next'] = str(surveys[-2].key())
 					surveys = surveys[:PAGE_SIZE]
 
+				# if bookmark set, assume there was a back page
 				template_values['back'] = '-'+str(surveys[0].key())
 			else:
 				surveys = SurveyData.all().filter('__key__ <', db_key).order('-__key__').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to diplay
 				if len(surveys) == PAGE_SIZE + 1:
 					template_values['back'] = '-'+str(surveys[-2].key())
 					surveys = surveys[:PAGE_SIZE]
+				# if bookmark set, assume there is a next page
 				template_values['next'] = str(surveys[0].key())
+				# reverse order of results since they were returned backwards by query
 				surveys.reverse()
-		else:
+		else: # if no bookmark set, retrieve first records
 			surveys = SurveyData.all().order('__key__').fetch(PAGE_SIZE+1)
 			if len(surveys) == PAGE_SIZE + 1:
 				template_values['next'] = str(surveys[-2].key())
@@ -340,9 +352,10 @@ class DataDebugPage(webapp.RequestHandler):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
 		'''
 		# create thumbnails
-		imagelist = SurveyPhoto.all().fetch(20, 119)
+		imagelist = SurveyPhoto.all().fetch(20, 140)
 
 		for i in imagelist:
 			img = images.Image(i.photo)
@@ -417,7 +430,7 @@ class DownloadAllData(webapp.RequestHandler):
 		writer.writerow(header_row)
 
 
-		surveys = Survey.all().fetch(1000)
+		surveys = SurveyData.all().fetch(1000)
 
 		if os.environ.get('HTTP_HOST'):
 			base_url = os.environ['HTTP_HOST']
@@ -700,9 +713,17 @@ class ProtectedResourceHandler(BaseHandler):
 				file_content = params['file']
 				if file_content:
 					try:
+						# upload image as blob to SurveyPhoto
 						new_photo = SurveyPhoto()
 						new_photo.photo = db.Blob(file_content)
+						# create a thumbnail of image to store in SurveyPhoto
+						tmb = images.Image(new_photo.photo)
+						tmb.resize(width=180, height=130)
+						# execute resize
+						new_photo.thumb = tmb.execute_transforms(output_encoding=images.JPEG)
+						# insert
 						new_photo.put()
+						# set reference to photo for SurveyData
 						s.photo_ref = new_photo.key()
 						s.hasphoto = True
 					except TypeError:
