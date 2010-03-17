@@ -5,6 +5,8 @@ import oauth
 import hashlib
 from datastore import *
 
+import re
+from datetime import datetime
 from time import time
 
 import logging
@@ -89,6 +91,7 @@ class Survey(db.Model):
 class SurveyPhoto(db.Model):
 	photo = db.BlobProperty()
 	thumb = db.BlobProperty()
+	timestamp =	db.DateTimeProperty(auto_now_add=True)
 # End SurveyPhoto Class
 
 # model to hold survey data
@@ -235,6 +238,7 @@ class GetAnImage(webapp.RequestHandler):
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
 					self.response.headers['Content-type'] = 'image/jpeg'
+					self.response.headers['Last-Modified'] = s.timestamp
 					self.response.out.write(s.photo)
 				else:
 					self.response.set_status(401, 'Image not found.')
@@ -257,6 +261,7 @@ class GetAThumb(webapp.RequestHandler):
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
 					self.response.headers['Content-type'] = 'image/jpeg'
+					self.response.headers['Last-Modified'] = s.timestamp
 					self.response.out.write(s.thumb)
 				else:
 					self.response.set_status(401, 'Image not found.')
@@ -284,6 +289,86 @@ class GetImageThumb(webapp.RequestHandler):
 	# end get method
 # end GetImageThumb Class
 
+# list data page: /data
+class DataByDatePage(webapp.RequestHandler):
+	# display data in table format
+	# TODO: page results
+	def get(self):
+		if os.environ.get('HTTP_HOST'):
+			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
+		else:
+			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
+		# get bookmark
+		bookmark = self.request.get('bookmark')
+
+		logging.debug(self.request.get('bookmark'))
+
+		template_values = { 'base_url' : base_url }
+
+		forward = True
+
+		# determine direction to retreive records
+		# if starts with '-', going backwards
+		if bookmark.startswith('-'):
+			forward = False
+			bookmark = bookmark[1:]
+		
+		# if bookmark set, retrieve page relative to bookmark
+		if bookmark:
+			# string to datetime code from:
+			#	http://aralbalkan.com/1512
+			m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
+				str(bookmark))
+			datestr, fractional, tzname, tzhour, tzmin = m.groups()
+			if tzname is None:
+				tz = None
+			else:
+				tzhour, tzmin = int(tzhour), int(tzmin)
+				if tzhour == tzmin == 0:
+					tzname = 'UTC'
+				tz = FixedOffset(timedelta(hours=tzhour,
+										   minutes=tzmin), tzname)
+			x = datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+			if fractional is None:
+				fractional = '0'
+				fracpower = 6 - len(fractional)
+				fractional = float(fractional) * (10 ** fracpower)
+			dt = x.replace(microsecond=int(fractional), tzinfo=tz)
+
+
+			if forward:
+				surveys = SurveyData.all().filter('timestamp <', dt).order('-timestamp').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to display
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['next'] = str(surveys[-2].timestamp)
+					surveys = surveys[:PAGE_SIZE]
+
+				# if bookmark set, assume there was a back page
+				template_values['back'] = '-'+str(surveys[0].timestamp)
+			else:
+				surveys = SurveyData.all().filter('timestamp >', dt).order('timestamp').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to diplay
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['back'] = '-'+str(surveys[-2].timestamp)
+					surveys = surveys[:PAGE_SIZE]
+				# if bookmark set, assume there is a next page
+				template_values['next'] = str(surveys[0].timestamp)
+				# reverse order of results since they were returned backwards by query
+				surveys.reverse()
+		else: # if no bookmark set, retrieve first records
+			surveys = SurveyData.all().order('-timestamp').fetch(PAGE_SIZE+1)
+			if len(surveys) == PAGE_SIZE + 1:
+				template_values['next'] = str(surveys[-2].timestamp)
+				surveys = surveys[:PAGE_SIZE]
+
+		extracted = extract_surveys (surveys)
+		template_values['surveys'] = extracted 
+
+		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
+		self.response.out.write (template.render(path, template_values))
+	# end get method
+# End DataPage Class
 # list data page: /data
 class DataPage(webapp.RequestHandler):
 	# display data in table format
@@ -355,7 +440,7 @@ class DataDebugPage(webapp.RequestHandler):
 
 		'''
 		# create thumbnails
-		imagelist = SurveyPhoto.all().fetch(20, 140)
+		imagelist = SurveyPhoto.all().fetch(20, offset=105)
 
 		for i in imagelist:
 			img = images.Image(i.photo)
@@ -980,7 +1065,7 @@ application = webapp.WSGIApplication(
 									  ('/get_an_image', GetAnImage),
 									  ('/get_a_thumb', GetAThumb),
 									  ('/get_image_thumb', GetImageThumb),
-									  ('/data', DataPage),
+									  ('/data', DataByDatePage),
 									  ('/data_download_all.csv', DownloadAllData),
 									  ('/request_token', RequestTokenHandler),
 									  ('/authorize', UserAuthorize),
