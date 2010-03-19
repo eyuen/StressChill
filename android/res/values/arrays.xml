@@ -4,13 +4,13 @@
     <!-- I am tagging this place now because of... -->
     <string-array name="response_00">
         <item>Select one...</item>
-        <item>Personal interactions I have here</item>
-        <item>My sense of this place here and now</item>
+        <item>My personal interactions</item>
+        <item>My sense of this place</item>
         <item>The amount of time I spend here</item>
-        <item>The activity I participate in here</item>
-        <item>Physical condition of something</item>
-        <item>My health and safety here and now</item>
-        <item>A response to being here and now</item>
+        <item>Why I do something here</item>
+        <item>The physical condition of something</item>
+        <item>My health and safety</item>
+        <item>Memory/thought/feeling</item>
     </string-array>
 
     <!-- The *personal interactions* I have here and now -->
@@ -50,7 +50,7 @@
         <item>Something voluntary</item>
     </string-array>
 
-    <!-- The *physical condition* of somehting here and now: -->
+    <!-- The *physical condition* of something here and now: -->
     <string-array name="response_05">
         <item>Select one...</item>
         <item>Old</item>
