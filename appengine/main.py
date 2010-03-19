@@ -21,6 +21,7 @@ from google.appengine.ext.db import stats
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from google.appengine.api import images
+from google.appengine.api import quota
 
 import cStringIO
 import csv
@@ -62,7 +63,11 @@ def extract_surveys(surveys):
 			item['hasphoto'] = False
 			item['photo_key'] = None
 
-		item['timestamp'] = s.timestamp
+		if not s.timestamp:
+			item['timestamp'] = s.timestamp
+		else:
+			item['timestamp'] = str(s.timestamp).split('.')[0]
+
 		item['longitude'] = s.longitude
 		item['latitude'] = s.latitude
 		item['key'] = str(s.key())
@@ -109,6 +114,15 @@ class SurveyData(db.Model):
 	hasphoto =	db.BooleanProperty()
 	photo_ref = db.ReferenceProperty(SurveyPhoto)
 # End SurveyData Class
+
+# model to hold data blob
+class SurveyCSV(db.Model):
+	csv = db.BlobProperty()
+	last_updated = db.DateTimeProperty(auto_now_add=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+# End SurveyCSV Class
 
 # main page: /
 class HomePage(webapp.RequestHandler):
@@ -369,6 +383,7 @@ class DataByDatePage(webapp.RequestHandler):
 		self.response.out.write (template.render(path, template_values))
 	# end get method
 # End DataPage Class
+
 # list data page: /data
 class DataPage(webapp.RequestHandler):
 	# display data in table format
@@ -438,6 +453,13 @@ class DataDebugPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		csv = SurveyCSV.all().get()
+
+		if not csv:
+			self.response.out.write('no csv')
+		else:
+			self.response.out.write(str(csv))
+
 		'''
 		# create thumbnails
 		imagelist = SurveyPhoto.all().fetch(20, offset=105)
@@ -498,6 +520,105 @@ class DataDebugPage(webapp.RequestHandler):
 class DownloadAllData(webapp.RequestHandler):
 	# returns csv of all data
 	def get(self):
+		# check cache for csv dump
+		# I'm not sure at what point this will become infesible (too large for the cache)
+		data = memcache.get('csv')
+
+		# if all data in cache, output and done
+		if data is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data)
+			return
+
+		# if cache miss, check if csv blob exist
+		data_csv = SurveyCSV.all().get()
+
+		# if csv blob exist, set in cache and output
+		if data_csv is not None:
+			# add to cache for 1 week
+			memcache.set('csv', data_csv.csv, 604800)
+
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write('from blob\n')
+			self.response.out.write(data_csv.csv)
+			return
+
+
+		# you should never get here except for the first time this url is called
+		# if you need to populate the blob, make sure to call this url
+		#	before any requests to write new data or the blob will start from that entry instead
+		# NOTE: this will probably only work as long as the number of entries in your survey is low
+		#	If there are too many entries already, this will likely time out
+		#	I have added page as a property of the model incase we need it in future
+		surveys = SurveyData.all().order('timestamp').fetch(1000)
+
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		counter = 0
+		last_entry_date = ''
+		page = 1
+
+		# setup csv
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+		header_row = [	'id',
+						'timestamp',
+						'latitude',
+						'longitude',
+						'stress_value',
+						'category',
+						'subcategory',
+						'comments',
+						'image_url'
+						]
+
+		writer.writerow(header_row)
+		for s in surveys:
+			photo_url = ''
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
+			new_row = [
+					str(s.key()),
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+			counter += 1
+			last_entry_date = s.timestamp
+
+		# write blob csv so we dont have to do this again
+		insert_csv = SurveyCSV()
+		insert_csv.csv = db.Blob(output.getvalue())
+		insert_csv.last_entry_date = last_entry_date
+		insert_csv.count = counter
+		insert_csv.page = page
+		insert_csv.put()
+
+		# add to cache for 1 week (writes should update this cached value)
+		memcache.set('csv', output.getvalue(), 604800)
+
+		self.response.headers['Content-type'] = 'text/csv'
+		self.response.out.write(output.getvalue())
+	# end get method
+# End DownloadAllData
+
+# handler for: /data_download_all_test
+class DownloadAllDataTest(webapp.RequestHandler):
+	# returns csv of all data
+	def get(self):
 		output = cStringIO.StringIO()
 		writer = csv.writer(output, delimiter=',')
 
@@ -515,33 +636,49 @@ class DownloadAllData(webapp.RequestHandler):
 		writer.writerow(header_row)
 
 
-		surveys = SurveyData.all().fetch(1000)
+		#surveys = SurveyData.all().fetch(1000)
 
 		if os.environ.get('HTTP_HOST'):
 			base_url = os.environ['HTTP_HOST']
 		else:
 			base_url = os.environ['SERVER_NAME']
 
-		for s in surveys:
-			photo_url = ''
-			if s.hasphoto:
-				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+		d = {}
+		i = 0
+		for s in range(0, 1000):
+			photo_url = 'http://' + base_url + "/get_an_image?key="+str(s)
 
-			else:
-				photo_url = 'no_image'
 			new_row = [
-					s.timestamp,
-					s.latitude,
-					s.longitude,
-					s.stressval,
-					s.category,
-					s.subcategory,
-					s.comments,
+					s,
+					s,
+					s,
+					s,
+					s,
+					s,
+					s,
 					photo_url
 					]
 			writer.writerow(new_row)
 
-		self.response.headers['Content-type'] = 'text/csv'
+			e = {}
+			e['latitude'] = s
+			e['longitude'] = s
+			e['stressval'] = s
+			e['comments'] = s
+			e['key'] = s
+			e['version'] = s
+			e['photo_key'] = None
+
+			d[i] = e;
+			i = i + 1
+
+		if i > 0:
+			self.response.out.write(json.dumps(d))
+		else:
+			self.response.out.write("no data so far")
+	# end get method
+
+		#self.response.headers['Content-type'] = 'text/csv'
 		self.response.out.write(output.getvalue())
 	# end get method
 # End DownloadAllData
@@ -894,6 +1031,75 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				s.put()
 
+				#write to csv blob and update memcache
+
+				# init csv writer
+				output = cStringIO.StringIO()
+				writer = csv.writer(output, delimiter=',')
+
+				base_url = ''
+				if os.environ.get('HTTP_HOST'):
+					base_url = os.environ['HTTP_HOST']
+				else:
+					base_url = os.environ['SERVER_NAME']
+
+				# append to csv blob
+
+				# this will have to change if multiple pages are ever needed (limits?)
+				insert_csv = SurveyCSV.all().filter('page =', 1).get()
+
+				# write header row if csv blob doesnt exist yet
+				if not insert_csv:
+					header_row = [	'id',
+						'timestamp',
+						'latitude',
+						'longitude',
+						'stress_value',
+						'category',
+						'subcategory',
+						'comments',
+						'image_url'
+						]
+					writer.writerow(header_row)
+
+				# form image url
+				if s.hasphoto:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+				else:
+					photo_url = 'no_image'
+
+				# write csv data row
+				new_row = [
+						str(s.key()),
+						s.timestamp,
+						s.latitude,
+						s.longitude,
+						s.stressval,
+						s.category,
+						s.subcategory,
+						s.comments,
+						photo_url
+						]
+				writer.writerow(new_row)
+
+				# create new blob if one does not exist
+				if not insert_csv:
+					insert_csv = SurveyCSV()
+					insert_csv.csv = db.Blob(output.getvalue())
+					insert_csv.last_entry_date = s.timestamp
+					insert_csv.count = 1
+					insert_csv.page = 1
+				else:	#if blob exists, append and update
+					insert_csv.csv += output.getvalue()
+					insert_csv.last_entry_date = s.timestamp
+					insert_csv.count += 1
+
+				insert_csv.put()
+
+				# add to cache for 1 week (writes should update this cached value)
+				memcache.set('csv', output.getvalue(), 604800)
+
 			except (db.Error):
 				logging.error('error inserting to database')
 				self.error(401)
@@ -903,7 +1109,6 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			self.error(401)
 	# end handle method
 # End ProtectedResourceHandler2 Class
-
 
 # handler for /create_consumer
 # form to create a consumer key & setup permissions to access resources
@@ -1067,6 +1272,7 @@ application = webapp.WSGIApplication(
 									  ('/get_image_thumb', GetImageThumb),
 									  ('/data', DataByDatePage),
 									  ('/data_download_all.csv', DownloadAllData),
+									  ('/data_download_all_test', DownloadAllDataTest),
 									  ('/request_token', RequestTokenHandler),
 									  ('/authorize', UserAuthorize),
 									  ('/access_token', AccessTokenHandler),
@@ -1084,6 +1290,22 @@ application = webapp.WSGIApplication(
 def main():
 	logging.getLogger().setLevel(logging.DEBUG)
 	run_wsgi_app(application)
+	
+def profile_main():
+    # This is the main function for profiling
+    # We've renamed our original main() above to real_main()
+    import cProfile, pstats
+    prof = cProfile.Profile()
+    prof = prof.runctx("main()", globals(), locals())
+    print "<pre>"
+    stats = pstats.Stats(prof)
+    stats.sort_stats("time")  # Or cumulative
+    stats.print_stats(80)  # 80 = how many to print
+    # The rest is optional.
+    # stats.print_callees()
+    # stats.print_callers()
+    print "</pre>"
+
 
 if __name__ == "__main__":
 	main()

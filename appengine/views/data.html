@@ -29,26 +29,26 @@
 		<table>
 			<thead>
 				<tr>
-					<th class="span-5">Date/Time</th>
-					<th class="span-4">Category</th>
-					<th class="span-4">Sub-Category</th>
+					<th class="span-4">Date/Time</th>
+					<th class="span-5">Category</th>
+					<th class="span-3">Sub-Category</th>
 					<th class="span-3">StressChill Value</th>
 					<!--<th class="span-3">Latitude</th>
 					<th class="span-3">Longitude</th>-->
-					<th class="span-4">Comments</th>
+					<th class="span-5">Comments</th>
 					<th class="span-4">Image</th>
 				</tr>
 			</thead>
 			<tbody>
 				{% for s in surveys %}
 				<tr>
-					<td class="span-5">{{s.timestamp}}</td>
-					<td class="span-4">{{s.category}}</td>
-					<td class="span-4">{{s.subcategory}}</td>
+					<td class="span-4">{{s.timestamp}}</td>
+					<td class="span-5">{{s.category}}</td>
+					<td class="span-3">{{s.subcategory}}</td>
 					<td class="span-3">{{s.stressval}}</td>
 					<!--<td class="span-3">{{s.latitude}}</td>
 					<td class="span-3">{{s.longitude}}</td>-->
-					<td class="span-4">{{s.comments}}</td>
+					<td class="span-5">{{s.comments}}</td>
 					<td class="span-4">
 					{% if s.hasphoto %}
 					<a href="{{base_url}}get_an_image?key={{s.photo_key}}" target="photo_viewer"><img src="{{base_url}}get_a_thumb?key={{s.photo_key}}" width="180" height="130"></a>
