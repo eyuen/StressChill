@@ -6,7 +6,7 @@ import hashlib
 from datastore import *
 
 import re
-from datetime import datetime
+import datetime
 from time import time
 
 import logging
@@ -252,7 +252,11 @@ class GetAnImage(webapp.RequestHandler):
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
 					self.response.headers['Content-type'] = 'image/jpeg'
-					self.response.headers['Last-Modified'] = s.timestamp
+					self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
+					x = datetime.datetime.now() + datetime.timedelta(days=30)
+					self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+					self.response.headers['Cache-Control'] = 'public, max-age=2592000'
+				
 					self.response.out.write(s.photo)
 				else:
 					self.response.set_status(401, 'Image not found.')
@@ -275,7 +279,10 @@ class GetAThumb(webapp.RequestHandler):
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
 					self.response.headers['Content-type'] = 'image/jpeg'
-					self.response.headers['Last-Modified'] = s.timestamp
+					self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
+					x = datetime.datetime.now() + datetime.timedelta(days=30)
+					self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+					self.response.headers['Cache-Control'] = 'public, max-age=2592000'
 					self.response.out.write(s.thumb)
 				else:
 					self.response.set_status(401, 'Image not found.')
@@ -343,7 +350,7 @@ class DataByDatePage(webapp.RequestHandler):
 					tzname = 'UTC'
 				tz = FixedOffset(timedelta(hours=tzhour,
 										   minutes=tzmin), tzname)
-			x = datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+			x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
 			if fractional is None:
 				fractional = '0'
 				fracpower = 6 - len(fractional)
@@ -453,12 +460,14 @@ class DataDebugPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
-		csv = SurveyCSV.all().get()
+		#dt = datetime.strftime("%a, %d %b %Y %H:%M:%S %Z", time())
 
-		if not csv:
-			self.response.out.write('no csv')
-		else:
-			self.response.out.write(str(csv))
+		self.response.out.write(datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"))
+		x = datetime.datetime.now() + datetime.timedelta(days=30)
+	
+		self.response.out.write(x)
+
+
 
 		'''
 		# create thumbnails
