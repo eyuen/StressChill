@@ -10,14 +10,14 @@
 
 		<div class="span-4">
 			{% if back %}
-			<a href="/data?bookmark={{back}}">&lt;&lt; Back</a>
+			<a href="/data?bookmark={{back}}&page={{backpage}}">&lt;&lt; Back</a>
 			{% else %}
 			&nbsp;
 			{% endif %}
 		</div>
 		<div class="span-4">
 			{% if next %}
-			<a href="/data?bookmark={{next}}">Next &gt;&gt;</a>
+			<a href="/data?bookmark={{next}}&page={{nextpage}}">Next &gt;&gt;</a>
 			{% else %}
 			&nbsp;
 			{% endif %}
@@ -29,8 +29,8 @@
 		<table>
 			<thead>
 				<tr>
-					<th class="span-4">Date/Time</th>
-					<th class="span-5">Category</th>
+					<th class="span-5">Date/Time</th>
+					<th class="span-4">Category</th>
 					<th class="span-3">Sub-Category</th>
 					<th class="span-3">StressChill Value</th>
 					<!--<th class="span-3">Latitude</th>
@@ -42,8 +42,8 @@
 			<tbody>
 				{% for s in surveys %}
 				<tr>
-					<td class="span-4">{{s.timestamp}}</td>
-					<td class="span-5">{{s.category}}</td>
+					<td class="span-5">{{s.timestamp}}</td>
+					<td class="span-4">{{s.category}}</td>
 					<td class="span-3">{{s.subcategory}}</td>
 					<td class="span-3">{{s.stressval}}</td>
 					<!--<td class="span-3">{{s.latitude}}</td>

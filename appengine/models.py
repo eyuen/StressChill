@@ -314,6 +314,31 @@ class UserTable(db.Model):
 		return True
 	# end create_user
 
+	def update_user(self, username, password):
+		if not username or not password:
+			return False
+
+		lowered_username = username.lower()
+		# if username not exists, error
+		res = self.gql('WHERE username = :1', lowered_username).get()
+
+		if not res:
+			return False
+		else:
+			hashedpass = hashlib.sha1(password)
+			sha1pass = hashedpass.hexdigest()
+
+			hashedval = hashlib.sha1(sha1pass + SOMEVAL)
+			sha1val = hashedval.hexdigest()
+
+			res.password = sha1val
+			res.put()
+
+		if not res.is_saved():
+			return False
+		return True
+	# end create_user
+
 	# username: string
 	# sha1pass: string, sha1 already performed on the plaintext password
 	def check_valid_password(self, username, sha1pass):
@@ -380,6 +405,56 @@ class ResourceTable(db.Model):
 		else:
 			return True
 	# end check_valid_consumer
+'''
+# original model to hold data collected from phone survey
+# to-be replaced by SurveyData and SurveyPhoto
+class Survey(db.Model):
+	user = db.UserProperty()
+	username = db.StringProperty()
+	timestamp =	db.DateTimeProperty(auto_now_add=True)
+	longitude =	db.StringProperty()
+	latitude =	db.StringProperty()
+	stressval =	db.FloatProperty()
+	comments =	db.TextProperty()
+	category =	db.StringProperty()
+	subcategory = db.StringProperty()
+	version =	db.StringProperty()
+	photo =		db.BlobProperty()
+	hasphoto =	db.BooleanProperty()
+# End Survey Class
+'''
+# model to hold image blob
+class SurveyPhoto(db.Model):
+	photo = db.BlobProperty()
+	thumb = db.BlobProperty()
+	timestamp =	db.DateTimeProperty(auto_now_add=True)
+# End SurveyPhoto Class
+
+# model to hold survey data
+class SurveyData(db.Model):
+	user = db.ReferenceProperty(UserTable)
+	username = db.StringProperty()
+	timestamp =	db.DateTimeProperty(auto_now_add=True)
+	longitude =	db.StringProperty()
+	latitude =	db.StringProperty()
+	stressval =	db.FloatProperty()
+	comments =	db.TextProperty()
+	category =	db.StringProperty()
+	subcategory = db.StringProperty()
+	version =	db.StringProperty()
+	hasphoto =	db.BooleanProperty()
+	photo_ref = db.ReferenceProperty(SurveyPhoto)
+# End SurveyData Class
+
+# model to hold data blob
+class SurveyCSV(db.Model):
+	csv = db.BlobProperty()
+	last_updated = db.DateTimeProperty(auto_now_add=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+# End SurveyCSV Clas
+
 #end UserTable Class
 def generateString(length):
 	characters ='aeuyAEUYbdghjmnpqrstvzBDGHJLMNPQRSTVWXZ23456789'
