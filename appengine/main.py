@@ -17,7 +17,7 @@ from google.appengine.ext import webapp
 from google.appengine.ext.webapp import util
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import db
-from google.appengine.ext.db import stats
+#from google.appengine.ext.db import stats
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from google.appengine.api import images
@@ -546,6 +546,110 @@ class DataDebugPage(webapp.RequestHandler):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
+		'''
+		#populate daily stats models
+
+		categories = {}
+		subcategories = {}
+
+		result = db.GqlQuery("SELECT * FROM SurveyData")
+
+		for row in result:
+			pdt = row.timestamp - datetime.timedelta(hours=7)
+			time_key = str(pdt).split(' ')[0]
+
+			if not categories.has_key(time_key):
+				categories[time_key] = {}
+
+			if categories[time_key].has_key(str(row.category)):
+				categories[time_key][str(row.category)]['count'] += 1
+				categories[time_key][str(row.category)]['total'] += float(row.stressval)
+			else:
+				tmp = {'count':1, 'total':float(row.stressval)}
+				categories[time_key][str(row.category)] = tmp
+
+			if not subcategories.has_key(time_key):
+				subcategories[time_key] = {}
+
+			if subcategories[time_key].has_key(str(row.subcategory)):
+				subcategories[time_key][str(row.subcategory)]['count'] += 1
+				subcategories[time_key][str(row.subcategory)]['total'] += float(row.stressval)
+			else:
+				tmp = {	'count':1, 
+					'total':float(row.stressval),
+					'category':str(row.category)}
+				subcategories[time_key][str(row.subcategory)] = tmp
+
+		for date_key in categories.keys():
+			for cat_keys in categories[date_key].keys():
+				cstat = DailyCategoryStat()
+				cstat.category = cat_keys
+				cstat.count = categories[date_key][cat_keys]['count']
+				cstat.total = categories[date_key][cat_keys]['total']
+				datestr = date_key.split('.')[0]
+				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+				x = datetime.date(dt.year, dt.month, dt.day)
+				cstat.date = x
+				cstat.put()
+				categories[date_key][cat_keys]['db_key'] = cstat.key()
+			
+		for date_key in categories.keys():
+			for subcat_keys in subcategories[date_key].keys():
+				scstat = DailySubCategoryStat()
+				scstat.category = subcategories[date_key][subcat_keys]['category']
+
+				if categories.has_key(date_key):
+					if categories[date_key].has_key(subcategories[date_key][subcat_keys]['category']):
+						scstat.category_key = categories[date_key][subcategories[date_key][subcat_keys]['category']]['db_key']
+				scstat.subcategory = subcat_keys
+				datestr = date_key.split('.')[0]
+				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+				x = datetime.date(dt.year, dt.month, dt.day)
+				scstat.date = x
+				scstat.count = subcategories[date_key][subcat_keys]['count']
+				scstat.total = subcategories[date_key][subcat_keys]['total']
+				scstat.put()
+		'''
+
+		'''
+		# populate stats models
+		for row in result:
+			if categories.has_key(str(row.category)):
+				categories[str(row.category)]['count'] += 1
+				categories[str(row.category)]['total'] += float(row.stressval)
+			else:
+				tmp = {'count':1, 'total':float(row.stressval)}
+				categories[str(row.category)] = tmp
+
+			if subcategories.has_key(str(row.subcategory)):
+				subcategories[str(row.subcategory)]['count'] += 1
+				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
+			else:
+				tmp = {	'count':1, 
+					'total':float(row.stressval),
+					'category':str(row.category)}
+				subcategories[str(row.subcategory)] = tmp
+
+
+		for cat_keys in categories.keys():
+			cstat = CategoryStat()
+			cstat.category = cat_keys
+			cstat.count = categories[cat_keys]['count']
+			cstat.total = categories[cat_keys]['total']
+			cstat.put()
+			categories[cat_keys]['db_key'] = cstat.key()
+			
+		for subcat_keys in subcategories.keys():
+			scstat = SubCategoryStat()
+			scstat.category = subcategories[subcat_keys]['category']
+			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
+			scstat.subcategory = subcat_keys
+			scstat.count = subcategories[subcat_keys]['count']
+			scstat.total = subcategories[subcat_keys]['total']
+			scstat.put()
+		'''	
+
 
 		'''
 		self.response.out.write(datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S UTC")+"<br>\n")
@@ -1128,6 +1232,101 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				s.put()
 
+				# update running stats (this should probably be moved to the task queue)
+				# TODO: cache key & stats and create transaction
+				subcat = SubCategoryStat.all().filter('subcategory =', s.subcategory).get()
+				if not subcat:
+					cat = CategoryStat.all().filter('category = ', s.category).get()
+
+					if not cat:
+						cat = CategoryStat()
+						cat.category = s.category
+						cat.count = 1
+						cat.total = s.stressval
+						cat.put()
+					else:
+						cat.count += 1
+						cat.total += s.stressval
+						cat.put()
+
+					subcat = SubCategoryStat()
+					subcat.category = s.category
+					subcat.category_key = cat.key()
+					subcat.subcategory = s.subcategory
+					subcat.count = 1
+					subcat.total = s.stressval
+					subcat.put()
+				else:
+					subcat.count += 1
+					subcat.total += s.stressval
+					subcat.put()
+					
+					cat = subcat.category_key
+
+					if not cat:
+						cat = CategoryStat()
+						cat.category = s.category
+						cat.count = 1
+						cat.total = s.stressval
+						cat.put()
+						subcat.category_key = cat.key()
+					else:
+						cat.count += 1
+						cat.total += s.stressval
+						cat.put()
+
+				# update running daily stats (this should probably be moved to the task queue)
+				# TODO: cache key & stats and create transaction
+				pdt = s.timestamp - datetime.timedelta(hours=7)
+				time_key = str(pdt).split(' ')[0]
+				dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
+				date = datetime.date(dt.year, dt.month, dt.day)
+
+				subcat = DailySubCategoryStat.all().filter('subcategory =', s.subcategory).filter('date =', date).get()
+				if not subcat:
+					cat = DailyCategoryStat.all().filter('category = ', s.category).filter('date =', date).get()
+
+					if not cat:
+						cat = DailyCategoryStat()
+						cat.category = s.category
+						cat.count = 1
+						cat.total = s.stressval
+						cat.date = date
+						cat.put()
+					else:
+						cat.count += 1
+						cat.total += s.stressval
+						cat.put()
+
+					subcat = DailySubCategoryStat()
+					subcat.category = s.category
+					subcat.category_key = cat.key()
+					subcat.subcategory = s.subcategory
+					subcat.count = 1
+					subcat.total = s.stressval
+					subcat.date = date
+					subcat.put()
+				else:
+					subcat.count += 1
+					subcat.total += s.stressval
+					subcat.put()
+					
+					cat = subcat.category_key
+
+					if not cat:
+						cat = DailyCategoryStat()
+						cat.category = s.category
+						cat.count = 1
+						cat.total = s.stressval
+						cat.date = date
+						cat.put()
+						subcat.category_key = cat.key()
+					else:
+						cat.count += 1
+						cat.total += s.stressval
+						cat.put()
+					
+
 				#write to csv blob and update memcache
 
 				# init csv writer
@@ -1379,7 +1578,7 @@ class SummaryHandler(webapp.RequestHandler):
 	# end post method
 
 	def handle(self):
-		result = db.GqlQuery("SELECT * FROM Survey")
+		result = db.GqlQuery("SELECT * FROM SurveyData")
 
 		categories = []
 
@@ -1391,7 +1590,7 @@ class SummaryHandler(webapp.RequestHandler):
 		data = []
 
 		for cat in categories:
-			cnt = db.GqlQuery("SELECT * FROM Survey WHERE category = :1", cat).count()
+			cnt = db.GqlQuery("SELECT * FROM SurveyData WHERE category = :1", cat).count()
 			row = { 'category':str(cat), 'count':str(cnt) }
 			data.append(row)
 
@@ -1431,22 +1630,6 @@ application = webapp.WSGIApplication(
 def main():
 	logging.getLogger().setLevel(logging.DEBUG)
 	run_wsgi_app(application)
-	
-def profile_main():
-    # This is the main function for profiling
-    # We've renamed our original main() above to real_main()
-    import cProfile, pstats
-    prof = cProfile.Profile()
-    prof = prof.runctx("main()", globals(), locals())
-    print "<pre>"
-    stats = pstats.Stats(prof)
-    stats.sort_stats("time")  # Or cumulative
-    stats.print_stats(80)  # 80 = how many to print
-    # The rest is optional.
-    # stats.print_callees()
-    # stats.print_callers()
-    print "</pre>"
-
 
 if __name__ == "__main__":
 	main()

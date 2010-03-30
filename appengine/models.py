@@ -405,9 +405,21 @@ class ResourceTable(db.Model):
 		else:
 			return True
 	# end check_valid_consumer
+#end UserTable Class
+
+def generateString(length):
+	characters ='aeuyAEUYbdghjmnpqrstvzBDGHJLMNPQRSTVWXZ23456789'
+	rnd_string = ''
+
+	for i in range(length):
+		rnd_string += characters[random.randrange(len(characters))]
+
+	return rnd_string
+# end generateString
+
 '''
 # original model to hold data collected from phone survey
-# to-be replaced by SurveyData and SurveyPhoto
+# replaced by SurveyData and SurveyPhoto
 class Survey(db.Model):
 	user = db.UserProperty()
 	username = db.StringProperty()
@@ -423,18 +435,19 @@ class Survey(db.Model):
 	hasphoto =	db.BooleanProperty()
 # End Survey Class
 '''
+
 # model to hold image blob
 class SurveyPhoto(db.Model):
 	photo = db.BlobProperty()
 	thumb = db.BlobProperty()
-	timestamp =	db.DateTimeProperty(auto_now_add=True)
+	timestamp =	db.DateTimeProperty(auto_now=True)
 # End SurveyPhoto Class
 
 # model to hold survey data
 class SurveyData(db.Model):
 	user = db.ReferenceProperty(UserTable)
 	username = db.StringProperty()
-	timestamp =	db.DateTimeProperty(auto_now_add=True)
+	timestamp =	db.DateTimeProperty(auto_now=True)
 	longitude =	db.StringProperty()
 	latitude =	db.StringProperty()
 	stressval =	db.FloatProperty()
@@ -449,19 +462,46 @@ class SurveyData(db.Model):
 # model to hold data blob
 class SurveyCSV(db.Model):
 	csv = db.BlobProperty()
-	last_updated = db.DateTimeProperty(auto_now_add=True)
+	last_updated = db.DateTimeProperty(auto_now=True)
 	page = db.IntegerProperty()
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
-# End SurveyCSV Clas
+# End SurveyCSV Class
 
-#end UserTable Class
-def generateString(length):
-	characters ='aeuyAEUYbdghjmnpqrstvzBDGHJLMNPQRSTVWXZ23456789'
-	rnd_string = ''
+# model to keep running stats of categories
+class CategoryStat(db.Model):
+	category = 	db.StringProperty()
+	count =		db.IntegerProperty()
+	total = 	db.FloatProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+# End CategoryStat Class
 
-	for i in range(length):
-		rnd_string += characters[random.randrange(len(characters))]
+# model to keep running stats of sub-categories
+class SubCategoryStat(db.Model):
+	category = 	db.StringProperty()
+	category_key = 	db.ReferenceProperty(CategoryStat)
+	subcategory = 	db.StringProperty()
+	count =		db.IntegerProperty()
+	total = 	db.FloatProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+# End CategoryStat Class
 
-	return rnd_string
-# end generateString
+# model to keep running stats of categories per day
+class DailyCategoryStat(db.Model):
+	category = 	db.StringProperty()
+	count =		db.IntegerProperty()
+	total = 	db.FloatProperty()
+	date = 		db.DateProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+# End CategoryStat Class
+
+# model to keep running stats of sub-categories per day
+class DailySubCategoryStat(db.Model):
+	category = 	db.StringProperty()
+	category_key = 	db.ReferenceProperty(DailyCategoryStat)
+	subcategory = 	db.StringProperty()
+	count =		db.IntegerProperty()
+	total = 	db.FloatProperty()
+	date =		db.DateProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+# End CategoryStat Class
