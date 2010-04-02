@@ -277,12 +277,13 @@ class UserTable(db.Model):
 	password = db.StringProperty()
 	email = db.StringProperty()
 	ckey = db.StringProperty()
+	classid = db.StringProperty()
 	created= db.IntegerProperty(default=long(time()))
 
 	# username: proposed username, string
 	# password: plaintext password, string
 	# email: email, string
-	def create_user(self, username, password, email):
+	def create_user(self, username, password, email, classid = None):
 		if not username or not password or not email:
 			return False
 
@@ -307,6 +308,10 @@ class UserTable(db.Model):
 		self.password = sha1val
 		self.email = lowered_email
 		self.ckey = ckey
+
+		if classid is not None:
+			self.classid = classid
+
 		self.put()
 
 		if not self.is_saved():
@@ -505,3 +510,9 @@ class DailySubCategoryStat(db.Model):
 	date =		db.DateProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 # End CategoryStat Class
+
+#model to hold class info
+class ClassList(db.Model):
+	classid = db.StringProperty()
+	created = db.DateTimeProperty(auto_now_add=True)
+# End ClassList Class

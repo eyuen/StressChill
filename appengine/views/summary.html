@@ -6,21 +6,41 @@
 	<div class="span-24 last">
 		<p>
 			<a href="/data_download_all.csv">Download All Data (.csv)</a>
-			</p>
-		<div class="span-8">
+		</p>
+
+
+		<div class="span-16">
+			TODO: make this pretty...<br />
+
 			<table>
 				<thead>
 					<tr>
 						<th class="span-4">Category</th>
+						<th class="span-4">SubCategory</th>
 						<th class="span-4">Count</th>
+						<th class="span-4">Average</th>
+					</tr>
+				</thead>
+					{% for s in summary %}
+				<thead>
+					<tr>
+						<th class="span-4">{{s.category}}</th>
+						<th class="span-4">&nbsp;</th>
+						<th class="span-4">{{s.count}}</th>
+						<th class="span-4">{{s.avg}}</th>
 					</tr>
 				</thead>
 				<tbody>
-					{% for s in summary %}
+						{% for sub in s.subcategories %}
 					<tr>
-						<td class="span-4">{{s.category}}</td>
-						<td class="span-4">{{s.count}}</td>
+
+						<td class="span-4">&nbsp;</td>
+						<td class="span-4">{{sub.subcategory}}</td>
+						<td class="span-4">{{sub.count}}</td>
+						<td class="span-4">{{sub.avg}}</td>
 					</tr>
+						{% endfor %}
+				</tbody>
 					{% endfor %}
 
 				</tbody>

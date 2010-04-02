@@ -1,0 +1,28 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Login{% endblock %}
+
+{% block content %}
+<div class="span-8">
+	<form action="/debug/confirmlogin" method="post">
+		<div class="span-4">
+			<label for="username">Username:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="username">
+		</div>
+		<div class="span-4">
+			<label for="password">Password:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="password" name="password">
+		</div>
+		<div class="span-8 last">
+			<input type="submit" value="Login">
+		</div>
+	</form>
+</div>
+<div class="span-16 last">
+	&nbsp;
+</div>
+{% endblock%}

@@ -1,5 +1,5 @@
 application: stresschill
-version: 1
+version: test
 runtime: python
 api_version: 1
 
@@ -15,6 +15,12 @@ handlers:
     upload: static/images/favicon.ico
 -   url: /remote_api
     script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
+    login: admin
+-   url: /task/.*
+    script: process.py
+    login: admin
+-   url: /debug/.*
+    script: debug.py
     login: admin
 -   url: /.*
     script: main.py
