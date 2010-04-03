@@ -14,3 +14,9 @@ indexes:
   properties:
   - name: __key__
     direction: desc
+
+- kind: SurveyData
+  properties:
+  - name: username
+  - name: timestamp
+    direction: desc

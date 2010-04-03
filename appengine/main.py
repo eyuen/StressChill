@@ -104,7 +104,7 @@ class MapPage(webapp.RequestHandler):
 
 		if not extracted:
 			surveys = SurveyData.all().order('-timestamp').fetch(PAGE_SIZE*5+1)
-			extracted = extract_surveys (surveys)
+			extracted = helper.extract_surveys (surveys)
 			if surveys is not None:
 				#memcache.set('saved', extracted, 604800)
 				memcache.set('saved', extracted)
@@ -330,7 +330,7 @@ class DataByDatePage(webapp.RequestHandler):
 				logging.debug('cache miss, populate')
 				# get 5 pages of most recent records and cache
 				surveys = SurveyData.all().order('-timestamp').fetch(PAGE_SIZE*5 + 1)
-				saved = extract_surveys (surveys)
+				saved = helper.extract_surveys (surveys)
 				# if values returned, save in cache
 				if surveys is not None:
 					memcache.set('saved', saved)
@@ -425,9 +425,7 @@ class DataByDatePage(webapp.RequestHandler):
 					template_values['nextpage'] = 2
 					surveys = surveys[:PAGE_SIZE]
 
-			extracted = extract_surveys (surveys)
-
-
+			extracted = helper.extract_surveys (surveys)
 
 		template_values['surveys'] = extracted 
 
@@ -435,182 +433,6 @@ class DataByDatePage(webapp.RequestHandler):
 		self.response.out.write (template.render(path, template_values))
 	# end get method
 # End DataPage Class
-
-# debugging stuff...
-class DataDebugPage(webapp.RequestHandler):
-	def get(self):
-		if os.environ.get('HTTP_HOST'):
-			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
-		else:
-			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
-
-		'''
-		#populate daily stats models
-
-		categories = {}
-		subcategories = {}
-
-		result = db.GqlQuery("SELECT * FROM SurveyData")
-
-		for row in result:
-			pdt = row.timestamp - datetime.timedelta(hours=7)
-			time_key = str(pdt).split(' ')[0]
-
-			if not categories.has_key(time_key):
-				categories[time_key] = {}
-
-			if categories[time_key].has_key(str(row.category)):
-				categories[time_key][str(row.category)]['count'] += 1
-				categories[time_key][str(row.category)]['total'] += float(row.stressval)
-			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[time_key][str(row.category)] = tmp
-
-			if not subcategories.has_key(time_key):
-				subcategories[time_key] = {}
-
-			if subcategories[time_key].has_key(str(row.subcategory)):
-				subcategories[time_key][str(row.subcategory)]['count'] += 1
-				subcategories[time_key][str(row.subcategory)]['total'] += float(row.stressval)
-			else:
-				tmp = {	'count':1, 
-					'total':float(row.stressval),
-					'category':str(row.category)}
-				subcategories[time_key][str(row.subcategory)] = tmp
-
-		for date_key in categories.keys():
-			for cat_keys in categories[date_key].keys():
-				cstat = DailyCategoryStat()
-				cstat.category = cat_keys
-				cstat.count = categories[date_key][cat_keys]['count']
-				cstat.total = categories[date_key][cat_keys]['total']
-				datestr = date_key.split('.')[0]
-				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
-				x = datetime.date(dt.year, dt.month, dt.day)
-				cstat.date = x
-				cstat.put()
-				categories[date_key][cat_keys]['db_key'] = cstat.key()
-			
-		for date_key in categories.keys():
-			for subcat_keys in subcategories[date_key].keys():
-				scstat = DailySubCategoryStat()
-				scstat.category = subcategories[date_key][subcat_keys]['category']
-
-				if categories.has_key(date_key):
-					if categories[date_key].has_key(subcategories[date_key][subcat_keys]['category']):
-						scstat.category_key = categories[date_key][subcategories[date_key][subcat_keys]['category']]['db_key']
-				scstat.subcategory = subcat_keys
-				datestr = date_key.split('.')[0]
-				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
-				x = datetime.date(dt.year, dt.month, dt.day)
-				scstat.date = x
-				scstat.count = subcategories[date_key][subcat_keys]['count']
-				scstat.total = subcategories[date_key][subcat_keys]['total']
-				scstat.put()
-		'''
-
-		'''
-		# populate stats models
-		for row in result:
-			if categories.has_key(str(row.category)):
-				categories[str(row.category)]['count'] += 1
-				categories[str(row.category)]['total'] += float(row.stressval)
-			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[str(row.category)] = tmp
-
-			if subcategories.has_key(str(row.subcategory)):
-				subcategories[str(row.subcategory)]['count'] += 1
-				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
-			else:
-				tmp = {	'count':1, 
-					'total':float(row.stressval),
-					'category':str(row.category)}
-				subcategories[str(row.subcategory)] = tmp
-
-
-		for cat_keys in categories.keys():
-			cstat = CategoryStat()
-			cstat.category = cat_keys
-			cstat.count = categories[cat_keys]['count']
-			cstat.total = categories[cat_keys]['total']
-			cstat.put()
-			categories[cat_keys]['db_key'] = cstat.key()
-			
-		for subcat_keys in subcategories.keys():
-			scstat = SubCategoryStat()
-			scstat.category = subcategories[subcat_keys]['category']
-			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
-			scstat.subcategory = subcat_keys
-			scstat.count = subcategories[subcat_keys]['count']
-			scstat.total = subcategories[subcat_keys]['total']
-			scstat.put()
-		'''	
-
-
-		'''
-		self.response.out.write(datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S UTC")+"<br>\n")
-		x = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-
-		self.response.out.write(str(x)+"<br>\n")
-		'''
-
-
-		'''
-		# create thumbnails
-		imagelist = SurveyPhoto.all().fetch(20, offset=105)
-
-		for i in imagelist:
-			img = images.Image(i.photo)
-			img.resize(width=180, height=130)
-			i.thumb = img.execute_transforms(output_encoding=images.JPEG)
-			i.put()
-		'''
-
-		'''
-		surveys = SurveyData.all().fetch(20)
-		extracted = extract_surveys (surveys)
-		template_values = { 'surveys' : surveys, 'base_url' : base_url }
-		path = os.path.join (os.path.dirname(__file__), 'views/data_debug.html')
-		self.response.out.write (template.render(path, template_values))
-		'''
-		''' #fix database
-		for s in surveys:
-			if s.photo:
-				s.hasphoto = True
-				s.put()
-		'''
-		'''
-		#copy database
-		for s in surveys:
-			new_survey = SurveyData()
-
-			new_survey.username = s.username
-			new_survey.timestamp = s.timestamp
-			new_survey.longitude = s.longitude
-			new_survey.latitude = s.latitude
-			new_survey.stressval = s.stressval
-			new_survey.comments = s.comments
-			new_survey.category = s.category
-			new_survey.subcategory = s.subcategory
-			new_survey.version = s.version
-
-			if s.photo:
-				new_survey.hasphoto = True
-				new_photo = SurveyPhoto()
-				new_photo.photo = s.photo
-				new_photo.put()
-				new_survey.photo_ref = new_photo.key()
-			else:
-				new_survey.hasphoto = False
-				new_survey.photo_ref = None
-
-			new_survey.put()
-		'''
-		#extracted = extract_surveys (surveys)
-		#template_values = { 'surveys' : surveys, 'base_url' : base_url }
-		#path = os.path.join (os.path.dirname(__file__), 'views/data_debug.html')
-		#self.response.out.write (template.render(path, template_values))
 
 # handler for: /data_download_all.csv
 class DownloadAllData(webapp.RequestHandler):
@@ -1233,7 +1055,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					if saved is not None:
 						s_list = []
 						s_list.append(s)
-						extract = extract_surveys(s_list)
+						extract = helper.extract_surveys(s_list)
 						d = deque(saved)
 						d.pop()
 						d.appendleft(extract[0])
@@ -1278,6 +1100,40 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			self.error(401)
 	# end handle method
 # End ProtectedResourceHandler2 Class
+
+# handler for: /summary
+# displays count of each category
+class SummaryHandler(webapp.RequestHandler):
+	def get(self):
+		self.handle()
+	# end get method
+
+	def post(self):
+		self.handle()
+	# end post method
+
+	def handle(self):
+		result = CategoryStat().all()
+
+		data = []
+		for row in result:
+			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(row.total/float(row.count)) }
+
+			subcat = SubCategoryStat().all().filter('category = ', row.category)
+			allsub = []
+			for subrow in subcat:
+				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(subrow.total/float(subrow.count)) }
+				allsub.append(subdatarow)
+			datarow['subcategories'] = allsub
+
+			data.append(datarow)
+
+
+		template_values = { 'summary' : data }
+		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
+		self.response.out.write (template.render(path, template_values))
+	# end handle method
+# End SummaryHandler Class
 
 # handler for: /create_user
 # form to set up new user
@@ -1336,39 +1192,6 @@ class ConfirmUser(webapp.RequestHandler):
 	# end post method
 # End ConfirmUser Class
 
-# handler for: /summary
-# displays count of each category
-class SummaryHandler(webapp.RequestHandler):
-	def get(self):
-		self.handle()
-	# end get method
-
-	def post(self):
-		self.handle()
-	# end post method
-
-	def handle(self):
-		result = CategoryStat().all()
-
-		data = []
-		for row in result:
-			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(row.total/float(row.count)) }
-
-			subcat = SubCategoryStat().all().filter('category = ', row.category)
-			allsub = []
-			for subrow in subcat:
-				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(subrow.total/float(subrow.count)) }
-				allsub.append(subdatarow)
-			datarow['subcategories'] = allsub
-
-			data.append(datarow)
-
-
-		template_values = { 'summary' : data }
-		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
-		self.response.out.write (template.render(path, template_values))
-	# end handle method
-# End SummaryHandler Class
 
 application = webapp.WSGIApplication(
 									 [('/', HomePage),
