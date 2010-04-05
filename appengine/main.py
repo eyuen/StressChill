@@ -34,56 +34,6 @@ import helper
 # number of observations shown per page
 PAGE_SIZE = 20
 
-def extract_surveys(surveys):
-	extracted = []
-	for s in surveys:
-		item = {}
-		item['stressval'] = s.stressval
-
-		if item['stressval'] < 0:
-			item['stress'] = True
-		else:
-			item['stress'] = False
-
-		if not s.category:
-			item['category'] = s.category
-		else:
-			item['category'] = cgi.escape(s.category, True)
-
-		if not s.subcategory:
-			item['subcategory'] = s.subcategory
-		else:
-			item['subcategory'] = cgi.escape(s.subcategory, True)
-
-		if not s.comments:
-			item['comments'] = s.comments
-		else:
-			item['comments'] = cgi.escape(s.comments, True)
-
-		if s.hasphoto:
-			item['hasphoto'] = True
-			item['photo_key'] = str(s.photo_ref.key())
-		else:
-			item['hasphoto'] = False
-			item['photo_key'] = None
-
-		if not s.timestamp:
-			item['timestamp'] = s.timestamp
-		else:
-			pdt = s.timestamp - datetime.timedelta(hours=7)
-			item['timestamp'] = str(pdt).split('.')[0] + " PDT"
-
-		item['realtime'] = s.timestamp
-
-		item['longitude'] = s.longitude
-		item['latitude'] = s.latitude
-		item['key'] = str(s.key())
-		item['version'] = s.version
-		extracted.append(item)
-	return extracted
-# End extract_surveys function
-
-
 # main page: /
 class HomePage(webapp.RequestHandler):
 	def get(self):
@@ -885,7 +835,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				# update running stats (this should probably be moved to the task queue)
 				# TODO: cache key & stats and create transaction
-				subcat = SubCategoryStat.all().filter('subcategory =', s.subcategory).get()
+				subcat = SubCategoryStat.all().filter('subcategory =', s.subcategory).filter('category = ', s.category).get()
 				if not subcat:
 					cat = CategoryStat.all().filter('category = ', s.category).get()
 
@@ -933,7 +883,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
 				date = datetime.date(dt.year, dt.month, dt.day)
 
-				subcat = DailySubCategoryStat.all().filter('subcategory =', s.subcategory).filter('date =', date).get()
+				subcat = DailySubCategoryStat.all().filter('subcategory =', s.subcategory).filter('category =', s.category).filter('date =', date).get()
 				if not subcat:
 					cat = DailyCategoryStat.all().filter('category = ', s.category).filter('date =', date).get()
 
@@ -1213,7 +1163,8 @@ application = webapp.WSGIApplication(
 									  ('/protected_upload2', ProtectedResourceHandler2),
 									  ('/summary', SummaryHandler),
 									  ('/create_user', CreateUser),
-									  ('/confirm_user', ConfirmUser)],
+									  ('/confirm_user', ConfirmUser),
+									  ],
 									 debug=True)
 
 def main():
