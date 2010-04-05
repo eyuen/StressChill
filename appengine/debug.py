@@ -91,6 +91,8 @@ class DataDebugPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		helper.get_page_from_cache('saved', 0)
+
 		'''
 		#populate daily stats models
 

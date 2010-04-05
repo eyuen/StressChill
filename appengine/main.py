@@ -1044,8 +1044,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				insert_csv.put()
 
-				# add to cache for 1 week (writes should update this cached value)
-				#memcache.set('csv', output.getvalue(), 604800)
+				# add to cache (writes should update this cached value)
 				memcache.set('csv', output.getvalue())
 
 
