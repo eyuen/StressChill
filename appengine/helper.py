@@ -3,6 +3,7 @@ import cgi
 import datetime
 
 from google.appengine.api import memcache
+from google.appengine.ext.webapp import template
 import gmemsess
 
 # returns up to page_size + 1 values
@@ -98,3 +99,34 @@ def extract_surveys(surveys):
 		extracted.append(item)
 	return extracted
 # End extract_surveys function
+
+# adds login status to template values
+# returns template.render
+def render(parent_request_handler, path, values):
+	sess = gmemsess.Session(parent_request_handler)
+
+	# if this is a new session, the user is not logged in
+	# if session is not new, check if logged in
+	if not sess.is_new():
+		# if username set, user is logged in
+		if sess.has_key('username'):
+			values['username'] = sess['username']
+
+		# check if error message set
+		if sess.has_key('error'):
+			values['error'] = sess['error']
+			# clear error
+			del sess['error']
+			sess.save()
+
+		# check if success message set
+		if sess.has_key('success'):
+			values['success'] = sess['success']
+			# clear error
+			del sess['success']
+			sess.save()
+
+
+	return template.render(path, values)	
+
+# end render function

@@ -38,7 +38,7 @@ PAGE_SIZE = 20
 class HomePage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/home.html')
-		self.response.out.write (template.render(path, {}))
+		self.response.out.write (helper.render(self, path, {}))
 	# end get method
 # End HomePage Class
 
@@ -60,7 +60,7 @@ class MapPage(webapp.RequestHandler):
 				memcache.set('saved', extracted)
 		template_values = { 'surveys' : extracted, 'base_url' : base_url }
 		path = os.path.join (os.path.dirname(__file__), 'views/map.html')
-		self.response.out.write (template.render(path, template_values))
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End MapPage Class
 
@@ -68,7 +68,7 @@ class MapPage(webapp.RequestHandler):
 class ClientsPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/clients.html')
-		self.response.out.write (template.render(path, {}))
+		self.response.out.write (helper.render(self, path, {}))
 	# end get method
 # End ClientsPage Class
 
@@ -76,7 +76,7 @@ class ClientsPage(webapp.RequestHandler):
 class AboutPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/about.html')
-		self.response.out.write (template.render(path, {}))
+		self.response.out.write (helper.render(self, path, {}))
 	# end get method
 # End AboutPage Class
 
@@ -380,7 +380,7 @@ class DataByDatePage(webapp.RequestHandler):
 		template_values['surveys'] = extracted 
 
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
-		self.response.out.write (template.render(path, template_values))
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End DataPage Class
 
@@ -1080,7 +1080,7 @@ class SummaryHandler(webapp.RequestHandler):
 
 		template_values = { 'summary' : data }
 		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
-		self.response.out.write (template.render(path, template_values))
+		self.response.out.write (helper.render(self, path, template_values))
 	# end handle method
 # End SummaryHandler Class
 

@@ -1,0 +1,47 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Delete Observation{% endblock %}
+
+{% block content %}
+	<div class="span-12 notice">
+		Are you sure you wish to delete the following observation? This action can <strong>NOT</strong> be undone.
+		<form action="/user/confirm_delete" method="post">
+			<input type="hidden" name="key" value="{{observation.key}}">
+			<input type="submit" value="Confirm Delete">
+		</form>
+	</div>
+	<div class="span-11 last">&nbsp;</div>
+	<div class="span-24 last">
+		<table>
+			<thead>
+				<tr>
+					<th class="span-5">Date/Time</th>
+					<th class="span-4">Category</th>
+					<th class="span-3">Sub-Category</th>
+					<th class="span-3">StressChill Value</th>
+					<!--<th class="span-3">Latitude</th>
+					<th class="span-3">Longitude</th>-->
+					<th class="span-5">Comments</th>
+					<th class="span-4">Image</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td class="span-5">{{observation.timestamp}}</td>
+					<td class="span-4">{{observation.category}}</td>
+					<td class="span-3">{{observation.subcategory}}</td>
+					<td class="span-3">{{observation.stressval}}</td>
+					<td class="span-5">{{observation.comments}}</td>
+					<td class="span-4">
+					{% if s.hasphoto %}
+					<a href="{{base_url}}get_an_image?key={{observation.photo_key}}" target="photo_viewer"><img src="{{base_url}}get_a_thumb?key={{observation.photo_key}}" width="180" height="130"></a>
+					{% else %}
+						(no photo.)
+					{% endif %}
+					</td>
+				</tr>
+
+			</tbody>
+		</table>
+	</div>
+{% endblock%}

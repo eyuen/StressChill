@@ -37,12 +37,14 @@ class UserDataByDatePage(webapp.RequestHandler):
 
 		# if session is new, user was not logged in, redirect
 		if sess.is_new():
+			sess['error'] = 'Please log in to view this page.'
 			sess['redirect'] = '/user/data'
 			sess.save()
 			self.redirect('/user/login')
 			return
 		# if username not set in session, user not logged in, redirect
 		if not sess.has_key('username'):
+			sess['error'] = 'Please log in to view this page.'
 			sess['redirect'] = '/user/data'
 			sess.save()
 			self.redirect('/user/login')
@@ -187,7 +189,7 @@ class UserDataByDatePage(webapp.RequestHandler):
 		template_values['surveys'] = extracted 
 
 		path = os.path.join (os.path.dirname(__file__), 'views/user_data.html')
-		self.response.out.write (template.render(path, template_values))
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End UserDataByDatePage Class
 
@@ -212,7 +214,7 @@ class DisplayLogin(webapp.RequestHandler):
 				sess.save()
 
 			path = os.path.join (os.path.dirname(__file__), 'views/login.html')
-			self.response.out.write(template.render(path, template_values))
+			self.response.out.write(helper.render(self, path, template_values))
 	#end handler method
 # End DisplayLogin Class
 
@@ -255,6 +257,8 @@ class ConfirmLogin(webapp.RequestHandler):
 			else:
 				sess['username'] = self.request.get('username')
 				sess['userid'] = uid
+
+				sess['success'] = 'Welcome ' + sess['username']
 				sess.save()
 				if sess.has_key('redirect'):
 					old_url = sess['redirect']
@@ -280,12 +284,141 @@ class LogoutHandler(webapp.RequestHandler):
 	#end handler method
 # End ConfirmLogin Class
 
+# handler for: /user/delete
+# display confirm delete page
+class SetupDelete(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			sess.save()
+			self.redirect('/user/login')
+			return
+		
+		# check if key set
+		if not self.request.get('key'):
+			sess['error'] = 'No observation was selected.'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# check valid key
+		try:
+			db_key = db.Key(self.request.get('key'))
+			if db_key.kind() != 'SurveyData':
+				sess['error'] = 'Bad key.'
+				sess.save()
+				self.redirect('/user/data')
+				return
+
+		except:
+			sess['error'] = 'Bad key.'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# check if user owns observation
+		observation = db.get(self.request.get('key'))
+
+		# if no observation exists with key, error
+		if not observation:
+			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# if user not have permission, error
+		if observation.username != sess['userid']:
+			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# format data...
+		surveys = []
+		surveys.append(observation)
+		extracted = helper.extract_surveys(surveys)
+		observation = extracted[0]
+
+		# display delete confirmation page
+		template_values = {'observation': observation}
+
+		path = os.path.join (os.path.dirname(__file__), 'views/delete.html')
+		self.response.out.write (helper.render(self, path, template_values))
+	# end get method
+# End SetupDelete Class
+
+# handler for: /user/confirm_delete
+# delete observation
+class ConfirmDelete(webapp.RequestHandler):
+	def post(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		# check if key set
+		if not self.request.get('key'):
+			sess['error'] = 'No observation was selected.'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# check valid key
+		try:
+			db_key = db.Key(self.request.get('key'))
+			if db_key.kind() != 'SurveyData':
+				sess['error'] = 'Bad key.'
+				sess.save()
+				self.redirect('/user/data')
+				return
+
+		except:
+			sess['error'] = 'Bad key.'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# check if user owns observation
+		observation = db.get(self.request.get('key'))
+
+		# if no observation exists with key, error
+		if not observation:
+			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		# if user not have permission, error
+		if observation.username != sess['userid']:
+			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
+			sess.save()
+			self.redirect('/user/data')
+			return
+
+		self.response.out.write('can delete: '+self.request.get('key'))
+	# end post method
+# End ConfirmDelete Class
+
+
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/user/data', UserDataByDatePage),
 									  ('/user/login', DisplayLogin),
 									  ('/user/confirmlogin', ConfirmLogin),
-									  ('/user/logout', LogoutHandler)],
+									  ('/user/logout', LogoutHandler),
+									  ('/user/delete', SetupDelete),
+									  ('/user/confirm_delete', ConfirmDelete)
+									 ],
 									 debug=True)
 
 def main():
