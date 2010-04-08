@@ -343,8 +343,13 @@ class SetupDelete(webapp.RequestHandler):
 		extracted = helper.extract_surveys(surveys)
 		observation = extracted[0]
 
+		if os.environ.get('HTTP_HOST'):
+			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
+		else:
+			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
 		# display delete confirmation page
-		template_values = {'observation': observation}
+		template_values = {'observation': observation, 'base_url':base_url}
 
 		path = os.path.join (os.path.dirname(__file__), 'views/delete.html')
 		self.response.out.write (helper.render(self, path, template_values))
@@ -404,11 +409,170 @@ class ConfirmDelete(webapp.RequestHandler):
 			self.redirect('/user/data')
 			return
 
-		self.response.out.write('can delete: '+self.request.get('key'))
+		#
+		# TODO: the following operations need to occur in transactions...
+		#
+
+		logging.debug('can delete: '+str(observation.key()))
+		logging.debug('category: '+str(observation.category))
+		logging.debug('subcategory: '+str(observation.subcategory))
+		logging.debug('value: '+str(observation.stressval))
+		logging.debug('hasphoto: '+str(observation.hasphoto))
+
+		# delete any associated photo
+		if observation.hasphoto:
+			photo = observation.photo_ref
+			logging.debug('<br />delete photo: '+str(photo.key()))
+			db.delete(photo)
+
+		# decrement category count and subtract from total 
+		catstat = CategoryStat().all().filter('category =', observation.category).get()
+		if catstat is not None:
+			catstat.count -= 1
+			catstat.total -= observation.stressval
+			catstat.put()
+			logging.debug('category count: '+str(catstat.count))
+			logging.debug('category total: '+str(catstat.total))
+		else:
+			logging.debug('category stat not found')
+
+		# decrement subcategory count and subtract from total
+		subcatstat = SubCategoryStat().all().filter('category =', observation.category).filter('subcategory =', observation.subcategory).get()
+		if subcatstat is not None:
+			subcatstat.count -= 1
+			subcatstat.total -= observation.stressval
+			subcatstat.put()
+			logging.debug('subcategory count: '+str(subcatstat.count))
+			logging.debug('subcategory total: '+str(subcatstat.total))
+		else:
+			logging.debug('subcategory stat not found')
+
+		pdt = observation.timestamp - datetime.timedelta(hours=7)
+		time_key = str(pdt).split(' ')[0]
+		dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
+		date = datetime.date(dt.year, dt.month, dt.day)
+
+		# decrement daily category count and subtract from total 
+		dailycatstat = DailyCategoryStat().all().filter('category =', observation.category).filter('date =', date).get()
+		if dailycatstat is not None:
+			dailycatstat.count -= 1
+			dailycatstat.total -= observation.stressval
+			dailycatstat.put()
+			logging.debug('daily category count: '+str(dailycatstat.count))
+			logging.debug('daily category total: '+str(dailycatstat.total))
+		else:
+			logging.debug('daily category stat not found')
+	
+		# decrement daily subcategory count and subtract from total
+		dailysubcatstat = DailySubCategoryStat().all().filter('category =', observation.category).filter('date =', date).filter('subcategory =', observation.subcategory).get()
+		if dailysubcatstat is not None:
+			dailysubcatstat.count -= 1
+			dailysubcatstat.total -= observation.stressval
+			dailysubcatstat.put()
+			logging.debug('daily subcategory count: '+str(dailysubcatstat.count))
+			logging.debug('daily subcategory total: '+str(dailysubcatstat.total))
+		else:
+			logging.debug('daily subcategory stat not found')
+
+		# delete observation from csv blob
+		# get csv blob
+		csv_store = SurveyCSV.all().filter('page = ', 1).get()
+		if csv_store is not None:
+			# init csv reader
+			csv_file = csv.DictReader(cStringIO.StringIO(str(csv_store.csv)))
+
+			# hack... for some reason cant access csv_file.fieldnames until after tryng to iterate through csv_file...
+			header_keys = []
+			for row in csv_file:
+				self.response.out.write('rowkeys: '+str(row.keys()))
+				header_keys = row.keys()
+				break
+
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.DictWriter(output, csv_file.fieldnames)
+
+			# output csv header
+			header = {}
+			for h in csv_file.fieldnames:
+				header[h] = h
+			writer.writerow(header)
+
+			row_count = 0
+			last_entry_date = csv_store.last_entry_date
+			del_flag = False
+			# iterate through csv file
+			for row in csv_file:
+
+				# if csv row id matches key to delete, do not copy to output
+				if row['id'] == str(observation.key()):
+					del_flag = True
+					logging.debug('csv row to del: '+str(row))
+				else: # if not row to delete, copy to output
+					writer.writerow(row)
+					row_count+= 1
+					last_entry_date = row['timestamp']
+
+			# if deleted flag set, write new csv
+			if del_flag:
+				logging.debug('del row cnt: '+str(row_count))
+				# convert string to time
+				m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
+					str(last_entry_date))
+				datestr, fractional, tzname, tzhour, tzmin = m.groups()
+				if tzname is None:
+					tz = None
+				else:
+					tzhour, tzmin = int(tzhour), int(tzmin)
+					if tzhour == tzmin == 0:
+						tzname = 'UTC'
+					tz = FixedOffset(timedelta(hours=tzhour,
+											   minutes=tzmin), tzname)
+				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+				if fractional is None:
+					fractional = '0'
+					fracpower = 6 - len(fractional)
+					fractional = float(fractional) * (10 ** fracpower)
+				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
+
+				# write csv values/blob
+				csv_store.last_entry_date = dt
+				csv_store.count = row_count
+				csv_store.csv = db.Blob(output.getvalue())
+				csv_store.put()
+			else:
+				logging.debug('row not found')
+		else:
+			logging.debug('the csv blob could not be retreived')
+
+		# invalidate related cached items
+		saved = memcache.get('saved')
+		if saved is not None:
+			oldest_date = saved[-1]['realtime']
+
+			if oldest_date <= observation.timestamp:
+				memcache.delete('saved')
+
+		# form user data cache name
+		cache_name = 'data_' + sess['userid']
+
+		usersaved = memcache.get(cache_name)
+
+		db.delete(observation)
+		if usersaved is not None:
+			oldest_date = usersaved[-1]['realtime']
+
+			if oldest_date <= observation.timestamp:
+				memcache.delete(cache_name)
+
+		memcache.delete('csv')
+
+
+		sess['success'] = 'Observation deleted.'
+		sess.save()
+		self.redirect('/user/data')
 	# end post method
 # End ConfirmDelete Class
-
-
 
 application = webapp.WSGIApplication(
 									 [

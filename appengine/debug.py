@@ -91,7 +91,32 @@ class DataDebugPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		'''
+		csv_store = SurveyCSV.all().filter('page = ', 1).get()
+		if csv_store is not None:
+			# init csv reader
+			csv_file = csv.DictReader(cStringIO.StringIO(str(csv_store.csv)))
 
+			self.response.out.write("fieldnames: "+str(csv_file.fieldnames))
+			header_keys = []
+			for row in csv_file:
+				self.response.out.write('rowkeys: '+str(row.keys()))
+				header_keys = row.keys()
+				break
+			self.response.out.write('<br>fn: '+str(csv_file.fieldnames))
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.DictWriter(output, csv_file.fieldnames)
+
+			self.response.out.write('<br>fn: '+str(csv_file.fieldnames))
+			# output csv header
+			header = {}
+			for h in csv_file.fieldnames:
+				header[h] = h
+			writer.writerow(header)
+
+			self.response.out.write(output.getvalue())
+		'''
 
 		'''
 		self.response.out.write(datetime.datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S UTC")+"<br>\n")
@@ -403,7 +428,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/confirmlogin', ConfirmLogin),
 									  ('/debug/logout', LogoutHandler),
 									  ('/debug/data_debug', DataDebugPage),
-									  ('/debug/populate_daily_stat', PopulateDailyStat)
+									  ('/debug/populate_daily_stat', PopulateDailyStat),
 									  ('/debug/populate_stat', PopulateStat)
 									  ],
 									 debug=True)

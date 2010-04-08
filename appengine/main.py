@@ -408,7 +408,6 @@ class DownloadAllData(webapp.RequestHandler):
 			memcache.set('csv', data_csv.csv)
 
 			self.response.headers['Content-type'] = 'text/csv'
-			self.response.out.write('from blob\n')
 			self.response.out.write(data_csv.csv)
 			return
 

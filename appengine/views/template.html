@@ -62,6 +62,15 @@
 		<div class="span-4 last">
 			<a href="/summary">Summary</a>
 		</div>
+		{% if username %}
+		<hr />
+		<div class="span-3 colborder">
+			<a href="/user/data">User Data</a>
+		</div>
+		<div class="span-20 last">
+			&nbsp;
+		</div>
+		{% endif %}
 
 		<hr />
 		{% if error %}

@@ -79,7 +79,10 @@ def extract_surveys(surveys):
 
 		if s.hasphoto:
 			item['hasphoto'] = True
-			item['photo_key'] = str(s.photo_ref.key())
+			try:
+				item['photo_key'] = str(s.photo_ref.key())
+			except:
+				item['photo_key'] = None
 		else:
 			item['hasphoto'] = False
 			item['photo_key'] = None
