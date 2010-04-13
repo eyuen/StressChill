@@ -187,11 +187,61 @@ class UserDataByDatePage(webapp.RequestHandler):
 			extracted = helper.extract_surveys (surveys)
 
 		template_values['surveys'] = extracted 
+		template_values['userdata'] = True
 
 		path = os.path.join (os.path.dirname(__file__), 'views/user_data.html')
 		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End UserDataByDatePage Class
+
+# map page: /user/map
+class UserMapPage(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# if session is new, user was not logged in, redirect
+		if sess.is_new():
+			sess['error'] = 'Please log in to view this page.'
+			sess['redirect'] = '/user/map'
+			sess.save()
+			self.redirect('/user/login')
+			return
+		# if username not set in session, user not logged in, redirect
+		if not sess.has_key('username'):
+			sess['error'] = 'Please log in to view this page.'
+			sess['redirect'] = '/user/map'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		if os.environ.get('HTTP_HOST'):
+			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
+		else:
+			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
+
+		# form user data cache name
+		cache_name = 'data_' + sess['userid']
+
+		extracted = memcache.get(cache_name)
+
+		if not extracted:
+			logging.debug('cache miss, populate')
+			# get 5 pages of most recent records and cache
+			surveys = SurveyData.all().filter('username =', sess['userid']).order('-timestamp').fetch(PAGE_SIZE*5 + 1)
+			extracted = helper.extract_surveys (surveys)
+			# if values returned, save in cache
+			if surveys is not None:
+				memcache.set(cache_name, extracted)
+
+		template_values = { 'surveys' : extracted, 'base_url' : base_url }
+		template_values['usermap'] = True
+		path = os.path.join (os.path.dirname(__file__), 'views/map.html')
+		self.response.out.write (helper.render(self, path, template_values))
+	# end get method
+# End MapPage Class
+
+
 
 # handler for: /login
 # display login page
@@ -501,11 +551,16 @@ class ConfirmDelete(webapp.RequestHandler):
 			row_count = 0
 			last_entry_date = csv_store.last_entry_date
 			del_flag = False
+
+			hashedval = hashlib.sha1(str(observation.key()))
+			sha1val = hashedval.hexdigest()
+
+
 			# iterate through csv file
 			for row in csv_file:
 
 				# if csv row id matches key to delete, do not copy to output
-				if row['id'] == str(observation.key()):
+				if row['id'] == sha1val:
 					del_flag = True
 					logging.debug('csv row to del: '+str(row))
 				else: # if not row to delete, copy to output
@@ -574,14 +629,124 @@ class ConfirmDelete(webapp.RequestHandler):
 	# end post method
 # End ConfirmDelete Class
 
+# handler for: /user/user_data_download.csv
+class DownloadUserData(webapp.RequestHandler):
+	# returns csv of all data
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		# check if csv blob exist
+		data_csv = UserSurveyCSV.all().filter('userid =', sess['userid']).get()
+
+		# if csv blob exist, output
+		if data_csv is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data_csv.csv)
+			return
+
+
+		# you should never get here except for the first time this url is called
+		# if you need to populate the blob, make sure to call this url
+		#	before any requests to write new data or the blob will start from that entry instead
+		# NOTE: this will probably only work as long as the number of entries in your survey is low
+		#	If there are too many entries already, this will likely time out
+		#	I have added page as a property of the model incase we need it in future
+		surveys = SurveyData.all().filter('username =', sess['userid']).order('timestamp').fetch(1000)
+
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		counter = 0
+		last_entry_date = ''
+		page = 1
+
+		# setup csv
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+		header_row = [	'id',
+						'userid', 
+						'timestamp',
+						'latitude',
+						'longitude',
+						'stress_value',
+						'category',
+						'subcategory',
+						'comments',
+						'image_url'
+						]
+
+		writer.writerow(header_row)
+		for s in surveys:
+			photo_url = ''
+			if s.hasphoto:
+				try:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+				except:
+					photo_url = 'no_image'
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			usersha1val = ''
+			if s.username is not None:
+				userhashedval = hashlib.sha1(s.username)
+				usersha1val = userhashedval.hexdigest()
+			else:
+				usersha1val = 'none'
+
+			new_row = [
+					sha1val,
+					usersha1val,
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+			counter += 1
+			last_entry_date = s.timestamp
+
+		# write blob csv so we dont have to do this again
+		insert_csv = UserSurveyCSV()
+		insert_csv.csv = db.Blob(output.getvalue())
+		insert_csv.last_entry_date = last_entry_date
+		insert_csv.count = counter
+		insert_csv.page = page
+		insert_csv.userid = sess['userid']
+		insert_csv.put()
+
+		self.response.headers['Content-type'] = 'text/csv'
+		self.response.out.write(output.getvalue())
+	# end get method
+# End DownloadAllData
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/user/data', UserDataByDatePage),
+									  ('/user/map', UserMapPage),
 									  ('/user/login', DisplayLogin),
 									  ('/user/confirmlogin', ConfirmLogin),
 									  ('/user/logout', LogoutHandler),
 									  ('/user/delete', SetupDelete),
-									  ('/user/confirm_delete', ConfirmDelete)
+									  ('/user/confirm_delete', ConfirmDelete),
+									  ('/user/user_data_download.csv', DownloadUserData)
 									 ],
 									 debug=True)
 

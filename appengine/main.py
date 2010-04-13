@@ -38,7 +38,8 @@ PAGE_SIZE = 20
 class HomePage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/home.html')
-		self.response.out.write (helper.render(self, path, {}))
+		template_values = { 'home' : True }
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End HomePage Class
 
@@ -59,6 +60,7 @@ class MapPage(webapp.RequestHandler):
 				#memcache.set('saved', extracted, 604800)
 				memcache.set('saved', extracted)
 		template_values = { 'surveys' : extracted, 'base_url' : base_url }
+		template_values['map'] = True
 		path = os.path.join (os.path.dirname(__file__), 'views/map.html')
 		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
@@ -68,7 +70,8 @@ class MapPage(webapp.RequestHandler):
 class ClientsPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/clients.html')
-		self.response.out.write (helper.render(self, path, {}))
+		template_values = { 'client' : True }
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End ClientsPage Class
 
@@ -76,7 +79,8 @@ class ClientsPage(webapp.RequestHandler):
 class AboutPage(webapp.RequestHandler):
 	def get(self):
 		path = os.path.join (os.path.dirname(__file__), 'views/about.html')
-		self.response.out.write (helper.render(self, path, {}))
+		template_values = { 'about' : True }
+		self.response.out.write (helper.render(self, path, template_values))
 	# end get method
 # End AboutPage Class
 
@@ -378,6 +382,7 @@ class DataByDatePage(webapp.RequestHandler):
 			extracted = helper.extract_surveys (surveys)
 
 		template_values['surveys'] = extracted 
+		template_values['data'] = True
 
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
 		self.response.out.write (helper.render(self, path, template_values))
@@ -391,6 +396,7 @@ class DownloadAllData(webapp.RequestHandler):
 		# check cache for csv dump
 		# I'm not sure at what point this will become infesible (too large for the cache)
 		data = memcache.get('csv')
+		
 
 		# if all data in cache, output and done
 		if data is not None:
@@ -434,6 +440,7 @@ class DownloadAllData(webapp.RequestHandler):
 		writer = csv.writer(output, delimiter=',')
 
 		header_row = [	'id',
+						'userid', 
 						'timestamp',
 						'latitude',
 						'longitude',
@@ -448,12 +455,27 @@ class DownloadAllData(webapp.RequestHandler):
 		for s in surveys:
 			photo_url = ''
 			if s.hasphoto:
-				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+				try:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+				except:
+					photo_url = 'no_image'
 
 			else:
 				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			usersha1val = ''
+			if s.username is not None:
+				userhashedval = hashlib.sha1(s.username)
+				usersha1val = userhashedval.hexdigest()
+			else:
+				usersha1val = 'none'
+
 			new_row = [
-					str(s.key()),
+					sha1val,
+					usersha1val,
 					s.timestamp,
 					s.latitude,
 					s.longitude,
@@ -947,6 +969,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				# write header row if csv blob doesnt exist yet
 				if not insert_csv:
 					header_row = [	'id',
+						'userid',
 						'timestamp',
 						'latitude',
 						'longitude',
@@ -965,9 +988,16 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				else:
 					photo_url = 'no_image'
 
+				hashedval = hashlib.sha1(str(s.key()))
+				sha1val = hashedval.hexdigest()
+
+				userhashedval = hashlib.sha1(s.username)
+				usersha1val = hashedval.hexdigest()
+
 				# write csv data row
 				new_row = [
-						str(s.key()),
+						sha1val,
+						usersha1val,
 						s.timestamp,
 						s.latitude,
 						s.longitude,
@@ -995,6 +1025,69 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 				# add to cache (writes should update this cached value)
 				memcache.set('csv', output.getvalue())
+
+				### append to user csv blob
+
+				# this will have to change if multiple pages are ever needed (limits?)
+				insert_csv = UserSurveyCSV.all().filter('userid =', s.username).filter('page =', 1).get()
+
+				# write header row if csv blob doesnt exist yet
+				if not insert_csv:
+					header_row = [	'id',
+						'userid', 
+						'timestamp',
+						'latitude',
+						'longitude',
+						'stress_value',
+						'category',
+						'subcategory',
+						'comments',
+						'image_url'
+						]
+					writer.writerow(header_row)
+
+				# form image url
+				if s.hasphoto:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+				else:
+					photo_url = 'no_image'
+
+				hashedval = hashlib.sha1(str(s.key()))
+				sha1val = hashedval.hexdigest()
+
+				userhashedval = hashlib.sha1(s.username)
+				usersha1val = hashedval.hexdigest()
+
+				# write csv data row
+				new_row = [
+						sha1val,
+						usersha1val,
+						s.timestamp,
+						s.latitude,
+						s.longitude,
+						s.stressval,
+						s.category,
+						s.subcategory,
+						s.comments,
+						photo_url
+						]
+				writer.writerow(new_row)
+
+				# create new blob if one does not exist
+				if not insert_csv:
+					insert_csv = UserSurveyCSV()
+					insert_csv.csv = db.Blob(output.getvalue())
+					insert_csv.last_entry_date = s.timestamp
+					insert_csv.count = 1
+					insert_csv.page = 1
+				else:	#if blob exists, append and update
+					insert_csv.csv += output.getvalue()
+					insert_csv.last_entry_date = s.timestamp
+					insert_csv.count += 1
+
+				insert_csv.put()
+
 
 
 				try:
@@ -1070,14 +1163,21 @@ class SummaryHandler(webapp.RequestHandler):
 			subcat = SubCategoryStat().all().filter('category = ', row.category)
 			allsub = []
 			for subrow in subcat:
-				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(subrow.total/float(subrow.count)) }
+				if subrow.count == 0:
+					avg = 0
+				else:
+					avg = subrow.total/subrow.count
+				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(avg) }
 				allsub.append(subdatarow)
 			datarow['subcategories'] = allsub
 
 			data.append(datarow)
 
+		num = len(data)
 
-		template_values = { 'summary' : data }
+		template_values = { 'summary1' : data[:int(num/2)], 'summary2' : data[int(num/2):] }
+		template_values['datasummary'] = True
+		template_values['divstyle'] = ['span-11 colborder','span-12 last']
 		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
 		self.response.out.write (helper.render(self, path, template_values))
 	# end handle method

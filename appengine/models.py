@@ -279,6 +279,7 @@ class UserTable(db.Model):
 	ckey = db.StringProperty()
 	classid = db.StringProperty()
 	created= db.IntegerProperty(default=long(time()))
+	admin = db.BooleanProperty(default=False)
 
 	# username: proposed username, string
 	# password: plaintext password, string
@@ -472,6 +473,26 @@ class SurveyCSV(db.Model):
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
 # End SurveyCSV Class
+
+# model to hold data blob
+class UserSurveyCSV(db.Model):
+	csv = db.BlobProperty()
+	last_updated = db.DateTimeProperty(auto_now=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+	userid = db.StringProperty()
+# End UserSurveyCSV Class
+
+# model to hold data blob
+class ClassSurveyCSV(db.Model):
+	csv = db.BlobProperty()
+	last_updated = db.DateTimeProperty(auto_now=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+	classid = db.StringProperty()
+# End ClassSurveyCSV Class
 
 # model to keep running stats of categories
 class CategoryStat(db.Model):

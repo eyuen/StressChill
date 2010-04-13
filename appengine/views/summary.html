@@ -8,46 +8,72 @@
 			<a href="/data_download_all.csv">Download All Data (.csv)</a>
 		</p>
 
-
-		<div class="span-16">
-			TODO: make this pretty...<br />
-
+		<div class="span-11 colborder">
+{% for s in summary1 %}
 			<table>
+				<caption>
+					<i>
+						<strong>Category:</strong> {{s.category}}<br/>
+						<strong>Count:</strong> {{s.count}}<br/>
+						<strong>Average</strong> {{s.avg}}<br/>
+					</i>
+				</caption>
+
 				<thead>
 					<tr>
-						<th class="span-4">Category</th>
 						<th class="span-4">SubCategory</th>
-						<th class="span-4">Count</th>
-						<th class="span-4">Average</th>
-					</tr>
-				</thead>
-					{% for s in summary %}
-				<thead>
-					<tr>
-						<th class="span-4">{{s.category}}</th>
-						<th class="span-4">&nbsp;</th>
-						<th class="span-4">{{s.count}}</th>
-						<th class="span-4">{{s.avg}}</th>
+						<th class="span-3">Count</th>
+						<th class="span-4 last">Average</th>
 					</tr>
 				</thead>
 				<tbody>
-						{% for sub in s.subcategories %}
+{% 	for sub in s.subcategories %}
 					<tr>
-
-						<td class="span-4">&nbsp;</td>
 						<td class="span-4">{{sub.subcategory}}</td>
-						<td class="span-4">{{sub.count}}</td>
-						<td class="span-4">{{sub.avg}}</td>
+						<td class="span-3">{{sub.count}}</td>
+						<td class="span-4 last">{{sub.avg}}</td>
 					</tr>
-						{% endfor %}
-				</tbody>
-					{% endfor %}
-
+{% 	endfor %}
 				</tbody>
 			</table>
+{% endfor %}
 		</div>
-		<div class="span-16">
+		<div class="span-11">
+{% for s in summary2 %}
+			<table>
+				<caption>
+					<i>
+						<strong>Category:</strong> {{s.category}}<br/>
+						<strong>Count:</strong> {{s.count}}<br/>
+						<strong>Average</strong> {{s.avg}}<br/>
+					</i>
+				</caption>
+
+				<thead>
+					<tr>
+						<th class="span-4">SubCategory</th>
+						<th class="span-3">Count</th>
+						<th class="span-4 last">Average</th>
+					</tr>
+				</thead>
+				<tbody>
+{% 	for sub in s.subcategories %}
+					<tr>
+						<td class="span-4">{{sub.subcategory}}</td>
+						<td class="span-3">{{sub.count}}</td>
+						<td class="span-4 last">{{sub.avg}}</td>
+					</tr>
+{% 	endfor %}
+				</tbody>
+			</table>
+			<hr />
+			<br />
+{% endfor %}
+		</div>
+		<div class="span-1 last">
 			&nbsp;
 		</div>
+	
+
 	</div>
 {% endblock%}
