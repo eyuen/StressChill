@@ -28,7 +28,6 @@ import android.content.SharedPreferences;
 import android.content.Context;
 
 import android.view.View;
-import android.widget.TextView;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Button;
@@ -60,32 +59,25 @@ import net.oauth.client.httpclient4.HttpClient4;
 
 public class authenticate extends Activity implements Runnable {
     private Context ctx;
-    private TextView tv_email;
-    private EditText et_email;
     private EditText et_pass;
-    private TextView tv_pass2;
-    private EditText et_pass2;
     private EditText et_user;
     private CheckBox cb_save_login;
-    private CheckBox cb_register;
 
-    private String email = "";
     private String user = "";
     private String pass1 = "";
-    private String pass2 = "";
     private Button submit;
+    private Button reg;
     private boolean save_login = false;
 
     private static final int LOGIN = 0;
     private static final int REGISTER = 1;
     private int auth_type = LOGIN;
 
-	private static final String TAG = "Authentication";
+    private static final String TAG = "Authentication";
     private static final int DIALOG_PROGRESS = 1;
 
     private SharedPreferences preferences;
     private ProgressDialog mProgressDialog;
-    private String auth_fail_string = "login";
 
     public static String REQUEST_TOKEN_URL = "https://stresschill.appspot.com/request_token";
     public static String ACCESS_TOKEN_URL = "https://stresschill.appspot.com/access_token";
@@ -115,15 +107,11 @@ public class authenticate extends Activity implements Runnable {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
         setContentView(R.layout.authenticate);
-        tv_email = (TextView) findViewById(R.id.tv1);
-        et_email = (EditText) findViewById(R.id.email);
         et_pass = (EditText) findViewById(R.id.password);
-        tv_pass2 = (TextView) findViewById(R.id.pass2_label);
-        et_pass2 = (EditText) findViewById(R.id.password2);
         et_user = (EditText) findViewById(R.id.user_input);
-        cb_register = (CheckBox) findViewById(R.id.cb_register);
         cb_save_login = (CheckBox) findViewById(R.id.save_login);
         submit = (Button) findViewById(R.id.login);
+        reg = (Button) findViewById(R.id.register);
         ctx = authenticate.this;
 
         tokens = new token_store();
@@ -132,7 +120,6 @@ public class authenticate extends Activity implements Runnable {
 
         preferences = this.getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
         preferences.edit().putBoolean("authenticated", false)
-                          .putBoolean("registered", false)
                           .commit();
         Log.d(TAG, "set initial auth state to false");
 
@@ -147,16 +134,9 @@ public class authenticate extends Activity implements Runnable {
             cb_save_login.setChecked(save_login);
         }
         
-        cb_register.setOnClickListener(register_check_box);
-
         submit.setOnClickListener(new View.OnClickListener() {
             public void onClick (View view) {
                 auth_type = LOGIN;
-                if (cb_register.isChecked()) {
-                    auth_type = REGISTER;
-                    email = et_email.getText().toString();
-                    pass2 = et_pass2.getText().toString();
-                }
                 user = et_user.getText().toString();
                 pass1 = et_pass.getText().toString();
                 save_login = cb_save_login.isChecked();
@@ -167,6 +147,11 @@ public class authenticate extends Activity implements Runnable {
                                       .putString("pass", pass1)
                                       .putBoolean("save_login", save_login)
                                       .commit();
+                } else {
+                    preferences.edit().putString("user", "")
+                                      .putString("pass", "")
+                                      .putBoolean("save_login", false)
+                                      .commit();
                 }
 
                 showDialog (DIALOG_PROGRESS);
@@ -174,51 +159,15 @@ public class authenticate extends Activity implements Runnable {
                 thread.start();
             }
         });
+
+        reg.setOnClickListener(new View.OnClickListener() {
+            public void onClick (View view) {
+                Context ctx = authenticate.this;
+                Intent i = new Intent (ctx, register.class);
+                ctx.startActivity (i);
+            }
+        });
 	}
-
-    private boolean register_user (String email, String user, String pass1, String pass2) {
-        String stored_pass_hash = preferences.getString(user + "_un", "");
-        if (stored_pass_hash.equals("")) {
-            if (!pass1.equals(pass2)) {
-                Toast.makeText(ctx, "the passwords you entered do not match", Toast.LENGTH_LONG).show();
-                return false;
-            }
-
-            Log.d(TAG, "registering new account: " + user);
-            HttpClient httpClient = new DefaultHttpClient();
-            HttpPost request = new HttpPost(getString(R.string.register_user));
-
-            try {
-                MultipartEntity entity = new MultipartEntity();
-                entity.addPart("username", new StringBody(user));
-                entity.addPart("password", new StringBody(pass1));
-                entity.addPart("confirmpassword", new StringBody(pass2));
-                entity.addPart("email", new StringBody(email));
-                request.setEntity(entity);
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-                return false;
-            }
-
-            try {
-                HttpResponse response = httpClient.execute(request);
-                Log.d(TAG, "Doing AppSpot HTTPS Request");
-                int status = response.getStatusLine().getStatusCode();
-                if (HttpStatus.SC_OK != status) {
-                    Log.d(TAG, "got status: " + status);
-                    Log.d(TAG, generateString(response.getEntity().getContent()));
-                    return false;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                return false;
-            }
-            return true;
-        } else {
-            Toast.makeText(ctx, "an account with this username already exists", Toast.LENGTH_LONG);
-        }
-        return false;
-    }
 
     /* user : plain text,
      * pass : plaintext password */
@@ -251,22 +200,6 @@ public class authenticate extends Activity implements Runnable {
         Log.d(TAG, "login_user(): failed to login");
         return false;
     }
-
-    android.view.View.OnClickListener register_check_box = new android.view.View.OnClickListener() {
-        public void onClick(View v) {
-            CheckBox cb = (CheckBox) v;
-            int state = cb.isChecked() ? 0 : android.view.View.INVISIBLE;
-            tv_email.setVisibility(state);
-            et_email.setVisibility(state);
-            tv_pass2.setVisibility(state);
-            et_pass2.setVisibility(state);
-            if (cb.isChecked()) {
-                submit.setText("Register");
-            } else {
-                submit.setText("Login");
-            }
-        }
-    };
 
     private token_store get_access_token_hack(String user, String pass) {
         if (null == user || user.equals("")
@@ -489,67 +422,24 @@ public class authenticate extends Activity implements Runnable {
 
     public void run() {
         Looper.prepare();
-        Message msg = new Message();
-        Bundle b = new Bundle();
 
-        b.putBoolean("authenticated", auth());
-        msg.setData(b);
+        mProgressDialog.dismiss();
+        if (true == auth()) {
+            ctx.startActivity(new Intent(ctx, home.class));
+            Log.d(TAG, "started survey intent");
+            startService(new Intent(ctx, survey_upload.class));
+            Log.d(TAG, "started survey upload intent");
+            authenticate.this.finish();
+        } else {
+            Log.d(TAG, "handler(): login failed... calling auth_failed()");
+            auth_failed();
+        }
 
-        handler.sendMessage(msg);
-        handler.sendEmptyMessage(0);
         Looper.loop();
     }
 
-    private Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            mProgressDialog.dismiss();
-            switch (auth_type) {
-                case LOGIN:
-                    Log.d(TAG, "handler(): doing login");
-                    if(preferences.getBoolean("authenticated", false)) {
-                        ctx.startActivity(new Intent(ctx, home.class));
-                        Log.d(TAG, "started survey intent");
-                        startService(new Intent(ctx, survey_upload.class));
-                        Log.d(TAG, "started survey upload intent");
-                        authenticate.this.finish();
-                        return;
-                    } else {
-                        Log.d(TAG, "handler(): login failed");
-                        auth_fail_string = "login";
-                    }
-                    break;
-                case REGISTER:
-                    Log.d(TAG, "handler(): doing register");
-                    if (preferences.getBoolean("registered", false)) {
-                        Log.d(TAG, "handler(): registered successfully");
-                        ctx.startActivity(new Intent(ctx, authenticate.class));
-                        authenticate.this.finish();
-                        return;
-                    } else {
-                        Log.d(TAG, "handler(): register failed");
-                        auth_fail_string = "register";
-                    }
-                    break;
-                default:
-                    Log.d(TAG, "handler(): this msg should never be seen");
-                    auth_failed();
-            }
-            Log.d(TAG, "handler(): auth failed... calling auth_failed()");
-            auth_failed();
-        }
-    };
-
     private boolean auth() {
-        if (cb_register.isChecked()) {
-            if (register_user (email, user, pass1, pass2)) {
-                preferences.edit().putBoolean("registered", true).commit();
-                auth_type = REGISTER;
-                Log.d(TAG, "auth(): register_user(): successfully created a new account");
-                return true;
-            }
-        } else if (login_user (user, pass1)) {
-            auth_type = LOGIN;
+        if (login_user (user, pass1)) {
             preferences.edit().putBoolean("authenticated", true).commit();
             Log.d(TAG, "auth(): login_user(): successfully logged user in");
             return true;
@@ -562,7 +452,7 @@ public class authenticate extends Activity implements Runnable {
     private void auth_failed() {
         Log.d(TAG, "auth was a failure");
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Could not " + auth_fail_string)
+        builder.setTitle("Could not login")
             .setMessage("You must enter valid credentials before you can proceed.")
             .setCancelable(false)
             .setPositiveButton("Go back", new DialogInterface.OnClickListener() {
