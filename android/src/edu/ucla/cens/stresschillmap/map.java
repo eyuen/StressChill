@@ -167,7 +167,6 @@ public class map extends MapActivity {
                 return false;
         }
         ctx.startActivity (i);
-        this.finish();
         return true;
     }
 

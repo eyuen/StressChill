@@ -47,7 +47,6 @@ public class instructions extends Activity {
                 return false;
         }
         ctx.startActivity (i);
-        this.finish();
         return true;
     }
 }
