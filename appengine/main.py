@@ -1231,10 +1231,16 @@ class ConfirmUser(webapp.RequestHandler):
 			logging.error('Password mismatch')
 			return
 
-		if not UserTable().create_user(username, password, email):
-			self.response.set_status(401, 'could not create user')
-			logging.error('could not create user')
-			return
+		if self.request.get('classid'):
+			if not UserTable().create_user(username, password, email):
+				self.response.set_status(401, 'could not create user')
+				logging.error('could not create user')
+				return
+		else:
+			if not UserTable().create_user(username, password, email, classid, self.request.get('classid')):
+				self.response.set_status(401, 'could not create user')
+				logging.error('could not create user')
+				return
 
 		self.response.out.write('user added')
 	# end post method
