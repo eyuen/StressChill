@@ -313,76 +313,11 @@ public class map extends MapActivity {
 
         @Override
         protected boolean onTap (int index) {
-            Toast.makeText (map.this, overlay_items.get(index).getTitle(),
-                            Toast.LENGTH_SHORT).show();
             last_tap_index = index;
+            ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(50);
+            preferences.edit().putString("site_key", overlay_items.get(last_tap_index).getSnippet()).commit();
+            map.this.startActivity (new Intent(map.this, popup.class));
             return true;
-        }
-
-        @Override
-        public boolean onTouchEvent (MotionEvent event, MapView map_view) {
-            float dx;
-            float dy;
-            long dt;
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    if (-1 != last_tap_index) {
-                        down_x = Math.abs(event.getX());
-                        down_y = Math.abs(event.getY());
-                        down_t = Math.abs(event.getEventTime());
-
-                        vibrator = new Thread (new Runnable() {
-                                public void run () {
-                                    // wait for the user to press down for 'long_press_delay'
-                                    // seconds, if the user hasnt let go by then then the
-                                    // rest of this function will execute
-                                    for (int i = 0; i < long_press_delay; i+= long_press_delay/10) {
-                                        try { Thread.sleep(long_press_delay/10); }
-                                        catch (InterruptedException e) {}
-
-                                        if (-1 == down_x || -1 == down_y || -1 == down_t) {
-                                            return;
-                                        }
-                                    }
-
-                                    // vibrate the phone for a few ms
-                                    ((Vibrator)getSystemService(VIBRATOR_SERVICE)).vibrate(50);
-
-                                    // record which point the user clicked on
-                                    preferences.edit().putString("site_key", overlay_items.get(last_tap_index).getSnippet()).commit();
-
-                                    // start up the popup activity to display info on that site
-                                    map.this.startActivity (new Intent(map.this, popup.class));
-                                    return;
-                                }
-                            }
-                        );
-
-                        vibrator.start();
-                    }
-                    break;
-                case MotionEvent.ACTION_UP:
-                    down_x = down_y = -1;
-                    down_t = -1;
-                    break;
-                case MotionEvent.ACTION_MOVE:
-                    if (-1 == down_x || -1 == down_y || -1 == down_t) {
-                        return false;
-                    }
-
-                    dx = Math.abs(down_x - Math.abs(event.getX()));
-                    dy = Math.abs(down_y - Math.abs(event.getY()));
-
-                    if (dx >= max_dx || dy >= max_dy) {
-                        down_x = down_y = -1;
-                        down_t = -1;
-                    }
-
-                    break;
-                default:
-                    break;
-            }
-            return false;
         }
     }
 
