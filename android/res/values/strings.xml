@@ -24,6 +24,20 @@
     <string name="question_06">"My health and safety here and now"</string>
     <string name="question_07">"Memory/thought/feeling I had here"</string>
 
-    <string name="about_content">StressChill is a partici.. yada yada yada...</string>
-    <string name="instructions_content">Press button foo to start action bar, etc.</string>
+    <string name="about_content">
+    StressChill is a participatory sensing campaign geared towards identifying, describing and mapping the things you find stressing or relaxing in the places you spend your time everyday.\n\n
+
+    With this Android application you can view a map of the things participants find affect them as well as upload your own observations.\n\n
+
+    The goal of this application is to map the things in your environment that you think need attention or to share the places you find relaxing with everyone else.</string>
+    <string name="instructions_content">
+    Before you start collecting data you will need to register a new account. This can be done from the main login menu (you will need an internet connection to do this).\n\n
+
+    Upon successful registration you will be redirected to the login menu. If you want your credentials to be remembered for next time then check the checkbox on the page.\n\n
+
+    From the home page you can navigate to either collect samples or view results. The collect option lets you take a picture, select a stress/chill value with a slider, and choose the category that describes your take on the picture content.\n\n
+
+    The view results option brings up a map with the 50 most recent data points in your area. To see the full information on a point just tap it lightly once and then long press it until you feel the vibration.\n\n
+
+    From all of the pages you can press the menu button to navigate between pages.</string>
 </resources>
