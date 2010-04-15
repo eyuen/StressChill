@@ -419,6 +419,87 @@ class PopulateStat(webapp.RequestHandler):
 			scstat.total = subcategories[subcat_keys]['total']
 			scstat.put()
 
+# Populates the user stats Datastore
+# this should only be run once to populate the datastore with existing values
+class PopulateUserStat(webapp.RequestHandler):
+	def get(self):
+		# populate stats models
+		for row in result:
+			if categories.has_key(str(row.category)):
+				categories[str(row.category)]['count'] += 1
+				categories[str(row.category)]['total'] += float(row.stressval)
+			else:
+				tmp = {'count':1, 'total':float(row.stressval)}
+				categories[str(row.category)] = tmp
+
+			if subcategories.has_key(str(row.subcategory)):
+				subcategories[str(row.subcategory)]['count'] += 1
+				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
+			else:
+				tmp = {	'count':1, 
+					'total':float(row.stressval),
+					'category':str(row.category)}
+				subcategories[str(row.subcategory)] = tmp
+
+
+		for cat_keys in categories.keys():
+			cstat = CategoryStat()
+			cstat.category = cat_keys
+			cstat.count = categories[cat_keys]['count']
+			cstat.total = categories[cat_keys]['total']
+			cstat.put()
+			categories[cat_keys]['db_key'] = cstat.key()
+			
+		for subcat_keys in subcategories.keys():
+			scstat = SubCategoryStat()
+			scstat.category = subcategories[subcat_keys]['category']
+			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
+			scstat.subcategory = subcat_keys
+			scstat.count = subcategories[subcat_keys]['count']
+			scstat.total = subcategories[subcat_keys]['total']
+			scstat.put()
+
+# Populates the user csv
+# this should only be run once to populate the datastore with existing values
+class PopulateUserCSV(webapp.RequestHandler):
+	def get(self):
+		# populate stats models
+		for row in result:
+			if categories.has_key(str(row.category)):
+				categories[str(row.category)]['count'] += 1
+				categories[str(row.category)]['total'] += float(row.stressval)
+			else:
+				tmp = {'count':1, 'total':float(row.stressval)}
+				categories[str(row.category)] = tmp
+
+			if subcategories.has_key(str(row.subcategory)):
+				subcategories[str(row.subcategory)]['count'] += 1
+				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
+			else:
+				tmp = {	'count':1, 
+					'total':float(row.stressval),
+					'category':str(row.category)}
+				subcategories[str(row.subcategory)] = tmp
+
+
+		for cat_keys in categories.keys():
+			cstat = CategoryStat()
+			cstat.category = cat_keys
+			cstat.count = categories[cat_keys]['count']
+			cstat.total = categories[cat_keys]['total']
+			cstat.put()
+			categories[cat_keys]['db_key'] = cstat.key()
+			
+		for subcat_keys in subcategories.keys():
+			scstat = SubCategoryStat()
+			scstat.category = subcategories[subcat_keys]['category']
+			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
+			scstat.subcategory = subcat_keys
+			scstat.count = subcategories[subcat_keys]['count']
+			scstat.total = subcategories[subcat_keys]['total']
+			scstat.put()
+
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/debug/create_consumer', CreateConsumer),
@@ -429,7 +510,9 @@ application = webapp.WSGIApplication(
 									  ('/debug/logout', LogoutHandler),
 									  ('/debug/data_debug', DataDebugPage),
 									  ('/debug/populate_daily_stat', PopulateDailyStat),
-									  ('/debug/populate_stat', PopulateStat)
+									  ('/debug/populate_stat', PopulateStat),
+									  ('/debug/populate_user_stat', PopulateUserStat),
+									  ('/debug/populate_user_csv', PopulateUserCSV)
 									  ],
 									 debug=True)
 
