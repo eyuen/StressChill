@@ -1,10 +1,53 @@
 import logging
 import cgi
-import datetime
+import datetime as datetime_module
 
 from google.appengine.api import memcache
 from google.appengine.ext.webapp import template
 import gmemsess
+
+### date time stuff
+
+# from python tzinfo docs
+ZERO = datetime_module.timedelta(0)
+class UTC_tzinfo(datetime_module.tzinfo):
+	"""UTC"""
+
+	def utcoffset(self, dt):
+		return ZERO
+
+	def tzname(self, dt):
+		return "UTC"
+
+	def dst(self, dt):
+		return ZERO
+
+# from the appengine docs
+class Pacific_tzinfo(datetime_module.tzinfo):
+	"""Implementation of the Pacific timezone."""
+	def utcoffset(self, dt):
+		return datetime_module.timedelta(hours=-8) + self.dst(dt)
+
+	def _FirstSunday(self, dt):
+		"""First Sunday on or after dt."""
+		return dt + datetime_module.timedelta(days=(6-dt.weekday()))
+
+	def dst(self, dt):
+		# 2 am on the second Sunday in March
+		dst_start = self._FirstSunday(datetime_module.datetime(dt.year, 3, 8, 2))
+		# 1 am on the first Sunday in November
+		dst_end = self._FirstSunday(datetime_module.datetime(dt.year, 11, 1, 1))
+
+		if dst_start <= dt.replace(tzinfo=None) < dst_end:
+			return datetime_module.timedelta(hours=1)
+		else:
+			return datetime_module.timedelta(hours=0)
+	def tzname(self, dt):
+		if self.dst(dt) == datetime_module.timedelta(hours=0):
+			return "PST"
+		else:
+			return "PDT"
+
 
 # returns up to page_size + 1 values
 def get_page_from_cache(cache_entry, page, page_size=20):
@@ -90,8 +133,9 @@ def extract_surveys(surveys):
 		if not s.timestamp:
 			item['timestamp'] = s.timestamp
 		else:
-			pdt = s.timestamp - datetime.timedelta(hours=7)
-			item['timestamp'] = str(pdt).split('.')[0] + " PDT"
+			#pdt = s.timestamp - datetime.timedelta(hours=7)
+			#item['timestamp'] = str(pdt).split('.')[0] + " PDT"
+			item['timestamp'] = s.timestamp.replace(tzinfo=UTC_tzinfo()).astimezone(Pacific_tzinfo()).strftime('%Y-%m-%d %H:%M:%S %Z')
 
 		item['realtime'] = s.timestamp
 
