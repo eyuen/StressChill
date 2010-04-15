@@ -669,3 +669,44 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			self.error(401)
 	# end handle method
 # End ProtectedResourceHandler2 Class
+
+# handler for: /confirm_user
+# (used by phone registration)
+# adds user
+# required fields:
+#	- username: string
+#	- password: string
+#	- confirmpassword: string - must match password
+# optional:
+#	- email: string
+class ConfirmUser(webapp.RequestHandler):
+	def post(self):
+		username = self.request.get('username')
+		password = self.request.get('password')
+		confirmpassword = self.request.get('confirmpassword')
+		email = self.request.get('email')
+		classid = self.request.get('classid')
+
+		if not username or not password or not confirmpassword or not email:
+			self.response.set_status(401, 'Missing field')
+			logging.error('Missing field')
+			return
+		if password != confirmpassword:
+			self.response.set_status(401, 'Password mismatch')
+			logging.error('Password mismatch')
+			return
+
+		if not classid:
+			if not UserTable().create_user(username, password, email):
+				self.response.set_status(401, 'Username already in use.')
+				logging.error('could not create user (taken or db error)')
+				return
+		else:
+			if not UserTable().create_user(username, password, email, classid):
+				self.response.set_status(401, 'Username already in use.')
+				logging.error('could not create user (taken or db error)')
+				return
+
+		self.response.out.write('user added')
+	# end post method
+# End ConfirmUser Class

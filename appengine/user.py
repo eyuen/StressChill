@@ -94,28 +94,24 @@ class UserDataByDatePage(webapp.RequestHandler):
 				if surveys is not None:
 					memcache.set(cache_name, saved)
 
-			# if it could not be fetched, error
-			if not saved:
-				logging.debug('problem fetching pages for cache')
-				self.error(401)
-				return
+			# if data, setup display 
+			if saved:
+				# get page
+				extracted = helper.get_page_from_cache(saved, page, PAGE_SIZE)
 
-			# get page
-			extracted = helper.get_page_from_cache(saved, page, PAGE_SIZE)
+				logging.debug(len(extracted))
 
-			logging.debug(len(extracted))
+				# if got page
+				if extracted is not None:
+					if len(extracted) == PAGE_SIZE + 1:
+						template_values['next'] = str(extracted[-1]['realtime'])
+						template_values['nextpage'] = page + 1
+						extracted = extracted[:PAGE_SIZE-1]
 
-			# if got page
-			if extracted is not None:
-				if len(extracted) == PAGE_SIZE + 1:
-					template_values['next'] = str(extracted[-1]['realtime'])
-					template_values['nextpage'] = page + 1
-					extracted = extracted[:PAGE_SIZE-1]
-
-				# if not on first page, setup back  
-				if page > 1:
-					template_values['back'] = str(extracted[0]['realtime'])
-					template_values['backpage'] = page - 1
+					# if not on first page, setup back  
+					if page > 1:
+						template_values['back'] = str(extracted[0]['realtime'])
+						template_values['backpage'] = page - 1
 
 
 		else: # pages beyond 5th not cached

@@ -29,9 +29,11 @@ import cStringIO
 import csv
 
 from datastore import *
-import helper
-import phone
-import displaydata
+
+
+import helper # contains functions to format data and render pages
+import phone # contains phone auth & upload related functions
+import displaydata # contains data display related functions
 
 # number of observations shown per page
 PAGE_SIZE = 20
@@ -71,60 +73,60 @@ class CreateUser(webapp.RequestHandler):
 	def post(self):
 		self.handle()
 	def handle(self):
-		self.response.out.write('''
-<html>
-<body>
-<form action="/confirm_user" METHOD="POST">
-	username: <input name="username" type="text"><br />
-	password: <input name="password" type="password"><br />
-	confirm password: <input name="confirmpassword" type="password"><br />
-	email: <input name="email" type="text"><br />
-	classid: <input name="classid" type="text"><br />
-	<input type="submit">
-</form>
-</body>
-</html>
-		''')
+		path = os.path.join (os.path.dirname(__file__), 'views/new_user.html')
+		self.response.out.write (helper.render(self, path, {}))
 	# end handle method
 # End CreateUser class
 
-# handler for: /confirm_user
-# adds user
+# handler for: /web_confirm_user
+# adds user (used by webpage registration)
 # required fields:
 #	- username: string
 #	- password: string
 #	- confirmpassword: string - must match password
 # optional:
 #	- email: string
-class ConfirmUser(webapp.RequestHandler):
+class WebConfirmUser(webapp.RequestHandler):
 	def post(self):
+		sess = gmemsess.Session(self)
+
 		username = self.request.get('username')
 		password = self.request.get('password')
 		confirmpassword = self.request.get('confirmpassword')
 		email = self.request.get('email')
 		classid = self.request.get('classid')
 
-		if not username or not password or not confirmpassword:
-			self.response.set_status(401, 'Missing field')
-			logging.error('Missing field')
+		if not username or not password or not confirmpassword or not email:
+			logging.error('Missing required field')
+			sess['error'] = 'Missing required field.'
+			sess.save()
+			self.redirect('/create_user')
 			return
 		if password != confirmpassword:
-			self.response.set_status(401, 'Password mismatch')
-			logging.error('Password mismatch')
+			logging.error('Passwords do not match')
+			sess['error'] = 'Passwords do not match.'
+			sess.save()
+			self.redirect('/create_user')
 			return
 
 		if not classid:
 			if not UserTable().create_user(username, password, email):
-				self.response.set_status(401, 'could not create user')
-				logging.error('could not create user')
+				logging.error('could not create user (username taken or db error)')
+				sess['error'] = 'Username,' + username + ', is already in use. Please select another'
+				sess.save()
+				self.redirect('/create_user')
 				return
 		else:
 			if not UserTable().create_user(username, password, email, classid):
-				self.response.set_status(401, 'could not create user')
-				logging.error('could not create user')
+				logging.error('could not create user (username taken or db error)')
+				sess['error'] = 'Username,' + username + ', is already in use. Please select another'
+				sess.save()
+				self.redirect('/create_user')
 				return
 
-		self.response.out.write('user added')
+		sess['success'] = 'User Created'
+		sess.save()
+		self.redirect('/')
 	# end post method
 # End ConfirmUser Class
 
@@ -149,7 +151,8 @@ application = webapp.WSGIApplication(
 									  ('/protected_upload2', phone.ProtectedResourceHandler2),
 									  ('/summary', displaydata.SummaryHandler),
 									  ('/create_user', CreateUser),
-									  ('/confirm_user', ConfirmUser),
+									  ('/confirm_user', phone.ConfirmUser),
+									  ('/web_confirm_user', WebConfirmUser)
 									  ],
 									 debug=True)
 

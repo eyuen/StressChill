@@ -1,0 +1,52 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Sign Up{% endblock %}
+
+{% block content %}
+<div class="span-8">
+	<form action="/web_confirm_user" method="post">
+		<div class="span-4">
+			<label for="username">Username*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="username">
+		</div>
+
+		<div class="span-4">
+			<label for="password">Password*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="password" name="password">
+		</div>
+
+		<div class="span-4">
+			<label for="confirmpassword">Confirm Password*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="password" name="confirmpassword">
+		</div>
+
+		<div class="span-4">
+			<label for="email">Email*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="email">
+		</div>
+
+		<div class="span-4">
+			<label for="classid">Class ID:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="test" name="classid">
+		</div>
+
+		<div class="span-8 last">
+			<input type="submit" value="Login">
+			(* requried field)
+		</div>
+	</form>
+</div>
+<div class="span-16 last">
+	&nbsp;
+</div>
+{% endblock%}
