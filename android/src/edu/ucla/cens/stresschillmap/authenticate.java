@@ -28,6 +28,9 @@ import android.content.SharedPreferences;
 import android.content.Context;
 
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Button;
@@ -169,6 +172,35 @@ public class authenticate extends Activity implements Runnable {
             }
         });
 	}
+
+
+  @Override
+  public boolean onCreateOptionsMenu (Menu m) {
+    super.onCreateOptionsMenu (m);
+
+    m.add (Menu.NONE, 0, Menu.NONE, "Instructions").setIcon (android.R.drawable.ic_menu_help);
+    m.add (Menu.NONE, 1, Menu.NONE, "About").setIcon (android.R.drawable.ic_menu_info_details);
+    return true;
+  }
+  
+  @Override
+  public boolean onOptionsItemSelected (MenuItem index) {
+    Context ctx = authenticate.this;
+    Intent i;
+    switch (index.getItemId()) {
+      case 0:
+        i = new Intent (ctx, instructions.class);
+        break;
+      case 1:
+        i = new Intent (ctx, about.class);
+        break;
+      default:
+        return false;
+    }
+    ctx.startActivity (i);
+    return true;
+  }
+
 
     /* user : plain text,
      * pass : plaintext password */

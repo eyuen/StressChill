@@ -28,6 +28,9 @@ import android.content.SharedPreferences;
 import android.content.Context;
 
 import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import android.widget.TextView;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -117,6 +120,33 @@ public class register extends Activity implements Runnable {
         thread.start();
       }
     });
+  }
+
+  @Override
+  public boolean onCreateOptionsMenu (Menu m) {
+    super.onCreateOptionsMenu (m);
+
+    m.add (Menu.NONE, 0, Menu.NONE, "Instructions").setIcon (android.R.drawable.ic_menu_help);
+    m.add (Menu.NONE, 0, Menu.NONE, "About").setIcon (android.R.drawable.ic_menu_info_details);
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected (MenuItem index) {
+    Context ctx = register.this;
+    Intent i;
+    switch (index.getItemId()) {
+      case 0:
+        i = new Intent (ctx, instructions.class);
+        break;
+      case 1:
+        i = new Intent (ctx, about.class);
+        break;
+      default:
+        return false;
+    }
+    ctx.startActivity (i);
+    return true;
   }
 
   private boolean register_user (String email, String user, String pass1, String pass2, String classid) {
