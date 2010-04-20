@@ -78,6 +78,7 @@ public class authenticate extends Activity implements Runnable {
 
     private SharedPreferences preferences;
     private ProgressDialog mProgressDialog;
+    private String error_message = "Authentication failure. Please go back and try again.";
 
     public static String REQUEST_TOKEN_URL = "https://stresschill.appspot.com/request_token";
     public static String ACCESS_TOKEN_URL = "https://stresschill.appspot.com/access_token";
@@ -202,9 +203,15 @@ public class authenticate extends Activity implements Runnable {
     }
 
     private token_store get_access_token_hack(String user, String pass) {
-        if (null == user || user.equals("")
-            || null == pass || pass.equals(""))
-        {
+        if (null == user || user.equals("")) {
+            error_message = "Empty or missing username";
+            Log.d(TAG, "Authentication failure: " + error_message);
+            return null;
+        }
+
+        if (null == pass || pass.equals("")) {
+            error_message = "Empty or missing password";
+            Log.d(TAG, "Authentication failure: " + error_message);
             return null;
         }
 
@@ -225,17 +232,28 @@ public class authenticate extends Activity implements Runnable {
         try {
             OAuthMessage message = client.invoke(accessor, null, HACK_AUTHORIZATION_URL, params);
             if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                error_message = generateString(((OAuthResponseMessage)message).getHttpResponse().getBody());
+                Log.d(TAG, "Authentication failure: " + error_message);
                 return null;
             }
             access_token = message.getParameter("oauth_token");
             access_token_secret = message.getParameter("oauth_token_secret");
         } catch (IOException e) {
+            error_message = "Got IOException. Check your connection and try again";
+            Log.d(TAG, "Authentication failure: " + error_message);
             e.printStackTrace();
             return null;
         } catch (OAuthException e) {
+            /* FIXME: instead of returning a message with status code 401,
+             * client.invoke() throws this exception... */
+            error_message = "Got OAuthException. Check your connection and try again";
+            Log.d(TAG, "Authentication failure: " + error_message);
+            error_message = "Invalid username or password. Please go back and try again.";
             e.printStackTrace();
             return null;
         } catch (java.net.URISyntaxException e) {
+            error_message = "Got URISyntaxException. Check your connection and try again";
+            Log.d(TAG, "Authentication failure: " + error_message);
             e.printStackTrace();
             return null;
         }
@@ -243,11 +261,14 @@ public class authenticate extends Activity implements Runnable {
         ts.access_token = access_token;
         ts.token_secret = access_token_secret;
         ts.request_token = "";
+
+        error_message = "Successfully authenticated!";
         return ts;
     }
 
     private token_store get_access_token_properly(String user, String pass) {
         if (null == user || null == pass) {
+            error_message = "Invalid or missing username/password";
             return null;
         }
 
@@ -266,6 +287,7 @@ public class authenticate extends Activity implements Runnable {
                 params.add(new OAuth.Parameter("oauth_callback", CALLBACK_URL));
                 OAuthMessage message = client.getRequestTokenResponse(accessor, null, params);
                 if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    error_message = generateString(((OAuthResponseMessage)message).getHttpResponse().getBody());
                     return null;
                 }
                 // "6.1.2.  Service Provider Issues an Unauthorized Request Token"
@@ -275,14 +297,17 @@ public class authenticate extends Activity implements Runnable {
                     Log.d(TAG, "SERVICE PROVIDER FAILED TO CONFIRM THE CALLBACK");
                 }
             } catch (IOException e) {
+                error_message = "IOException";
                 Log.d(TAG, "IOException");
                 e.printStackTrace();
                 return null;
             } catch (OAuthException e) {
+                error_message = "OAuthException";
                 Log.d(TAG, "OAuthException");
                 e.printStackTrace();
                 return null;
             } catch (java.net.URISyntaxException e) {
+                error_message = "URISyntaxException";
                 Log.d(TAG, "java.net.URISyntaxException");
                 e.printStackTrace();
                 return null;
@@ -309,6 +334,7 @@ public class authenticate extends Activity implements Runnable {
             try {
                 OAuthMessage message = client.invoke(accessor, "GET", accessor.consumer.serviceProvider.userAuthorizationURL, params);
                 if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    error_message = generateString(((OAuthResponseMessage)message).getHttpResponse().getBody());
                     return null;
                 }
                 String response = message.readBodyAsString();
@@ -321,12 +347,15 @@ public class authenticate extends Activity implements Runnable {
                 //    Log.d(TAG, "REQUEST TOKEN RECEIVED FROM USER/PROVIDER DID NOT MATCH");
                 //}
             } catch (IOException e) {
+                error_message = "IOException";
                 Log.d(TAG, "IOException");
                 e.printStackTrace();
             } catch (OAuthException e) {
+                error_message = "OAuthException";
                 Log.d(TAG, "OAuthException");
                 e.printStackTrace();
             } catch (java.net.URISyntaxException e) {
+                error_message = "URISyntaxException";
                 Log.d(TAG, "java.net.URISyntaxException");
                 e.printStackTrace();
             }
@@ -347,18 +376,22 @@ public class authenticate extends Activity implements Runnable {
             try {
                 OAuthMessage message = client.getAccessToken(accessor, null, params);
                 if (((OAuthResponseMessage)message).getHttpResponse().getStatusCode() != 200) {
+                    error_message = generateString(((OAuthResponseMessage)message).getHttpResponse().getBody());
                     return null;
                 }
                 // "6.3.2.  Service Provider Grants an Access Token"
                 access_token = message.getParameter("oauth_token");
                 access_token_secret = message.getParameter("oauth_token_secret");
             } catch (IOException e) {
+                error_message = "IOException";
                 Log.d(TAG, "IOException");
                 e.printStackTrace();
-                    } catch (OAuthException e) {
+            } catch (OAuthException e) {
+                error_message = "OAuthException";
                 Log.d(TAG, "OAuthException");
                 e.printStackTrace();
             } catch (java.net.URISyntaxException e) {
+                error_message = "URISyntaxException";
                 Log.d(TAG, "java.net.URISyntaxException");
                 e.printStackTrace();
             }
@@ -369,12 +402,14 @@ public class authenticate extends Activity implements Runnable {
         }
 
         if (access_token.equals("")) {
+            error_message = "Unable to get access tokens";
             return null;
         }
 
         ts.access_token = access_token;
         ts.token_secret = access_token_secret;
         ts.request_token = request_token;
+        error_message = "Successfully authenticated!";
 
         return ts;
     }
@@ -394,6 +429,7 @@ public class authenticate extends Activity implements Runnable {
             return hexString.toString();
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
+            error_message = "sha1sum failure";
             return null;
         }
     }
@@ -423,14 +459,15 @@ public class authenticate extends Activity implements Runnable {
     public void run() {
         Looper.prepare();
 
-        mProgressDialog.dismiss();
         if (true == auth()) {
             ctx.startActivity(new Intent(ctx, home.class));
             Log.d(TAG, "started survey intent");
             startService(new Intent(ctx, survey_upload.class));
             Log.d(TAG, "started survey upload intent");
             authenticate.this.finish();
+            mProgressDialog.dismiss();
         } else {
+            mProgressDialog.dismiss();
             Log.d(TAG, "handler(): login failed... calling auth_failed()");
             auth_failed();
         }
@@ -453,7 +490,7 @@ public class authenticate extends Activity implements Runnable {
         Log.d(TAG, "auth was a failure");
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Could not login")
-            .setMessage("You must enter valid credentials before you can proceed.")
+            .setMessage(error_message)
             .setCancelable(false)
             .setPositiveButton("Go back", new DialogInterface.OnClickListener() {
                 public void onClick(final DialogInterface dialog, final int id) {

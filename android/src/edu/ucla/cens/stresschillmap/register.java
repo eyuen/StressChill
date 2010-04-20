@@ -82,6 +82,7 @@ public class register extends Activity implements Runnable {
 
   private SharedPreferences preferences;
   private ProgressDialog mProgressDialog;
+  private String error_message = "Registration failure. Please go back and try again.";
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -122,7 +123,8 @@ public class register extends Activity implements Runnable {
     String stored_pass_hash = preferences.getString(user + "_un", "");
     if (stored_pass_hash.equals("")) {
       if (!pass1.equals(pass2)) {
-        Toast.makeText(ctx, "the passwords you entered do not match", Toast.LENGTH_LONG).show();
+        error_message = "The passwords you entered do not match";
+        Log.d(TAG, "Registration failure: " + error_message);
         return false;
       }
 
@@ -139,6 +141,8 @@ public class register extends Activity implements Runnable {
         entity.addPart("classid", new StringBody(classid));
         request.setEntity(entity);
       } catch (UnsupportedEncodingException e) {
+        error_message = "Error formatting registration message";
+        Log.d(TAG, "Registration failure: " + error_message);
         e.printStackTrace();
         return false;
       }
@@ -147,18 +151,22 @@ public class register extends Activity implements Runnable {
         HttpResponse response = httpClient.execute(request);
         Log.d(TAG, "Doing AppSpot HTTPS Request");
         int status = response.getStatusLine().getStatusCode();
+        error_message = generateString(response.getEntity().getContent());
         if (HttpStatus.SC_OK != status) {
           Log.d(TAG, "got status: " + status);
-          Log.d(TAG, generateString(response.getEntity().getContent()));
+          Log.d(TAG, "Register failure: " + error_message);
           return false;
         }
       } catch (IOException e) {
         e.printStackTrace();
+        error_message = "Error connecting to registration server";
+        Log.d(TAG, "Registration failure: " + error_message);
         return false;
       }
       return true;
     } else {
-      Toast.makeText(ctx, "an account with this username already exists", Toast.LENGTH_LONG);
+      error_message = "An account with this username already exists";
+      Log.d(TAG, "Registration failure: " + error_message);
     }
     return false;
   }
@@ -188,8 +196,8 @@ public class register extends Activity implements Runnable {
   public void run() {
     Looper.prepare();
 
-    mProgressDialog.dismiss();
     if (true == auth()) {
+      mProgressDialog.dismiss();
       final AlertDialog.Builder builder = new AlertDialog.Builder(this);
       builder.setTitle("Successfully registered!")
              .setMessage("You can now return to the login page and login.")
@@ -203,6 +211,7 @@ public class register extends Activity implements Runnable {
       final AlertDialog alert = builder.create();
       alert.show();
     } else {
+      mProgressDialog.dismiss();
       Log.d(TAG, "handler(): register failed");
       Log.d(TAG, "handler(): auth failed... calling auth_failed()");
       auth_failed();
@@ -224,11 +233,11 @@ public class register extends Activity implements Runnable {
     Log.d(TAG, "auth was a failure");
     final AlertDialog.Builder builder = new AlertDialog.Builder(this);
     builder.setTitle("Could not register")
-           .setMessage("You must enter valid credentials before you can proceed.")
+           .setMessage(error_message)
            .setCancelable(false)
            .setPositiveButton("Go back", new DialogInterface.OnClickListener() {
              public void onClick(final DialogInterface dialog, final int id) {
-               ctx.startActivity(new Intent(ctx, authenticate.class));
+               ctx.startActivity(new Intent(ctx, register.class));
              }
            });
     final AlertDialog alert = builder.create();
