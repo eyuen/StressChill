@@ -467,9 +467,12 @@ class ConfirmDelete(webapp.RequestHandler):
 
 		# delete any associated photo
 		if observation.hasphoto:
-			photo = observation.photo_ref
-			logging.debug('<br />delete photo: '+str(photo.key()))
-			db.delete(photo)
+			try:
+				photo = observation.photo_ref
+				logging.debug('delete photo: '+str(photo.key()))
+				db.delete(photo)
+			except:
+				logging.debug('invalid photo reference')
 
 		# decrement category count and subtract from total 
 		catstat = CategoryStat().all().filter('category =', observation.category).get()

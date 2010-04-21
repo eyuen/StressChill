@@ -66,5 +66,28 @@
 
 			</tbody>
 		</table>
+
+		<hr />
+
+		<div class="span-6">
+			{% if back %}
+			<div class="span-4">
+				<a href="/data">&lt;&lt; First</a>
+			</div>
+			<div class="span-2 last">
+				<a href="/data?bookmark={{back}}&page={{backpage}}">&lt; Back</a>
+			</div>
+			{% else %}
+			&nbsp;
+			{% endif %}
+		</div>
+		<div class="span-6">
+			{% if next %}
+			<a href="/data?bookmark={{next}}&page={{nextpage}}">Next &gt;</a>
+			{% else %}
+			&nbsp;
+			{% endif %}
+		</div>
+		<div class="span-12 last">&nbsp;</div>
 	</div>
 {% endblock%}

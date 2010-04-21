@@ -500,6 +500,32 @@ class CategoryStat(db.Model):
 	count =		db.IntegerProperty()
 	total = 	db.FloatProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
+
+	# increments count for given category if exists
+	# if not exist, create new entry and set count to 1
+	def increment_stats(self, user_category, value):
+		cat = self.all().filter('category = ', user_category).get()
+
+		if not cat:
+			self.category = user_category
+			self.count = 1
+			self.total = value
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			cat.count += 1
+			cat.total += value
+			cat.put()
+
+			if cat.is_saved():
+				return cat.key()
+			else:
+				return None
+			
 # End CategoryStat Class
 
 # model to keep running stats of sub-categories
@@ -510,7 +536,37 @@ class SubCategoryStat(db.Model):
 	count =		db.IntegerProperty()
 	total = 	db.FloatProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
-# End CategoryStat Class
+
+	# increments the subcategory
+	def increment_stats(self, user_subcategory, user_category, user_category_key, value):
+		# return None if no category key 
+		if not user_category_key:
+			return None
+
+		subcat = self.all().filter('subcategory =', user_subcategory).filter('category_key = ', user_category_key).get()
+
+		if not subcat:
+			self.category = user_category
+			self.category_key = user_category_key
+			self.subcategory = user_subcategory
+			self.count = 1
+			self.total = value
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			subcat.count += 1
+			subcat.total += value
+			subcat.put()
+
+			if subcat.is_saved():
+				return subcat.key()
+			else:
+				return None
+# End SubCategoryStat Class
 
 # model to keep running stats of categories per day
 class DailyCategoryStat(db.Model):
@@ -519,6 +575,32 @@ class DailyCategoryStat(db.Model):
 	total = 	db.FloatProperty()
 	date = 		db.DateProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
+
+	# increments count for given category & day if exists
+	# if not exist, create new entry and set count to 1
+	def increment_stats(self, user_category, user_date, value):
+		cat = self.all().filter('category = ', user_category).filter('date =', user_date).get()
+
+		if not cat:
+			self.category = user_category
+			self.count = 1
+			self.total = value
+			self.date = user_date
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			cat.count += 1
+			cat.total += value
+			cat.put()
+
+			if cat.is_saved():
+				return cat.key()
+			else:
+				return None
 # End CategoryStat Class
 
 # model to keep running stats of sub-categories per day
@@ -530,6 +612,37 @@ class DailySubCategoryStat(db.Model):
 	total = 	db.FloatProperty()
 	date =		db.DateProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
+
+	# increments the subcategory
+	def increment_stats(self, user_subcategory, user_category, user_category_key, user_date, value):
+		# return None if no category key 
+		if not user_category_key:
+			return None
+
+		subcat = self.all().filter('subcategory =', user_subcategory).filter('category_key = ', user_category_key).filter('date =', user_date).get()
+
+		if not subcat:
+			self.category = user_category
+			self.category_key = user_category_key
+			self.subcategory = user_subcategory
+			self.count = 1
+			self.total = value
+			self.date = user_date
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			subcat.count += 1
+			subcat.total += value
+			subcat.put()
+
+			if subcat.is_saved():
+				return subcat.key()
+			else:
+				return None
 # End CategoryStat Class
 
 #model to hold class info
@@ -537,3 +650,41 @@ class ClassList(db.Model):
 	classid = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add=True)
 # End ClassList Class
+
+# model to keep running stats of user's sub-categories
+class UserStat(db.Model):
+	user_id = db.StringProperty()
+	category = 	db.StringProperty()
+	subcategory = db.StringProperty()
+	count =	db.IntegerProperty()
+	total =	db.FloatProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+
+	# increments the subcategory
+	def increment_stats(self, user_id, user_subcategory, user_category, value):
+		# return None if no category key 
+		userstat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).filter('user_id = ', user_id).get()
+
+		if not userstat:
+			self.user_id = user_id
+			self.category = user_category
+			self.subcategory = user_subcategory
+			self.count = 1
+			self.total = value
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			userstat.count += 1
+			userstat.total += value
+			userstat.put()
+
+			if userstat.is_saved():
+				return userstat.key()
+			else:
+				return None
+# End CategoryStat Class
+

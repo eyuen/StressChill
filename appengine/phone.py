@@ -337,336 +337,283 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 		req_token = self.request.get('oauth_token')
 
 		if req_token != '':
-			try :
-				t = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token).get()
+			t = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token).get()
 
-				if not t:
-					logging.error('if you got here, token lookup failed.')
-					self.error(401)
-					return
-
-				s = SurveyData()
-
-				s.username = t.user
-				s.longitude = self.request.get('longitude')
-				s.latitude = self.request.get('latitude')
-				s.stressval = float(self.request.get('stressval'))
-				s.comments = str(self.request.get('comments')).replace('\n', ' ')
-				s.category = self.request.get('category')
-				s.subcategory = self.request.get('subcategory')
-				s.version = self.request.get('version')
-
-				file_content = self.request.get('file')
-
-				if file_content:
-					try:
-						# upload image as blob to SurveyPhoto
-						new_photo = SurveyPhoto()
-						new_photo.photo = db.Blob(file_content)
-						# create a thumbnail of image to store in SurveyPhoto
-						tmb = images.Image(new_photo.photo)
-						tmb.resize(width=180, height=130)
-						# execute resize
-						new_photo.thumb = tmb.execute_transforms(output_encoding=images.JPEG)
-						# insert
-						new_photo.put()
-						# set reference to photo for SurveyData
-						s.photo_ref = new_photo.key()
-						s.hasphoto = True
-					except TypeError:
-						s.photo_ref = None
-						s.hasphoto = False
-				else:
-					s.photo_ref = None
-					s.hasphoto = False
-
-				s.put()
-
-				# update running stats (this should probably be moved to the task queue)
-				# TODO: cache key & stats and create transaction
-				subcat = SubCategoryStat.all().filter('subcategory =', s.subcategory).filter('category = ', s.category).get()
-				if not subcat:
-					cat = CategoryStat.all().filter('category = ', s.category).get()
-
-					if not cat:
-						cat = CategoryStat()
-						cat.category = s.category
-						cat.count = 1
-						cat.total = s.stressval
-						cat.put()
-					else:
-						cat.count += 1
-						cat.total += s.stressval
-						cat.put()
-
-					subcat = SubCategoryStat()
-					subcat.category = s.category
-					subcat.category_key = cat.key()
-					subcat.subcategory = s.subcategory
-					subcat.count = 1
-					subcat.total = s.stressval
-					subcat.put()
-				else:
-					subcat.count += 1
-					subcat.total += s.stressval
-					subcat.put()
-					
-					cat = subcat.category_key
-
-					if not cat:
-						cat = CategoryStat()
-						cat.category = s.category
-						cat.count = 1
-						cat.total = s.stressval
-						cat.put()
-						subcat.category_key = cat.key()
-					else:
-						cat.count += 1
-						cat.total += s.stressval
-						cat.put()
-
-				# update running daily stats (this should probably be moved to the task queue)
-				# TODO: cache key & stats and create transaction
-				pdt = s.timestamp - datetime.timedelta(hours=7)
-				time_key = str(pdt).split(' ')[0]
-				dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
-				date = datetime.date(dt.year, dt.month, dt.day)
-
-				subcat = DailySubCategoryStat.all().filter('subcategory =', s.subcategory).filter('category =', s.category).filter('date =', date).get()
-				if not subcat:
-					cat = DailyCategoryStat.all().filter('category = ', s.category).filter('date =', date).get()
-
-					if not cat:
-						cat = DailyCategoryStat()
-						cat.category = s.category
-						cat.count = 1
-						cat.total = s.stressval
-						cat.date = date
-						cat.put()
-					else:
-						cat.count += 1
-						cat.total += s.stressval
-						cat.put()
-
-					subcat = DailySubCategoryStat()
-					subcat.category = s.category
-					subcat.category_key = cat.key()
-					subcat.subcategory = s.subcategory
-					subcat.count = 1
-					subcat.total = s.stressval
-					subcat.date = date
-					subcat.put()
-				else:
-					subcat.count += 1
-					subcat.total += s.stressval
-					subcat.put()
-					
-					cat = subcat.category_key
-
-					if not cat:
-						cat = DailyCategoryStat()
-						cat.category = s.category
-						cat.count = 1
-						cat.total = s.stressval
-						cat.date = date
-						cat.put()
-						subcat.category_key = cat.key()
-					else:
-						cat.count += 1
-						cat.total += s.stressval
-						cat.put()
-					
-
-				#write to csv blob and update memcache
-
-				# init csv writer
-				output = cStringIO.StringIO()
-				writer = csv.writer(output, delimiter=',')
-
-				base_url = ''
-				if os.environ.get('HTTP_HOST'):
-					base_url = os.environ['HTTP_HOST']
-				else:
-					base_url = os.environ['SERVER_NAME']
-
-				# append to csv blob
-
-				# this will have to change if multiple pages are ever needed (limits?)
-				insert_csv = SurveyCSV.all().filter('page =', 1).get()
-
-				# write header row if csv blob doesnt exist yet
-				if not insert_csv:
-					header_row = [	'id',
-						'userid',
-						'timestamp',
-						'latitude',
-						'longitude',
-						'stress_value',
-						'category',
-						'subcategory',
-						'comments',
-						'image_url'
-						]
-					writer.writerow(header_row)
-
-				# form image url
-				if s.hasphoto:
-					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
-
-				else:
-					photo_url = 'no_image'
-
-				hashedval = hashlib.sha1(str(s.key()))
-				sha1val = hashedval.hexdigest()
-
-				userhashedval = hashlib.sha1(s.username)
-				usersha1val = hashedval.hexdigest()
-
-				# write csv data row
-				new_row = [
-						sha1val,
-						usersha1val,
-						s.timestamp,
-						s.latitude,
-						s.longitude,
-						s.stressval,
-						s.category,
-						s.subcategory,
-						s.comments,
-						photo_url
-						]
-				writer.writerow(new_row)
-
-				# create new blob if one does not exist
-				if not insert_csv:
-					insert_csv = SurveyCSV()
-					insert_csv.csv = db.Blob(output.getvalue())
-					insert_csv.last_entry_date = s.timestamp
-					insert_csv.count = 1
-					insert_csv.page = 1
-				else:	#if blob exists, append and update
-					insert_csv.csv += output.getvalue()
-					insert_csv.last_entry_date = s.timestamp
-					insert_csv.count += 1
-
-				insert_csv.put()
-
-				# add to cache (writes should update this cached value)
-				memcache.set('csv', output.getvalue())
-
-				### append to user csv blob
-
-				# this will have to change if multiple pages are ever needed (limits?)
-				insert_csv = UserSurveyCSV.all().filter('userid =', s.username).filter('page =', 1).get()
-
-				# write header row if csv blob doesnt exist yet
-				if not insert_csv:
-					header_row = [	'id',
-						'userid', 
-						'timestamp',
-						'latitude',
-						'longitude',
-						'stress_value',
-						'category',
-						'subcategory',
-						'comments',
-						'image_url'
-						]
-					writer.writerow(header_row)
-
-				# form image url
-				if s.hasphoto:
-					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
-
-				else:
-					photo_url = 'no_image'
-
-				hashedval = hashlib.sha1(str(s.key()))
-				sha1val = hashedval.hexdigest()
-
-				userhashedval = hashlib.sha1(s.username)
-				usersha1val = hashedval.hexdigest()
-
-				# write csv data row
-				new_row = [
-						sha1val,
-						usersha1val,
-						s.timestamp,
-						s.latitude,
-						s.longitude,
-						s.stressval,
-						s.category,
-						s.subcategory,
-						s.comments,
-						photo_url
-						]
-				writer.writerow(new_row)
-
-				# create new blob if one does not exist
-				if not insert_csv:
-					insert_csv = UserSurveyCSV()
-					insert_csv.csv = db.Blob(output.getvalue())
-					insert_csv.last_entry_date = s.timestamp
-					insert_csv.count = 1
-					insert_csv.page = 1
-				else:	#if blob exists, append and update
-					insert_csv.csv += output.getvalue()
-					insert_csv.last_entry_date = s.timestamp
-					insert_csv.count += 1
-
-				insert_csv.put()
-
-
-
-				try:
-					# update data page cache with new value, pop oldest value
-					saved = memcache.get('saved')
-					if saved is not None:
-						s_list = []
-						s_list.append(s)
-						extract = helper.extract_surveys(s_list)
-						d = deque(saved)
-						d.pop()
-						d.appendleft(extract[0])
-						memcache.set('saved', list(d))
-				except:
-					logging.debug('cache write failed')
-
-
-				# we should convert the dict to a list so this is easier to do
-				try:
-					# update point summary cache with new value, pop oldest value
-					pointsummary = memcache.get('pointsummary')
-					if pointsummary is not None:
-						e = {}
-						e['latitude'] = s.latitude
-						e['longitude'] = s.longitude
-						e['stressval'] = s.stressval
-						e['comments'] = s.comments
-						e['key'] = str(s.key())
-						e['version'] = s.version
-						if s.hasphoto:
-							e['photo_key'] = str(s.photo_ref.key())
-						else:
-							e['photo_key'] = None
-
-						d = {}
-						d[0] = e
-						for i in range(1,(50)):
-							d[i] = pointsummary[i-1]
-					
-						memcache.set('pointsummary', d)
-				except:
-					logging.debug('point summary cache write failed')
-
-
-			except (db.Error):
-				logging.error('error inserting to database')
+			if not t:
+				logging.error('if you got here, token lookup failed.')
 				self.error(401)
 				return
+
+			s = SurveyData()
+
+			s.username = t.user
+			s.longitude = self.request.get('longitude')
+			s.latitude = self.request.get('latitude')
+			if self.request.get('stressval'):
+				s.stressval = float(self.request.get('stressval'))
+			else:
+				s.stressval = 0
+			s.comments = str(self.request.get('comments')).replace('\n', ' ')
+			s.category = self.request.get('category')
+			s.subcategory = self.request.get('subcategory')
+			s.version = self.request.get('version')
+
+			file_content = self.request.get('file')
+
+			if file_content:
+				try:
+					# upload image as blob to SurveyPhoto
+					new_photo = SurveyPhoto()
+					new_photo.photo = db.Blob(file_content)
+					# create a thumbnail of image to store in SurveyPhoto
+					tmb = images.Image(new_photo.photo)
+					tmb.resize(width=180, height=130)
+					# execute resize
+					new_photo.thumb = tmb.execute_transforms(output_encoding=images.JPEG)
+					# insert
+					new_photo.put()
+					# set reference to photo for SurveyData
+					s.photo_ref = new_photo.key()
+					s.hasphoto = True
+				except TypeError:
+					s.photo_ref = None
+					s.hasphoto = False
+			else:
+				s.photo_ref = None
+				s.hasphoto = False
+
+			s.put()
+
+			# update running stats (this should probably be moved to the task queue)
+			# TODO: cache key & stats and create transaction
+			logging.debug('increment stats for category, ' + s.category + ', & subcategory, ' +s.subcategory)
+			#catkey = CategoryStat().increment_stats(s.category, s.stressval)
+			#subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, catkey, s.stressval)
+			param = {}
+
+			param['user_category'] = s.category
+			param['user_subcategory'] = s.subcategory
+			param['value'] = s.stressval
+
+			db.run_in_transaction(helper.update_stats, s.stressval, s.category, s.subcategory)
+
+			# update running daily stats (this should probably be moved to the task queue)
+			# TODO: cache key & stats and create transaction
+			pdt = s.timestamp - datetime.timedelta(hours=7)
+			time_key = str(pdt).split(' ')[0]
+			dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
+			date = datetime.date(dt.year, dt.month, dt.day)
+
+			dailycatkey = DailyCategoryStat().increment_stats(s.category, date, s.stressval)
+			dailysubcatkey = DailySubCategoryStat().increment_stats(s.subcategory, s.category, dailycatkey, date, s.stressval)
+
+			# update user running stats (this should probably be moved to the task queue)
+			# TODO: cache key & stats and create transaction
+			usercatkey = UserStat().increment_stats(s.username, s.subcategory, s.category, s.stressval)
+				
+			#write to csv blob and update memcache
+
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.writer(output, delimiter=',')
+
+			base_url = ''
+			if os.environ.get('HTTP_HOST'):
+				base_url = os.environ['HTTP_HOST']
+			else:
+				base_url = os.environ['SERVER_NAME']
+
+			# append to csv blob
+
+			# this will have to change if multiple pages are ever needed (limits?)
+			insert_csv = SurveyCSV.all().filter('page =', 1).get()
+
+			# write header row if csv blob doesnt exist yet
+			if not insert_csv:
+				header_row = [	'id',
+					'userid',
+					'timestamp',
+					'latitude',
+					'longitude',
+					'stress_value',
+					'category',
+					'subcategory',
+					'comments',
+					'image_url'
+					]
+				writer.writerow(header_row)
+
+			# form image url
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			userhashedval = hashlib.sha1(s.username)
+			usersha1val = hashedval.hexdigest()
+
+			# write csv data row
+			new_row = [
+					sha1val,
+					usersha1val,
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+
+			# create new blob if one does not exist
+			if not insert_csv:
+				insert_csv = SurveyCSV()
+				insert_csv.csv = db.Blob(output.getvalue())
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count = 1
+				insert_csv.page = 1
+			else:	#if blob exists, append and update
+				insert_csv.csv += output.getvalue()
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count += 1
+
+			insert_csv.put()
+
+			# add to cache (writes should update this cached value)
+			memcache.set('csv', output.getvalue())
+
+			### append to user csv blob
+
+			# this will have to change if multiple pages are ever needed (limits?)
+			insert_csv = UserSurveyCSV.all().filter('userid =', s.username).filter('page =', 1).get()
+
+			# write header row if csv blob doesnt exist yet
+			if not insert_csv:
+				header_row = [	'id',
+					'userid', 
+					'timestamp',
+					'latitude',
+					'longitude',
+					'stress_value',
+					'category',
+					'subcategory',
+					'comments',
+					'image_url'
+					]
+				writer.writerow(header_row)
+
+			# form image url
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			userhashedval = hashlib.sha1(s.username)
+			usersha1val = hashedval.hexdigest()
+
+			# write csv data row
+			new_row = [
+					sha1val,
+					usersha1val,
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+
+			# create new blob if one does not exist
+			if not insert_csv:
+				insert_csv = UserSurveyCSV()
+				insert_csv.csv = db.Blob(output.getvalue())
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count = 1
+				insert_csv.page = 1
+			else:	#if blob exists, append and update
+				insert_csv.csv += output.getvalue()
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count += 1
+
+			insert_csv.put()
+
+
+
+			try:
+				# update data page cache with new value, pop oldest value
+				saved = memcache.get('saved')
+				if saved is not None:
+					s_list = []
+					s_list.append(s)
+					extract = helper.extract_surveys(s_list)
+					d = deque(saved)
+					d.pop()
+					d.appendleft(extract[0])
+					memcache.set('saved', list(d))
+			except:
+				logging.debug('cache write failed')
+
+
+			try:
+				# update user data page cache with new value, pop oldest value
+				cache_name = 'data_' + s.username
+				saved = memcache.get(cache_name)
+				logging.debug('updating user cache: ' + cache_name)
+				if saved is not None:
+					s_list = []
+					s_list.append(s)
+					extract = helper.extract_surveys(s_list)
+					d = deque(saved)
+					d.pop()
+					d.appendleft(extract[0])
+					memcache.set(cache_name, list(d))
+			except:
+				logging.debug('cache write failed')
+
+
+			# we should convert the dict to a list so this is easier to do
+			try:
+				# update point summary cache with new value, pop oldest value
+				pointsummary = memcache.get('pointsummary')
+				if pointsummary is not None:
+					e = {}
+					e['latitude'] = s.latitude
+					e['longitude'] = s.longitude
+					e['stressval'] = s.stressval
+					e['comments'] = s.comments
+					e['key'] = str(s.key())
+					e['version'] = s.version
+					if s.hasphoto:
+						e['photo_key'] = str(s.photo_ref.key())
+					else:
+						e['photo_key'] = None
+
+					d = {}
+					d[0] = e
+					for i in range(1,(50)):
+						d[i] = pointsummary[i-1]
+				
+					memcache.set('pointsummary', d)
+			except:
+				logging.debug('point summary cache write failed')
+
 		else:
 			logging.error('request token empty')
-			self.error(401)
+			self.response.set_status(401, 'request token empty.')
+			self.response.out.write('request token empty.')
 	# end handle method
 # End ProtectedResourceHandler2 Class
 
@@ -689,21 +636,25 @@ class ConfirmUser(webapp.RequestHandler):
 
 		if not username or not password or not confirmpassword or not email:
 			self.response.set_status(401, 'Missing field')
+			self.response.out.write('Missing field')
 			logging.error('Missing field')
 			return
 		if password != confirmpassword:
 			self.response.set_status(401, 'Password mismatch')
+			self.response.out.write('Password mismatch')
 			logging.error('Password mismatch')
 			return
 
 		if not classid:
 			if not UserTable().create_user(username, password, email):
 				self.response.set_status(401, 'Username already in use.')
+				self.response.out.write('Username already in use.')
 				logging.error('could not create user (taken or db error)')
 				return
 		else:
 			if not UserTable().create_user(username, password, email, classid):
 				self.response.set_status(401, 'Username already in use.')
+				self.response.out.write('Username already in use.')
 				logging.error('could not create user (taken or db error)')
 				return
 

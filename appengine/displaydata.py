@@ -264,7 +264,7 @@ class DataByDatePage(webapp.RequestHandler):
 					memcache.set('saved', saved)
 
 			# if data, setup display
-			if not saved:
+			if saved:
 				# get page
 				extracted = helper.get_page_from_cache(saved, page, PAGE_SIZE)
 
@@ -492,12 +492,17 @@ class SummaryHandler(webapp.RequestHandler):
 
 		data = []
 		for row in result:
-			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(row.total/float(row.count)) }
+			if row.count <= 0:
+				cat_avg = 0
+			else:
+				cat_avg = row.total/row.count
+
+			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(cat_avg) }
 
 			subcat = SubCategoryStat().all().filter('category = ', row.category)
 			allsub = []
 			for subrow in subcat:
-				if subrow.count == 0:
+				if subrow.count <= 0:
 					avg = 0
 				else:
 					avg = subrow.total/subrow.count
