@@ -736,6 +736,53 @@ class DownloadUserData(webapp.RequestHandler):
 	# end get method
 # End DownloadAllData
 
+# handler for: /user/summary
+# displays count of each category
+class UserSummaryHandler(webapp.RequestHandler):
+	def get(self):
+		self.handle()
+	# end get method
+
+	def post(self):
+		self.handle()
+	# end post method
+
+	def handle(self):
+		result = CategoryStat().all()
+
+		data = []
+		for row in result:
+			if row.count <= 0:
+				cat_avg = 0
+			else:
+				cat_avg = row.total/row.count
+
+			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(cat_avg) }
+
+			subcat = SubCategoryStat().all().filter('category = ', row.category)
+			allsub = []
+			for subrow in subcat:
+				if subrow.count <= 0:
+					avg = 0
+				else:
+					avg = subrow.total/subrow.count
+				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(avg) }
+				allsub.append(subdatarow)
+			datarow['subcategories'] = allsub
+
+			data.append(datarow)
+
+		num = len(data)
+
+		template_values = { 'summary1' : data[:int(num/2)], 'summary2' : data[int(num/2):] }
+		template_values['datasummary'] = True
+		template_values['divstyle'] = ['span-11 colborder','span-12 last']
+		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
+		self.response.out.write (helper.render(self, path, template_values))
+	# end handle method
+# End SummaryHandler Class
+
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/user/data', UserDataByDatePage),

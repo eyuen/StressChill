@@ -179,23 +179,3 @@ def render(parent_request_handler, path, values):
 	return template.render(path, values)	
 
 # end render function
-
-# function to update category/subcategory stats
-def update_stats(value, category, subcategory):
-	logging.getLogger().setLevel(logging.DEBUG)
-	logging.debug(str(category) + ' -- ' + str(subcategory) + ' -- ' + str(value))
-	
-	
-	catkey = CategoryStat().increment_stats(s.category, s.stressval)
-	if not catkey:
-		raise db.Rollback()
-		return None
-
-	subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, catkey, s.stressval)
-	if not subcatkey:
-		raise db.Rollback()
-		return None
-
-	return True
-	
-# end update_stats

@@ -90,7 +90,6 @@ class DataDebugPage(webapp.RequestHandler):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
-
 		'''
 		csv_store = SurveyCSV.all().filter('page = ', 1).get()
 		if csv_store is not None:

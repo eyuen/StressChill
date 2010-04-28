@@ -385,20 +385,10 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			s.put()
 
 			# update running stats (this should probably be moved to the task queue)
-			# TODO: cache key & stats and create transaction
 			logging.debug('increment stats for category, ' + s.category + ', & subcategory, ' +s.subcategory)
-			#catkey = CategoryStat().increment_stats(s.category, s.stressval)
-			#subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, catkey, s.stressval)
-			param = {}
-
-			param['user_category'] = s.category
-			param['user_subcategory'] = s.subcategory
-			param['value'] = s.stressval
-
-			db.run_in_transaction(helper.update_stats, s.stressval, s.category, s.subcategory)
-
+			catkey = CategoryStat().increment_stats(s.category, s.stressval)
+			subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, catkey, s.stressval)
 			# update running daily stats (this should probably be moved to the task queue)
-			# TODO: cache key & stats and create transaction
 			pdt = s.timestamp - datetime.timedelta(hours=7)
 			time_key = str(pdt).split(' ')[0]
 			dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
@@ -408,7 +398,6 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			dailysubcatkey = DailySubCategoryStat().increment_stats(s.subcategory, s.category, dailycatkey, date, s.stressval)
 
 			# update user running stats (this should probably be moved to the task queue)
-			# TODO: cache key & stats and create transaction
 			usercatkey = UserStat().increment_stats(s.username, s.subcategory, s.category, s.stressval)
 				
 			#write to csv blob and update memcache
