@@ -6,12 +6,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Date;
+import java.util.List;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.hardware.Camera;
 import android.os.Bundle;
+import android.os.Build;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.SurfaceHolder;
@@ -163,10 +165,7 @@ public class photo extends Activity implements SurfaceHolder.Callback
             mCamera.stopPreview();
         }
 
-        Camera.Parameters p = mCamera.getParameters();
-        p.setPreviewSize(w, h);
-        p.setPictureSize(640, 480);
-        mCamera.setParameters(p);
+        setCameraParameters (w, h);
         try {
 			mCamera.setPreviewDisplay(holder);
 		} catch (IOException e) {
@@ -175,6 +174,64 @@ public class photo extends Activity implements SurfaceHolder.Callback
 		}
         mCamera.startPreview();
         mPreviewRunning = true;
+    }
+
+    private void setCameraParameters (int width, int height)
+    {
+        switch (Integer.valueOf(Build.VERSION.SDK)) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                setCameraParameters_1_to_4 (width, height);
+                break;
+            case 5:
+            case 6:
+            case 7:
+            default:
+                setCameraParameters_5_to_7 (width, height);
+                break;
+        }
+    }
+
+    private void setCameraParameters_1_to_4 (int width, int height)
+    {
+        Camera.Parameters p = mCamera.getParameters();
+        p.setPreviewSize(width,height);
+        p.setPictureSize(640, 480);
+        mCamera.setParameters(p);
+    }
+
+    private void setCameraParameters_5_to_7 (int width, int height)
+    {
+        Camera.Parameters p = mCamera.getParameters();
+        // Get minimum dimensions greater than or equal to 640x480... Nexus 1
+        // can go smaller. Probably cleaner way to do this...
+        List<Camera.Size> sizes = p.getSupportedPictureSizes();
+        int minsize = Integer.MAX_VALUE;    // hacky
+        int minsizeIdx = 0;
+        for (int i = 0; i < sizes.size(); i++) {
+            if (sizes.get(i).width < 640) {
+                continue;
+            }
+            if (minsize > sizes.get(i).width) {
+                minsize = sizes.get(i).width;
+                minsizeIdx = i;
+            }
+        }
+
+        // if minsizeIdx == 0, then we did not find anything small but > 640x480
+        // so just pick first one (since there will always be at least 1 result
+
+        p.setPreviewSize(width, height);
+        // assuming min sizes are in 0'th index
+        p.setPictureSize(sizes.get(minsizeIdx).width,
+                         sizes.get(minsizeIdx).height);
+
+        Log.d(TAG, "Setting picture size: " +
+        sizes.get(minsizeIdx).width + "x" + sizes.get(minsizeIdx).height);
+
+        mCamera.setParameters(p);
     }
 
     public void surfaceDestroyed(SurfaceHolder holder)

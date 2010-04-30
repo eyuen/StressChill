@@ -20,7 +20,7 @@
         <item>Family</item>
         <item>Teacher</item>
         <item>Employer</item>
-        <item>People I don't know</item>
+        <item>People I don\'t know</item>
         <item>Animals or pets (or robots)</item>
     </string-array>
 
@@ -37,8 +37,8 @@
     <!-- My feelings about *the amount of time* I spend here: -->
     <string-array name="response_03">
         <item>Select one...</item>
-        <item>It's long</item>
-        <item>It's short</item>
+        <item>It\'s long</item>
+        <item>It\'s short</item>
     </string-array>
 
     <!-- How I view *the activity* I participate in here and now: -->
