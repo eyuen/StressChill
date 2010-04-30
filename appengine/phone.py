@@ -386,16 +386,14 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# update running stats (this should probably be moved to the task queue)
 			logging.debug('increment stats for category, ' + s.category + ', & subcategory, ' +s.subcategory)
-			catkey = CategoryStat().increment_stats(s.category, s.stressval)
-			subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, catkey, s.stressval)
+			subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, s.stressval)
 			# update running daily stats (this should probably be moved to the task queue)
 			pdt = s.timestamp - datetime.timedelta(hours=7)
 			time_key = str(pdt).split(' ')[0]
 			dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
 			date = datetime.date(dt.year, dt.month, dt.day)
 
-			dailycatkey = DailyCategoryStat().increment_stats(s.category, date, s.stressval)
-			dailysubcatkey = DailySubCategoryStat().increment_stats(s.subcategory, s.category, dailycatkey, date, s.stressval)
+			dailysubcatkey = DailySubCategoryStat().increment_stats(s.subcategory, s.category, date, s.stressval)
 
 			# update user running stats (this should probably be moved to the task queue)
 			usercatkey = UserStat().increment_stats(s.username, s.subcategory, s.category, s.stressval)

@@ -317,7 +317,6 @@ class LogoutHandler(webapp.RequestHandler):
 class PopulateDailyStat(webapp.RequestHandler):
 	def get(self):
 		#populate daily stats models
-		categories = {}
 		subcategories = {}
 
 		result = db.GqlQuery("SELECT * FROM SurveyData")
@@ -326,15 +325,17 @@ class PopulateDailyStat(webapp.RequestHandler):
 			pdt = row.timestamp - datetime.timedelta(hours=7)
 			time_key = str(pdt).split(' ')[0]
 
-			if not categories.has_key(time_key):
-				categories[time_key] = {}
+			scount = 0
+			sval = 0
+			ccount = 0
+			cval = 0
 
-			if categories[time_key].has_key(str(row.category)):
-				categories[time_key][str(row.category)]['count'] += 1
-				categories[time_key][str(row.category)]['total'] += float(row.stressval)
+			if row.stressvalue < 0:
+				scount = 1
+				sval = float(row.stressvalue)
 			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[time_key][str(row.category)] = tmp
+				ccount = 1
+				cval = float(row.stressvalue)
 
 			if not subcategories.has_key(time_key):
 				subcategories[time_key] = {}
@@ -342,33 +343,25 @@ class PopulateDailyStat(webapp.RequestHandler):
 			if subcategories[time_key].has_key(str(row.subcategory)):
 				subcategories[time_key][str(row.subcategory)]['count'] += 1
 				subcategories[time_key][str(row.subcategory)]['total'] += float(row.stressval)
+				subcategories[time_key][str(row.subcategory)]['stress_count'] += scount
+				subcategories[time_key][str(row.subcategory)]['stress_total'] += sval
+				subcategories[time_key][str(row.subcategory)]['chill_count'] += ccount
+				subcategories[time_key][str(row.subcategory)]['chill_total'] += cval
 			else:
 				tmp = {	'count':1, 
 					'total':float(row.stressval),
-					'category':str(row.category)}
+					'category':str(row.category),
+					'stress_count':scount,
+					'stress_total':sval,
+					'chill_count':ccount,
+					'chill_total':cval
+					}
 				subcategories[time_key][str(row.subcategory)] = tmp
-
-		for date_key in categories.keys():
-			for cat_keys in categories[date_key].keys():
-				cstat = DailyCategoryStat()
-				cstat.category = cat_keys
-				cstat.count = categories[date_key][cat_keys]['count']
-				cstat.total = categories[date_key][cat_keys]['total']
-				datestr = date_key.split('.')[0]
-				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
-				x = datetime.date(dt.year, dt.month, dt.day)
-				cstat.date = x
-				cstat.put()
-				categories[date_key][cat_keys]['db_key'] = cstat.key()
 			
-		for date_key in categories.keys():
+		for date_key in subcategories.keys():
 			for subcat_keys in subcategories[date_key].keys():
 				scstat = DailySubCategoryStat()
 				scstat.category = subcategories[date_key][subcat_keys]['category']
-
-				if categories.has_key(date_key):
-					if categories[date_key].has_key(subcategories[date_key][subcat_keys]['category']):
-						scstat.category_key = categories[date_key][subcategories[date_key][subcat_keys]['category']]['db_key']
 				scstat.subcategory = subcat_keys
 				datestr = date_key.split('.')[0]
 				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
@@ -376,6 +369,10 @@ class PopulateDailyStat(webapp.RequestHandler):
 				scstat.date = x
 				scstat.count = subcategories[date_key][subcat_keys]['count']
 				scstat.total = subcategories[date_key][subcat_keys]['total']
+				scstat.stress_count = subcategories[date_key][subcat_keys]['stress_count']
+				scstat.stress_total = subcategories[date_key][subcat_keys]['stress_total']
+				scstat.chill_count = subcategories[date_key][subcat_keys]['chill_count']
+				scstat.chill_total = subcategories[date_key][subcat_keys]['chill_total']
 				scstat.put()
 
 # Populates the stats Datastore
@@ -383,32 +380,43 @@ class PopulateDailyStat(webapp.RequestHandler):
 class PopulateStat(webapp.RequestHandler):
 	def get(self):
 		# populate stats models
+		subcategories = {}
+
+		result = db.GqlQuery("SELECT * FROM SurveyData")
+
 		for row in result:
-			if categories.has_key(str(row.category)):
-				categories[str(row.category)]['count'] += 1
-				categories[str(row.category)]['total'] += float(row.stressval)
+			scount = 0
+			sval = 0
+			ccount = 0
+			cval = 0
+
+			if row.stressvalue < 0:
+				scount = 1
+				sval = float(row.stressvalue)
 			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[str(row.category)] = tmp
+				ccount = 1
+				cval = float(row.stressvalue)
+
 
 			if subcategories.has_key(str(row.subcategory)):
 				subcategories[str(row.subcategory)]['count'] += 1
 				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
+				subcategories[str(row.subcategory)]['stress_count'] += scount
+				subcategories[str(row.subcategory)]['stress_total'] += sval
+				subcategories[str(row.subcategory)]['chill_count'] += ccount
+				subcategories[str(row.subcategory)]['chill_total'] += cval
 			else:
 				tmp = {	'count':1, 
 					'total':float(row.stressval),
-					'category':str(row.category)}
+					'category':str(row.category),
+					'stress_count':scount,
+					'stress_total':sval,
+					'chill_count':ccount,
+					'chill_total':cval
+					}
 				subcategories[str(row.subcategory)] = tmp
 
 
-		for cat_keys in categories.keys():
-			cstat = CategoryStat()
-			cstat.category = cat_keys
-			cstat.count = categories[cat_keys]['count']
-			cstat.total = categories[cat_keys]['total']
-			cstat.put()
-			categories[cat_keys]['db_key'] = cstat.key()
-			
 		for subcat_keys in subcategories.keys():
 			scstat = SubCategoryStat()
 			scstat.category = subcategories[subcat_keys]['category']
@@ -416,47 +424,74 @@ class PopulateStat(webapp.RequestHandler):
 			scstat.subcategory = subcat_keys
 			scstat.count = subcategories[subcat_keys]['count']
 			scstat.total = subcategories[subcat_keys]['total']
+			scstat.stress_count = subcategories[subcat_keys]['stress_count']
+			scstat.stress_total = subcategories[subcat_keys]['stress_total']
+			scstat.chill_count = subcategories[subcat_keys]['chill_count']
+			scstat.chill_total = subcategories[subcat_keys]['chill_total']
 			scstat.put()
 
 # Populates the user stats Datastore
 # this should only be run once to populate the datastore with existing values
 class PopulateUserStat(webapp.RequestHandler):
 	def get(self):
-		# populate stats models
-		for row in result:
-			if categories.has_key(str(row.category)):
-				categories[str(row.category)]['count'] += 1
-				categories[str(row.category)]['total'] += float(row.stressval)
-			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[str(row.category)] = tmp
+		subcategories = {}
 
-			if subcategories.has_key(str(row.subcategory)):
-				subcategories[str(row.subcategory)]['count'] += 1
-				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
+		result = db.GqlQuery("SELECT * FROM SurveyData")
+
+		for row in result:
+			user_key = 'None'
+			if row.username is not None:
+				user_key = row.username
+
+			scount = 0
+			sval = 0
+			ccount = 0
+			cval = 0
+
+			if row.stressvalue < 0:
+				scount = 1
+				sval = float(row.stressvalue)
+			else:
+				ccount = 1
+				cval = float(row.stressvalue)
+
+			if not subcategories.has_key(user_key):
+				subcategories[user_key] = {}
+
+			if subcategories[user_key].has_key(str(row.subcategory)):
+				subcategories[user_key][str(row.subcategory)]['count'] += 1
+				subcategories[user_key][str(row.subcategory)]['total'] += float(row.stressval)
+				subcategories[user_key][str(row.subcategory)]['stress_count'] += scount
+				subcategories[user_key][str(row.subcategory)]['stress_total'] += sval
+				subcategories[user_key][str(row.subcategory)]['chill_count'] += ccount
+				subcategories[user_key][str(row.subcategory)]['chill_total'] += cval
 			else:
 				tmp = {	'count':1, 
 					'total':float(row.stressval),
-					'category':str(row.category)}
-				subcategories[str(row.subcategory)] = tmp
-
-
-		for cat_keys in categories.keys():
-			cstat = CategoryStat()
-			cstat.category = cat_keys
-			cstat.count = categories[cat_keys]['count']
-			cstat.total = categories[cat_keys]['total']
-			cstat.put()
-			categories[cat_keys]['db_key'] = cstat.key()
+					'category':str(row.category),
+					'stress_count':scount,
+					'stress_total':sval,
+					'chill_count':ccount,
+					'chill_total':cval
+					}
+				subcategories[user_key][str(row.subcategory)] = tmp
 			
-		for subcat_keys in subcategories.keys():
-			scstat = SubCategoryStat()
-			scstat.category = subcategories[subcat_keys]['category']
-			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
-			scstat.subcategory = subcat_keys
-			scstat.count = subcategories[subcat_keys]['count']
-			scstat.total = subcategories[subcat_keys]['total']
-			scstat.put()
+		for user_key in subcategories.keys():
+			for subcat_keys in subcategories[user_key].keys():
+				scstat = DailySubCategoryStat()
+				scstat.category = subcategories[user_key][subcat_keys]['category']
+				scstat.subcategory = subcat_keys
+				datestr = user_key.split('.')[0]
+				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
+				x = datetime.date(dt.year, dt.month, dt.day)
+				scstat.date = x
+				scstat.count = subcategories[user_key][subcat_keys]['count']
+				scstat.total = subcategories[user_key][subcat_keys]['total']
+				scstat.stress_count = subcategories[user_key][subcat_keys]['stress_count']
+				scstat.stress_total = subcategories[user_key][subcat_keys]['stress_total']
+				scstat.chill_count = subcategories[user_key][subcat_keys]['chill_count']
+				scstat.chill_total = subcategories[user_key][subcat_keys]['chill_total']
+				scstat.put()
 
 # Populates the user csv
 # this should only be run once to populate the datastore with existing values
@@ -497,6 +532,47 @@ class PopulateUserCSV(webapp.RequestHandler):
 			scstat.count = subcategories[subcat_keys]['count']
 			scstat.total = subcategories[subcat_keys]['total']
 			scstat.put()
+class DeleteDatastore(webapp.RequestHandler):
+	def get(self):
+		self.handler()
+	def post(self):
+		self.handler()
+	def handler(self):
+		uid_list = []
+
+		q = UserStat().all().fetch(500)
+		for row in q:
+			uid_list.append(row.user_id)
+		db.delete(q)
+
+		q = DailySubCategoryStat().all().fetch(500)
+		db.delete(q)
+
+		q = SubCategoryStat().all().fetch(500)
+		db.delete(q)
+
+		q = UserSurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyData().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyPhoto().all().fetch(500)
+		db.delete(q)
+
+		memcache.delete('saved')
+		memcache.delete('csv')
+
+		for row in uid_list:
+			if row is not None:
+				cache_name = 'data_' + row
+				memcache.delete(cache_name)
 
 
 application = webapp.WSGIApplication(
@@ -511,7 +587,8 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_daily_stat', PopulateDailyStat),
 									  ('/debug/populate_stat', PopulateStat),
 									  ('/debug/populate_user_stat', PopulateUserStat),
-									  ('/debug/populate_user_csv', PopulateUserCSV)
+									  ('/debug/populate_user_csv', PopulateUserCSV),
+									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
 

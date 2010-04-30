@@ -9,13 +9,20 @@
 		</p>
 
 		<div class="span-11 colborder">
-{% for s in summary1 %}
+			<!--{{summary}}-->
+			<!--{{summary.items}}-->
+{% for s in summary %}
 			<table>
 				<caption>
 					<i>
+						<!--{{s}}-->
+						<!--{{r}}-->
+						<!--{{s.category}}-->
+						<!--{{s.count}}-->
+						<!--{{s.average}}-->
 						<strong>Category:</strong> {{s.category}}<br/>
 						<strong>Count:</strong> {{s.count}}<br/>
-						<strong>Average</strong> {{s.avg}}<br/>
+						<strong>Average</strong> {{s.average}}<br/>
 					</i>
 				</caption>
 
@@ -27,11 +34,13 @@
 					</tr>
 				</thead>
 				<tbody>
-{% 	for sub in s.subcategories %}
+{% 	for sub in s.subcatlist %}
+						<!--{{sub}}-->
+						<!--{{sub.subcategory}}-->
 					<tr>
 						<td class="span-4">{{sub.subcategory}}</td>
 						<td class="span-3">{{sub.count}}</td>
-						<td class="span-4 last">{{sub.avg}}</td>
+						<td class="span-4 last">{{sub.average}}</td>
 					</tr>
 {% 	endfor %}
 				</tbody>
@@ -40,39 +49,7 @@
 			<br />
 {% endfor %}
 		</div>
-		<div class="span-11">
-{% for s in summary2 %}
-			<table>
-				<caption>
-					<i>
-						<strong>Category:</strong> {{s.category}}<br/>
-						<strong>Count:</strong> {{s.count}}<br/>
-						<strong>Average</strong> {{s.avg}}<br/>
-					</i>
-				</caption>
-
-				<thead>
-					<tr>
-						<th class="span-4">SubCategory</th>
-						<th class="span-3">Count</th>
-						<th class="span-4 last">Average</th>
-					</tr>
-				</thead>
-				<tbody>
-{% 	for sub in s.subcategories %}
-					<tr>
-						<td class="span-4">{{sub.subcategory}}</td>
-						<td class="span-3">{{sub.count}}</td>
-						<td class="span-4 last">{{sub.avg}}</td>
-					</tr>
-{% 	endfor %}
-				</tbody>
-			</table>
-			<hr />
-			<br />
-{% endfor %}
-		</div>
-		<div class="span-1 last">
+		<div class="span-12 last">
 			&nbsp;
 		</div>
 	

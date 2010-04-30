@@ -494,63 +494,43 @@ class ClassSurveyCSV(db.Model):
 	classid = db.StringProperty()
 # End ClassSurveyCSV Class
 
-# model to keep running stats of categories
-class CategoryStat(db.Model):
-	category = 	db.StringProperty()
-	count =		db.IntegerProperty()
-	total = 	db.FloatProperty()
-	last_updated = 	db.DateTimeProperty(auto_now=True)
-
-	# increments count for given category if exists
-	# if not exist, create new entry and set count to 1
-	def increment_stats(self, user_category, value):
-		cat = self.all().filter('category = ', user_category).get()
-
-		if not cat:
-			self.category = user_category
-			self.count = 1
-			self.total = value
-			self.put()
-
-			if self.is_saved():
-				return self.key()
-			else:
-				return None
-		else:
-			cat.count += 1
-			cat.total += value
-			cat.put()
-
-			if cat.is_saved():
-				return cat.key()
-			else:
-				return None
-			
-# End CategoryStat Class
-
 # model to keep running stats of sub-categories
 class SubCategoryStat(db.Model):
 	category = 	db.StringProperty()
-	category_key = 	db.ReferenceProperty(CategoryStat)
 	subcategory = 	db.StringProperty()
 	count =		db.IntegerProperty()
 	total = 	db.FloatProperty()
+	stress_count = db.IntegerProperty()
+	stress_total =	db.FloatProperty()
+	chill_count = db.IntegerProperty()
+	chill_total =	db.FloatProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, user_subcategory, user_category, user_category_key, value):
-		# return None if no category key 
-		if not user_category_key:
-			return None
+	def increment_stats(self, user_subcategory, user_category, value):
+		subcat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).get()
 
-		subcat = self.all().filter('subcategory =', user_subcategory).filter('category_key = ', user_category_key).get()
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
 
 		if not subcat:
 			self.category = user_category
-			self.category_key = user_category_key
 			self.subcategory = user_subcategory
 			self.count = 1
 			self.total = value
+			self.stress_count = scount
+			self.stress_total = float(sval)
+			self.chill_count = ccount
+			self.chill_total = float(cval)
 			self.put()
 
 			if self.is_saved():
@@ -560,6 +540,10 @@ class SubCategoryStat(db.Model):
 		else:
 			subcat.count += 1
 			subcat.total += value
+			subcat.stress_count += scount
+			subcat.stress_total += sval
+			subcat.chill_count += ccount
+			subcat.chill_total += cval
 			subcat.put()
 
 			if subcat.is_saved():
@@ -568,66 +552,45 @@ class SubCategoryStat(db.Model):
 				return None
 # End SubCategoryStat Class
 
-# model to keep running stats of categories per day
-class DailyCategoryStat(db.Model):
-	category = 	db.StringProperty()
-	count =		db.IntegerProperty()
-	total = 	db.FloatProperty()
-	date = 		db.DateProperty()
-	last_updated = 	db.DateTimeProperty(auto_now=True)
-
-	# increments count for given category & day if exists
-	# if not exist, create new entry and set count to 1
-	def increment_stats(self, user_category, user_date, value):
-		cat = self.all().filter('category = ', user_category).filter('date =', user_date).get()
-
-		if not cat:
-			self.category = user_category
-			self.count = 1
-			self.total = value
-			self.date = user_date
-			self.put()
-
-			if self.is_saved():
-				return self.key()
-			else:
-				return None
-		else:
-			cat.count += 1
-			cat.total += value
-			cat.put()
-
-			if cat.is_saved():
-				return cat.key()
-			else:
-				return None
-# End CategoryStat Class
-
 # model to keep running stats of sub-categories per day
 class DailySubCategoryStat(db.Model):
 	category = 	db.StringProperty()
-	category_key = 	db.ReferenceProperty(DailyCategoryStat)
 	subcategory = 	db.StringProperty()
 	count =		db.IntegerProperty()
 	total = 	db.FloatProperty()
+	stress_count = db.IntegerProperty()
+	stress_total =	db.FloatProperty()
+	chill_count = db.IntegerProperty()
+	chill_total =	db.FloatProperty()
 	date =		db.DateProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, user_subcategory, user_category, user_category_key, user_date, value):
-		# return None if no category key 
-		if not user_category_key:
-			return None
+	def increment_stats(self, user_subcategory, user_category, user_date, value):
+		subcat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).filter('date =', user_date).get()
 
-		subcat = self.all().filter('subcategory =', user_subcategory).filter('category_key = ', user_category_key).filter('date =', user_date).get()
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
 
 		if not subcat:
 			self.category = user_category
-			self.category_key = user_category_key
 			self.subcategory = user_subcategory
 			self.count = 1
 			self.total = value
 			self.date = user_date
+			self.stress_count = scount
+			self.stress_total = float(sval)
+			self.chill_count = ccount
+			self.chill_total = float(cval)
 			self.put()
 
 			if self.is_saved():
@@ -637,6 +600,10 @@ class DailySubCategoryStat(db.Model):
 		else:
 			subcat.count += 1
 			subcat.total += value
+			subcat.stress_count += scount
+			subcat.stress_total += float(sval)
+			subcat.chill_count += ccount
+			subcat.chill_total += float(cval)
 			subcat.put()
 
 			if subcat.is_saved():
@@ -658,12 +625,27 @@ class UserStat(db.Model):
 	subcategory = db.StringProperty()
 	count =	db.IntegerProperty()
 	total =	db.FloatProperty()
+	stress_count = db.IntegerProperty()
+	stress_total =	db.FloatProperty()
+	chill_count = db.IntegerProperty()
+	chill_total =	db.FloatProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
 	def increment_stats(self, user_id, user_subcategory, user_category, value):
-		# return None if no category key 
 		userstat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).filter('user_id = ', user_id).get()
+
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
 
 		if not userstat:
 			self.user_id = user_id
@@ -671,6 +653,10 @@ class UserStat(db.Model):
 			self.subcategory = user_subcategory
 			self.count = 1
 			self.total = value
+			self.stress_count = scount
+			self.stress_total = float(sval)
+			self.chill_count = ccount
+			self.chill_total = float(cval)
 			self.put()
 
 			if self.is_saved():
@@ -680,6 +666,10 @@ class UserStat(db.Model):
 		else:
 			userstat.count += 1
 			userstat.total += value
+			userstat.stress_count += scount
+			userstat.stress_total += sval
+			userstat.chill_count += ccount
+			userstat.chill_total += cval
 			userstat.put()
 
 			if userstat.is_saved():

@@ -488,35 +488,70 @@ class SummaryHandler(webapp.RequestHandler):
 	# end post method
 
 	def handle(self):
-		result = CategoryStat().all()
+		result = SubCategoryStat().all()
+
+		categories = {}
+
+		for row in result:
+			if not categories.has_key(row.category):
+				categories[row.category] = {
+						'category':row.category,
+						'count':row.count,
+						'total':row.total
+						}
+				if row.count != 0:
+					categories[row.category]['average'] = row.total/row.count
+				else:
+					categories[row.category]['average'] = 0
+
+				categories[row.category]['subcategories'] = {}
+			else:
+				categories[row.category]['count'] += row.count
+				categories[row.category]['total'] += row.total
+				if categories[row.category]['total'] != 0:
+					categories[row.category]['average'] = \
+						categories[row.category]['total'] / categories[row.category]['count']
+
+			if not categories[row.category]['subcategories'].has_key(row.subcategory):
+				subavg = 0
+				if row.count != 0:
+					subavg = row.total / row.count
+				categories[row.category]['subcategories'][row.subcategory] = { 
+						'subcategory':row.category, 
+						'count':row.count,
+						'total':row.total,
+						'average':subavg 
+						}
+			else:
+				categories[row.category]['subcategories'][row.subcategory]['count'] += row.count
+				categories[row.category]['subcategories'][row.subcategory]['total'] += row.total
+				if categories[row.category]['subcategories'][row.subcategory]['total'] != 0:
+					categories[row.category]['subcategories'][row.subcategory]['average'] = \
+						categories[row.category]['subcategories'][row.subcategory]['total'] / categories[row.category]['subcategories'][row.subcategory]['count']
 
 		data = []
-		for row in result:
-			if row.count <= 0:
-				cat_avg = 0
-			else:
-				cat_avg = row.total/row.count
+		for key,cat in categories.items():
+			cat['subcatlist'] = []
 
-			datarow = { 'category':str(row.category), 'count':str(row.count), 'avg':str(cat_avg) }
+			for skey,scat in cat['subcategories'].items():
+				cat['subcatlist'].append(scat)
 
-			subcat = SubCategoryStat().all().filter('category = ', row.category)
-			allsub = []
-			for subrow in subcat:
-				if subrow.count <= 0:
-					avg = 0
-				else:
-					avg = subrow.total/subrow.count
-				subdatarow = { 'subcategory':str(subrow.subcategory), 'count':str(subrow.count), 'avg':str(avg) }
-				allsub.append(subdatarow)
-			datarow['subcategories'] = allsub
+			del cat['subcategories']
+			del cat['total']
+			data.append(cat)
+			#newrow = {}
 
-			data.append(datarow)
+			#ewrow['category'] = cat['category']
+			#newrow['count'] = cat['count']
+			#newrow['average'] = cat['average']
 
-		num = len(data)
 
-		template_values = { 'summary1' : data[:int(num/2)], 'summary2' : data[int(num/2):] }
+		template_values = { 'summary' : data }
 		template_values['datasummary'] = True
 		template_values['divstyle'] = ['span-11 colborder','span-12 last']
+
+		logging.debug(template_values)
+
 		path = os.path.join (os.path.dirname(__file__), 'views/summary.html')
 		self.response.out.write (helper.render(self, path, template_values))
 	# end handle method
