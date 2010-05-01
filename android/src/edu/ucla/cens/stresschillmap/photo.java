@@ -165,7 +165,7 @@ public class photo extends Activity implements SurfaceHolder.Callback
             mCamera.stopPreview();
         }
 
-        setCameraParameters (w, h);
+        //setCameraParameters (w, h);
         try {
 			mCamera.setPreviewDisplay(holder);
 		} catch (IOException e) {
@@ -176,6 +176,7 @@ public class photo extends Activity implements SurfaceHolder.Callback
         mPreviewRunning = true;
     }
 
+    /*
     private void setCameraParameters (int width, int height)
     {
         switch (Integer.valueOf(Build.VERSION.SDK)) {
@@ -233,6 +234,7 @@ public class photo extends Activity implements SurfaceHolder.Callback
 
         mCamera.setParameters(p);
     }
+    */
 
     public void surfaceDestroyed(SurfaceHolder holder)
     {
