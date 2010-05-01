@@ -36,15 +36,15 @@ SERVER = 'localhost'
 PORT = 8080
 
 # fake urls for the test server (matches ones in server.py)
-REQUEST_TOKEN_URL = 'https://localhost:8080/authorize_access'
+REQUEST_TOKEN_URL = 'https://eyuentest.appspot.com/authorize_access'
 RESOURCE_URL = 'http://localhost:8080/protected_upload'
 
 ACCESS_TOKEN_URL = 'https://eyuentest.appspot.com/access_token'
 AUTHORIZATION_URL = 'https://eyuentest.appspot.com/authorize'
 CALLBACK_URL = 'http://printer.example.com/request_token_ready'
 # key and secret granted by the service provider for this consumer application - same as the MockOAuthDataStore
-CONSUMER_KEY = 'dVRtPQd2auPPUDtP'
-CONSUMER_SECRET = '4ZsZUtUnRe2sAAWX'
+CONSUMER_KEY = 'RyR9MgVUSZ4AS74M'
+CONSUMER_SECRET = 'urt8TH84eXnLhq43'
 
 # example client using httplib with headers
 class SimpleOAuthClient(oauth.OAuthClient):
@@ -60,6 +60,9 @@ class SimpleOAuthClient(oauth.OAuthClient):
 	def fetch_request_token(self, oauth_request):
 		# via headers
 		# -> OAuthToken
+
+		print oauth_request.to_url()	
+
 		self.connection.request(oauth_request.http_method, oauth_request.to_url(), headers=oauth_request.to_header()) 
 		response = self.connection.getresponse()
 
@@ -104,7 +107,7 @@ def run_example():
 	print '* Obtain a request token ...'
 	pause()
 	param = {}
-	param['username'] = 'test'
+	param['username'] = 'test4'
 	password = hashlib.sha1('tester')
 	param['password'] = password.hexdigest()
 
