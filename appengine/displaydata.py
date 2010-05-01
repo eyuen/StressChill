@@ -517,7 +517,7 @@ class SummaryHandler(webapp.RequestHandler):
 				if row.count != 0:
 					subavg = row.total / row.count
 				categories[row.category]['subcategories'][row.subcategory] = { 
-						'subcategory':row.category, 
+						'subcategory':row.subcategory, 
 						'count':row.count,
 						'total':row.total,
 						'average':subavg 

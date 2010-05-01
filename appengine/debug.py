@@ -330,12 +330,12 @@ class PopulateDailyStat(webapp.RequestHandler):
 			ccount = 0
 			cval = 0
 
-			if row.stressvalue < 0:
+			if row.stressval < 0:
 				scount = 1
-				sval = float(row.stressvalue)
+				sval = float(row.stressval)
 			else:
 				ccount = 1
-				cval = float(row.stressvalue)
+				cval = float(row.stressval)
 
 			if not subcategories.has_key(time_key):
 				subcategories[time_key] = {}
@@ -368,11 +368,11 @@ class PopulateDailyStat(webapp.RequestHandler):
 				x = datetime.date(dt.year, dt.month, dt.day)
 				scstat.date = x
 				scstat.count = subcategories[date_key][subcat_keys]['count']
-				scstat.total = subcategories[date_key][subcat_keys]['total']
+				scstat.total = float(subcategories[date_key][subcat_keys]['total'])
 				scstat.stress_count = subcategories[date_key][subcat_keys]['stress_count']
-				scstat.stress_total = subcategories[date_key][subcat_keys]['stress_total']
+				scstat.stress_total = float(subcategories[date_key][subcat_keys]['stress_total'])
 				scstat.chill_count = subcategories[date_key][subcat_keys]['chill_count']
-				scstat.chill_total = subcategories[date_key][subcat_keys]['chill_total']
+				scstat.chill_total = float(subcategories[date_key][subcat_keys]['chill_total'])
 				scstat.put()
 
 # Populates the stats Datastore
@@ -390,12 +390,12 @@ class PopulateStat(webapp.RequestHandler):
 			ccount = 0
 			cval = 0
 
-			if row.stressvalue < 0:
+			if row.stressval < 0:
 				scount = 1
-				sval = float(row.stressvalue)
+				sval = float(row.stressval)
 			else:
 				ccount = 1
-				cval = float(row.stressvalue)
+				cval = float(row.stressval)
 
 
 			if subcategories.has_key(str(row.subcategory)):
@@ -420,14 +420,13 @@ class PopulateStat(webapp.RequestHandler):
 		for subcat_keys in subcategories.keys():
 			scstat = SubCategoryStat()
 			scstat.category = subcategories[subcat_keys]['category']
-			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
 			scstat.subcategory = subcat_keys
 			scstat.count = subcategories[subcat_keys]['count']
-			scstat.total = subcategories[subcat_keys]['total']
+			scstat.total = float(subcategories[subcat_keys]['total'])
 			scstat.stress_count = subcategories[subcat_keys]['stress_count']
-			scstat.stress_total = subcategories[subcat_keys]['stress_total']
+			scstat.stress_total = float(subcategories[subcat_keys]['stress_total'])
 			scstat.chill_count = subcategories[subcat_keys]['chill_count']
-			scstat.chill_total = subcategories[subcat_keys]['chill_total']
+			scstat.chill_total = float(subcategories[subcat_keys]['chill_total'])
 			scstat.put()
 
 # Populates the user stats Datastore
@@ -448,12 +447,12 @@ class PopulateUserStat(webapp.RequestHandler):
 			ccount = 0
 			cval = 0
 
-			if row.stressvalue < 0:
+			if row.stressval < 0:
 				scount = 1
-				sval = float(row.stressvalue)
+				sval = float(row.stressval)
 			else:
 				ccount = 1
-				cval = float(row.stressvalue)
+				cval = float(row.stressval)
 
 			if not subcategories.has_key(user_key):
 				subcategories[user_key] = {}
@@ -478,19 +477,15 @@ class PopulateUserStat(webapp.RequestHandler):
 			
 		for user_key in subcategories.keys():
 			for subcat_keys in subcategories[user_key].keys():
-				scstat = DailySubCategoryStat()
+				scstat = UserStat()
 				scstat.category = subcategories[user_key][subcat_keys]['category']
 				scstat.subcategory = subcat_keys
-				datestr = user_key.split('.')[0]
-				dt = datetime.datetime.strptime(datestr, "%Y-%m-%d")
-				x = datetime.date(dt.year, dt.month, dt.day)
-				scstat.date = x
 				scstat.count = subcategories[user_key][subcat_keys]['count']
-				scstat.total = subcategories[user_key][subcat_keys]['total']
+				scstat.total = float(subcategories[user_key][subcat_keys]['total'])
 				scstat.stress_count = subcategories[user_key][subcat_keys]['stress_count']
-				scstat.stress_total = subcategories[user_key][subcat_keys]['stress_total']
+				scstat.stress_total = float(subcategories[user_key][subcat_keys]['stress_total'])
 				scstat.chill_count = subcategories[user_key][subcat_keys]['chill_count']
-				scstat.chill_total = subcategories[user_key][subcat_keys]['chill_total']
+				scstat.chill_total = float(subcategories[user_key][subcat_keys]['chill_total'])
 				scstat.put()
 
 # Populates the user csv
@@ -566,7 +561,10 @@ class PopulateCSV(webapp.RequestHandler):
 		for s in result:
 			# form image url
 			if s.hasphoto:
-				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+				try:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+				except:
+					photo_url = 'no_image'
 
 			else:
 				photo_url = 'no_image'
@@ -574,8 +572,10 @@ class PopulateCSV(webapp.RequestHandler):
 			hashedval = hashlib.sha1(str(s.key()))
 			sha1val = hashedval.hexdigest()
 
-			userhashedval = hashlib.sha1(s.username)
-			usersha1val = hashedval.hexdigest()
+			usersha1val = 'Anon'
+			if s.username is not None:
+				userhashedval = hashlib.sha1(s.username)
+				usersha1val = hashedval.hexdigest()
 
 			# write csv data row
 			new_row = [
@@ -613,7 +613,6 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = UserStat().all().fetch(500)
 		for row in q:
 			uid_list.append(row.user_id)
-		'''
 		db.delete(q)
 
 		q = DailySubCategoryStat().all().fetch(500)
@@ -630,13 +629,6 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = UserSurveyCSV().all().fetch(500)
 		db.delete(q)
-
-		q = SurveyData().all().fetch(500)
-		db.delete(q)
-
-		q = SurveyPhoto().all().fetch(500)
-		db.delete(q)
-		'''
 		memcache.delete('saved')
 		memcache.delete('csv')
 
