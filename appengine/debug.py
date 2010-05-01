@@ -24,6 +24,7 @@ from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from google.appengine.api import images
 from google.appengine.api import quota
+from google.appengine.runtime import DeadlineExceededError
 
 import cStringIO
 import csv
@@ -534,8 +535,10 @@ class PopulateUserCSV(webapp.RequestHandler):
 class PopulateCSV(webapp.RequestHandler):
 	def get(self):
 		#write to csv blob and update memcache
-		result = db.GqlQuery("SELECT * FROM SurveyData")
+		result = SurveyData().all()
 
+		data = ''
+		count = 0
 		output = cStringIO.StringIO()
 		writer = csv.writer(output, delimiter=',')
 
@@ -545,62 +548,108 @@ class PopulateCSV(webapp.RequestHandler):
 		else:
 			base_url = os.environ['SERVER_NAME']
 
-		header_row = [	'id',
-			'userid',
-			'timestamp',
-			'latitude',
-			'longitude',
-			'stress_value',
-			'category',
-			'subcategory',
-			'comments',
-			'image_url'
-			]
-		writer.writerow(header_row)
+		if self.request.get('cursor'):
+			result.with_cursor(self.request.get('cursor'))
+			data = memcache.get('csv_restore')
+			count = memcache.get('csv_restore_count')
+		else:
+			header_row = [	'id',
+				'userid',
+				'timestamp',
+				'latitude',
+				'longitude',
+				'stress_value',
+				'category',
+				'subcategory',
+				'comments',
+				'image_url'
+				]
+			writer.writerow(header_row)
 
-		for s in result:
-			# form image url
-			if s.hasphoto:
-				try:
-					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
-				except:
+		try:
+			self.response.out.write('<html><body>')
+			res_count = 0
+			for s in result.fetch(100):
+				res_count += 1
+				self.response.out.write(str(count+res_count)+',')
+				self.response.out.write(str(s.timestamp)+',')
+				self.response.out.write(str(s.username)+',')
+				self.response.out.write(str(s.stressval)+'<br/>\n')
+
+				# form image url
+				if s.hasphoto:
+					try:
+						photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+					except:
+						photo_url = 'no_image'
+
+				else:
 					photo_url = 'no_image'
 
-			else:
-				photo_url = 'no_image'
+				hashedval = hashlib.sha1(str(s.key()))
+				sha1val = hashedval.hexdigest()
 
-			hashedval = hashlib.sha1(str(s.key()))
-			sha1val = hashedval.hexdigest()
+				usersha1val = 'Anon'
+				if s.username is not None:
+					userhashedval = hashlib.sha1(s.username)
+					usersha1val = userhashedval.hexdigest()
 
-			usersha1val = 'Anon'
-			if s.username is not None:
-				userhashedval = hashlib.sha1(s.username)
-				usersha1val = hashedval.hexdigest()
+				# write csv data row
+				new_row = [
+						sha1val,
+						usersha1val,
+						s.timestamp,
+						s.latitude,
+						s.longitude,
+						s.stressval,
+						s.category,
+						s.subcategory,
+						s.comments,
+						photo_url
+						]
+				writer.writerow(new_row)
 
-			# write csv data row
-			new_row = [
-					sha1val,
-					usersha1val,
-					s.timestamp,
-					s.latitude,
-					s.longitude,
-					s.stressval,
-					s.category,
-					s.subcategory,
-					s.comments,
-					photo_url
-					]
-			writer.writerow(new_row)
+			# append to blob
+			data += str(output.getvalue())
+			count += res_count
 
-		# create new blob if one does not exist
-		insert_csv = SurveyCSV()
-		insert_csv.csv = str(output.getvalue())
-		insert_csv.last_entry_date = s.timestamp
-		insert_csv.count = 1
-		insert_csv.page = 1
+			memcache.set('csv_restore', data)
+			memcache.set('csv_restore_count', count)
 
-		insert_csv.put()
+			cursor = result.cursor()
+			if cursor:
+				self.response.out.write('<a href="/debug/populate_csv?cursor='+cursor+'">click to continue</a>')
+			self.response.out.write('</html></body>')
+			return
+		except DeadlineExceededError:
+			self.response.out.write('deadline exceeded.<br>')
+			self.response.out.write('<a href="/debug/populate_csv?cursor='+self.request.get('cursor')+'">click to retry</a>')
+			return
 
+		return
+
+class MemCSV(webapp.RequestHandler):
+	def get(self):
+		data = memcache.get('csv_restore')
+		# if all data in cache, output and done
+		if data is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data)
+			return
+		return
+
+class WriteMemCSV(webapp.RequestHandler):
+	def get(self):
+		data = memcache.get('csv_restore')
+		count = memcache.get('csv_restore_count')
+		# if all data in cache, output and done
+		if data is not None:
+			insert_csv = SurveyCSV()
+			insert_csv.csv = db.Text(data)
+			insert_csv.count = count
+			insert_csv.page = 1
+			insert_csv.put()
+		return
 
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
@@ -652,6 +701,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_user_stat', PopulateUserStat),
 									  ('/debug/populate_user_csv', PopulateUserCSV),
 									  ('/debug/populate_csv', PopulateCSV),
+									  ('/debug/show_mem_csv.csv', MemCSV),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

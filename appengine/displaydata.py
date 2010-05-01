@@ -387,7 +387,7 @@ class DownloadAllData(webapp.RequestHandler):
 			self.response.out.write(data_csv.csv)
 			return
 
-
+		'''
 		# you should never get here except for the first time this url is called
 		# if you need to populate the blob, make sure to call this url
 		#	before any requests to write new data or the blob will start from that entry instead
@@ -473,6 +473,7 @@ class DownloadAllData(webapp.RequestHandler):
 
 		self.response.headers['Content-type'] = 'text/csv'
 		self.response.out.write(output.getvalue())
+		'''
 	# end get method
 # End DownloadAllData
 
