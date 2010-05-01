@@ -36,8 +36,13 @@ import android.app.Dialog;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.CompressFormat;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
@@ -51,6 +56,9 @@ import android.widget.SeekBar;
 
 public class survey extends Activity
 {
+    private static final int ACTIVITY_CAPTURE_PHOTO = 0;
+    private final String PIC_DATA_PATH = "/sdcard/stbpics";
+    
     private Context ctx;
     private String TAG = "Survey";
     private Button take_picture;
@@ -347,8 +355,8 @@ public class survey extends Activity
 
     OnClickListener take_picture_listener = new OnClickListener() {
         public void onClick(View v) {
-            Intent photo_intent = new Intent(survey.this, photo.class);
-            startActivityForResult(photo_intent, 0);
+            Intent intent = new Intent("android.media.action.IMAGE_CAPTURE");
+            startActivityForResult(intent, ACTIVITY_CAPTURE_PHOTO);
         }
     };
 
@@ -396,14 +404,39 @@ public class survey extends Activity
     };
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (RESULT_CANCELED != resultCode) {
-            filename = data.getAction().toString();
-            if ((null != filename) && (filename.toString() != "")) {
-                Bitmap bm = BitmapFactory.decodeFile(filename);
-                if (bm != null) {
-                    image_preview.setImageBitmap(bm);
+        switch(requestCode) {
+        case ACTIVITY_CAPTURE_PHOTO:
+            if (RESULT_CANCELED != resultCode) {
+                Bitmap image = (Bitmap) data.getExtras().get("data");
+
+                Date date = new Date();
+                long time = date.getTime();
+                String fileName = PIC_DATA_PATH + "/"
+                        + time + ".jpg";
+
+                try {
+                    File ld = new File(PIC_DATA_PATH);
+                    if (ld.exists()) {
+                        if (!ld.isDirectory()) {
+                            // TODO Handle exception
+                            break;
+                        }
+                    } else {
+                        ld.mkdir();
+                    }
+
+                    OutputStream os = new FileOutputStream(fileName);
+                    image.compress(CompressFormat.JPEG, 100, os);
+                    os.close();
+                    
+                    image_preview.setImageBitmap(image);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
+            break;
         }
     }
 }
