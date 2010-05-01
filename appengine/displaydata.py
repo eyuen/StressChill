@@ -461,7 +461,7 @@ class DownloadAllData(webapp.RequestHandler):
 
 		# write blob csv so we dont have to do this again
 		insert_csv = SurveyCSV()
-		insert_csv.csv = db.Blob(output.getvalue())
+		insert_csv.csv = db.Text(output.getvalue())
 		insert_csv.last_entry_date = last_entry_date
 		insert_csv.count = counter
 		insert_csv.page = page
