@@ -532,6 +532,76 @@ class PopulateUserCSV(webapp.RequestHandler):
 			scstat.count = subcategories[subcat_keys]['count']
 			scstat.total = subcategories[subcat_keys]['total']
 			scstat.put()
+
+
+# Populates the csv
+# this should only be run once to populate the datastore with existing values
+class PopulateCSV(webapp.RequestHandler):
+	def get(self):
+		#write to csv blob and update memcache
+		result = db.GqlQuery("SELECT * FROM SurveyData")
+
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		header_row = [	'id',
+			'userid',
+			'timestamp',
+			'latitude',
+			'longitude',
+			'stress_value',
+			'category',
+			'subcategory',
+			'comments',
+			'image_url'
+			]
+		writer.writerow(header_row)
+
+		for s in result:
+			# form image url
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			userhashedval = hashlib.sha1(s.username)
+			usersha1val = hashedval.hexdigest()
+
+			# write csv data row
+			new_row = [
+					sha1val,
+					usersha1val,
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+
+		# create new blob if one does not exist
+		insert_csv = SurveyCSV()
+		insert_csv.csv = str(output.getvalue())
+		insert_csv.last_entry_date = s.timestamp
+		insert_csv.count = 1
+		insert_csv.page = 1
+
+		insert_csv.put()
+
+
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
 		self.handler()
@@ -543,6 +613,7 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = UserStat().all().fetch(500)
 		for row in q:
 			uid_list.append(row.user_id)
+		'''
 		db.delete(q)
 
 		q = DailySubCategoryStat().all().fetch(500)
@@ -557,7 +628,7 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = SurveyCSV().all().fetch(500)
 		db.delete(q)
 
-		q = SurveyCSV().all().fetch(500)
+		q = UserSurveyCSV().all().fetch(500)
 		db.delete(q)
 
 		q = SurveyData().all().fetch(500)
@@ -565,7 +636,7 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = SurveyPhoto().all().fetch(500)
 		db.delete(q)
-
+		'''
 		memcache.delete('saved')
 		memcache.delete('csv')
 
@@ -588,6 +659,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_stat', PopulateStat),
 									  ('/debug/populate_user_stat', PopulateUserStat),
 									  ('/debug/populate_user_csv', PopulateUserCSV),
+									  ('/debug/populate_csv', PopulateCSV),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

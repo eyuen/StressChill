@@ -417,6 +417,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# write header row if csv blob doesnt exist yet
 			if not insert_csv:
+				logging.debug('csv not exist, writing header row')
 				header_row = [	'id',
 					'userid',
 					'timestamp',
@@ -460,12 +461,14 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# create new blob if one does not exist
 			if not insert_csv:
+				logging.debug('csv not exist, setup')
 				insert_csv = SurveyCSV()
-				insert_csv.csv = db.Blob(output.getvalue())
+				insert_csv.csv = str(output.getvalue())
 				insert_csv.last_entry_date = s.timestamp
 				insert_csv.count = 1
 				insert_csv.page = 1
 			else:	#if blob exists, append and update
+				logging.debug('csv exist, append')
 				insert_csv.csv += output.getvalue()
 				insert_csv.last_entry_date = s.timestamp
 				insert_csv.count += 1
@@ -473,7 +476,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			insert_csv.put()
 
 			# add to cache (writes should update this cached value)
-			memcache.set('csv', output.getvalue())
+			memcache.set('csv', insert_csv.csv)
 
 			### append to user csv blob
 
@@ -526,7 +529,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			# create new blob if one does not exist
 			if not insert_csv:
 				insert_csv = UserSurveyCSV()
-				insert_csv.csv = db.Blob(output.getvalue())
+				insert_csv.csv = str(output.getvalue())
 				insert_csv.last_entry_date = s.timestamp
 				insert_csv.count = 1
 				insert_csv.page = 1
@@ -541,15 +544,20 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			try:
 				# update data page cache with new value, pop oldest value
+				logging.debug('update cache')
 				saved = memcache.get('saved')
 				if saved is not None:
 					s_list = []
 					s_list.append(s)
 					extract = helper.extract_surveys(s_list)
 					d = deque(saved)
-					d.pop()
+					if len(saved) >= 5*PAGE_SIZE:
+						d.pop()
 					d.appendleft(extract[0])
 					memcache.set('saved', list(d))
+					logging.debug(list(d))
+				else:
+					logging.debug('no cache set')
 			except:
 				logging.debug('cache write failed')
 
@@ -564,7 +572,8 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					s_list.append(s)
 					extract = helper.extract_surveys(s_list)
 					d = deque(saved)
-					d.pop()
+					if len(saved) >= 5*PAGE_SIZE:
+						d.pop()
 					d.appendleft(extract[0])
 					memcache.set(cache_name, list(d))
 			except:

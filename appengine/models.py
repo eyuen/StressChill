@@ -467,7 +467,7 @@ class SurveyData(db.Model):
 
 # model to hold data blob
 class SurveyCSV(db.Model):
-	csv = db.BlobProperty()
+	csv = db.TextProperty()
 	last_updated = db.DateTimeProperty(auto_now=True)
 	page = db.IntegerProperty()
 	last_entry_date = db.DateTimeProperty()
@@ -476,7 +476,7 @@ class SurveyCSV(db.Model):
 
 # model to hold data blob
 class UserSurveyCSV(db.Model):
-	csv = db.BlobProperty()
+	csv = db.TextProperty()
 	last_updated = db.DateTimeProperty(auto_now=True)
 	page = db.IntegerProperty()
 	last_entry_date = db.DateTimeProperty()
@@ -486,7 +486,7 @@ class UserSurveyCSV(db.Model):
 
 # model to hold data blob
 class ClassSurveyCSV(db.Model):
-	csv = db.BlobProperty()
+	csv = db.TextProperty()
 	last_updated = db.DateTimeProperty(auto_now=True)
 	page = db.IntegerProperty()
 	last_entry_date = db.DateTimeProperty()
