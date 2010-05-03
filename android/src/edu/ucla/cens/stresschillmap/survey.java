@@ -411,7 +411,7 @@ public class survey extends Activity
 
                 Date date = new Date();
                 long time = date.getTime();
-                String fileName = PIC_DATA_PATH + "/"
+                filename = PIC_DATA_PATH + "/"
                         + time + ".jpg";
 
                 try {
@@ -425,7 +425,7 @@ public class survey extends Activity
                         ld.mkdir();
                     }
 
-                    OutputStream os = new FileOutputStream(fileName);
+                    OutputStream os = new FileOutputStream(filename);
                     image.compress(CompressFormat.JPEG, 100, os);
                     os.close();
                     

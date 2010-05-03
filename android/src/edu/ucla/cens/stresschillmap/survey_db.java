@@ -35,7 +35,7 @@ public class survey_db {
 	
 	private static final String DATABASE_NAME = "survey_db";
 	private static final String DATABASE_TABLE = "survey_table";
-	private static final int DATABASE_VERSION = 6;
+	private static final int DATABASE_VERSION = 7;
 	
 	private static final String DATABASE_CREATE = "create table survey_table (_id integer primary key autoincrement, "
         + "q_int text not null,"
