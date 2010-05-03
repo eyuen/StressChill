@@ -375,7 +375,7 @@ class DownloadAllData(webapp.RequestHandler):
 			return
 
 		# if cache miss, check if csv blob exist
-		data_csv = SurveyCSV.all().get()
+		data_csv = SurveyCSV.all().filter('page =', 1).get()
 
 		# if csv blob exist, set in cache and output
 		if data_csv is not None:

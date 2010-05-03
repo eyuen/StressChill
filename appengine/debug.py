@@ -657,12 +657,17 @@ class DeleteDatastore(webapp.RequestHandler):
 	def post(self):
 		self.handler()
 	def handler(self):
+		'''
 		uid_list = []
-
 		q = UserStat().all().fetch(500)
 		for row in q:
 			uid_list.append(row.user_id)
 		db.delete(q)
+
+		for row in uid_list:
+			if row is not None:
+				cache_name = 'data_' + row
+				memcache.delete(cache_name)
 
 		q = DailySubCategoryStat().all().fetch(500)
 		db.delete(q)
@@ -679,12 +684,9 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = UserSurveyCSV().all().fetch(500)
 		db.delete(q)
 		memcache.delete('saved')
+		'''
 		memcache.delete('csv')
 
-		for row in uid_list:
-			if row is not None:
-				cache_name = 'data_' + row
-				memcache.delete(cache_name)
 
 
 application = webapp.WSGIApplication(
@@ -702,6 +704,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_user_csv', PopulateUserCSV),
 									  ('/debug/populate_csv', PopulateCSV),
 									  ('/debug/show_mem_csv.csv', MemCSV),
+									  ('/debug/write_mem_csv', WriteMemCSV),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
