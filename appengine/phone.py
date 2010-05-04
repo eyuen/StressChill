@@ -337,13 +337,38 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 		req_token = self.request.get('oauth_token')
 
 		if req_token != '':
-			t = db.GqlQuery("SELECT * FROM Token WHERE ckey = :1", req_token).get()
+			t = Token().all().filter('ckey = ', req_token).get()
 
 			if not t:
 				logging.error('if you got here, token lookup failed.')
 				self.error(401)
 				return
 
+			# check user exists, and get class
+			user = UserTable().all().filter('ckey =', t.user).get()
+			if not user:
+				logging.error('this user does not exist:' + str(t.user))
+				return
+
+			# get official class list from memcache if exists
+			classlist = memcache.get('classlist')
+			# if not exist, fetch from datastore
+			if not classlist:
+				cl = ClassList().all()
+
+				classlist = []
+				for c in cl:
+					classlist.append(c.classid)
+
+				# save to memcache to prevent this lookup from happening everytime
+				memcache.set('classlist', classlist)
+
+			# get classid of class, or set to 'tester'
+			classid = 'testers'
+			if user.classid in classlist:
+				classid = user.classid
+
+			# insert new observation to datastore
 			s = SurveyData()
 
 			s.username = t.user
@@ -357,9 +382,11 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			s.category = self.request.get('category')
 			s.subcategory = self.request.get('subcategory')
 			s.version = self.request.get('version')
+			s.classid = classid
 
 			file_content = self.request.get('file')
 
+			# insert photo if one
 			if file_content:
 				try:
 					# upload image as blob to SurveyPhoto
@@ -386,17 +413,39 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# update running stats (this should probably be moved to the task queue)
 			logging.debug('increment stats for category, ' + s.category + ', & subcategory, ' +s.subcategory)
-			subcatkey = SubCategoryStat().increment_stats(s.subcategory, s.category, s.stressval)
+
+			# get subcategory/category stat key if exist
+			subcat = SubCategoryStat().all().filter('subcategory =', s.subcategory).filter('category = ', s.category).get()
+
+			sckey = None
+			if subcat is not None:
+				sckey = subcat.key()
+
+			# run in transaction so update not overwritten by a concurrent request
+			db.run_in_transaction(SubCategoryStat().increment_stats, sckey, s.category, s.subcategory, s.stressval)
+
 			# update running daily stats (this should probably be moved to the task queue)
 			pdt = s.timestamp - datetime.timedelta(hours=7)
 			time_key = str(pdt).split(' ')[0]
 			dt = datetime.datetime.strptime(time_key, "%Y-%m-%d")
 			date = datetime.date(dt.year, dt.month, dt.day)
 
-			dailysubcatkey = DailySubCategoryStat().increment_stats(s.subcategory, s.category, date, s.stressval)
+			subcat = DailySubCategoryStat().all().filter('subcategory =', s.subcategory).filter('category = ', s.category).filter('date =', date).get()
+
+			dsckey = None
+			if subcat is not None:
+				dsckey = subcat.key()
+
+			db.run_in_transaction(DailySubCategoryStat().increment_stats, dsckey, s.subcategory, s.category, date, s.stressval)
 
 			# update user running stats (this should probably be moved to the task queue)
-			usercatkey = UserStat().increment_stats(s.username, s.subcategory, s.category, s.stressval)
+			userstat = UserStat().all().filter('subcategory =', s.subcategory).filter('category = ', s.category).filter('user_id = ', s.username).get()
+
+			ukey = None
+			if subcat is not None:
+				ukey = subcat.key()
+			
+			db.run_in_transaction(UserStat().increment_stats, ukey, s.username, s.subcategory, s.category, s.stressval)
 				
 			#write to csv blob and update memcache
 
@@ -477,8 +526,13 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# add to cache (writes should update this cached value)
 			memcache.set('csv', insert_csv.csv)
+			output.close()
 
 			### append to user csv blob
+
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.writer(output, delimiter=',')
 
 			# this will have to change if multiple pages are ever needed (limits?)
 			insert_csv = UserSurveyCSV.all().filter('userid =', s.username).filter('page =', 1).get()
@@ -509,7 +563,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			sha1val = hashedval.hexdigest()
 
 			userhashedval = hashlib.sha1(s.username)
-			usersha1val = hashedval.hexdigest()
+			usersha1val = userhashedval.hexdigest()
 
 			# write csv data row
 			new_row = [
@@ -533,14 +587,82 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 				insert_csv.last_entry_date = s.timestamp
 				insert_csv.count = 1
 				insert_csv.page = 1
+				insert_csv.userid = s.username
 			else:	#if blob exists, append and update
 				insert_csv.csv += output.getvalue()
 				insert_csv.last_entry_date = s.timestamp
 				insert_csv.count += 1
 
 			insert_csv.put()
+			output.close()
 
+			### append to class csv blob
 
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.writer(output, delimiter=',')
+
+			# this will have to change if multiple pages are ever needed (limits?)
+			insert_csv = ClassSurveyCSV.all().filter('classid =', s.classid).filter('page =', 1).get()
+
+			# write header row if csv blob doesnt exist yet
+			if not insert_csv:
+				header_row = [	'id',
+					'userid', 
+					'timestamp',
+					'latitude',
+					'longitude',
+					'stress_value',
+					'category',
+					'subcategory',
+					'comments',
+					'image_url'
+					]
+				writer.writerow(header_row)
+
+			# form image url
+			if s.hasphoto:
+				photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(str(s.key()))
+			sha1val = hashedval.hexdigest()
+
+			userhashedval = hashlib.sha1(s.username)
+			usersha1val = userhashedval.hexdigest()
+
+			# write csv data row
+			new_row = [
+					sha1val,
+					usersha1val,
+					s.timestamp,
+					s.latitude,
+					s.longitude,
+					s.stressval,
+					s.category,
+					s.subcategory,
+					s.comments,
+					photo_url
+					]
+			writer.writerow(new_row)
+
+			# create new blob if one does not exist
+			if not insert_csv:
+				insert_csv = ClassSurveyCSV()
+				insert_csv.csv = str(output.getvalue())
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count = 1
+				insert_csv.page = 1
+				insert_csv.classid = s.classid
+			else:	#if blob exists, append and update
+				insert_csv.csv += output.getvalue()
+				insert_csv.last_entry_date = s.timestamp
+				insert_csv.count += 1
+
+			insert_csv.put()
+			output.close()
 
 			try:
 				# update data page cache with new value, pop oldest value

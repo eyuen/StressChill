@@ -463,6 +463,7 @@ class SurveyData(db.Model):
 	version =	db.StringProperty()
 	hasphoto =	db.BooleanProperty()
 	photo_ref = db.ReferenceProperty(SurveyPhoto)
+	classid = db.StringProperty()
 # End SurveyData Class
 
 # model to hold data blob
@@ -507,8 +508,10 @@ class SubCategoryStat(db.Model):
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, user_subcategory, user_category, value):
-		subcat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).get()
+	def increment_stats(self, key, user_category, user_subcategory, value):
+		subcat = None
+		if key is not None:
+			subcat = db.get(key)
 
 		scount = 0
 		sval = 0
@@ -566,8 +569,10 @@ class DailySubCategoryStat(db.Model):
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, user_subcategory, user_category, user_date, value):
-		subcat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).filter('date =', user_date).get()
+	def increment_stats(self, key, user_subcategory, user_category, user_date, value):
+		subcat = None
+		if key is not None:
+			subcat = db.get(key)
 
 		scount = 0
 		sval = 0
@@ -614,7 +619,10 @@ class DailySubCategoryStat(db.Model):
 
 #model to hold class info
 class ClassList(db.Model):
+	teacher = db.StringProperty()
+	head_teacher = db.BooleanProperty()
 	classid = db.StringProperty()
+	classname = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add=True)
 # End ClassList Class
 
@@ -632,8 +640,11 @@ class UserStat(db.Model):
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, user_id, user_subcategory, user_category, value):
-		userstat = self.all().filter('subcategory =', user_subcategory).filter('category = ', user_category).filter('user_id = ', user_id).get()
+	def increment_stats(self, key, user_id, user_subcategory, user_category, value):
+		userstat = None
+		if key is not None:
+			userstat = db.get(key)
+
 
 		scount = 0
 		sval = 0

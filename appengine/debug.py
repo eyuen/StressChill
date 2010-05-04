@@ -487,48 +487,122 @@ class PopulateUserStat(webapp.RequestHandler):
 				scstat.stress_total = float(subcategories[user_key][subcat_keys]['stress_total'])
 				scstat.chill_count = subcategories[user_key][subcat_keys]['chill_count']
 				scstat.chill_total = float(subcategories[user_key][subcat_keys]['chill_total'])
+				scstat.user_id = user_key
 				scstat.put()
 
-# Populates the user csv
-# this should only be run once to populate the datastore with existing values
-class PopulateUserCSV(webapp.RequestHandler):
+class ShowUserCSV(webapp.RequestHandler):
 	def get(self):
-		# populate stats models
-		for row in result:
-			if categories.has_key(str(row.category)):
-				categories[str(row.category)]['count'] += 1
-				categories[str(row.category)]['total'] += float(row.stressval)
-			else:
-				tmp = {'count':1, 'total':float(row.stressval)}
-				categories[str(row.category)] = tmp
+		ulist = UserStat().all()
 
-			if subcategories.has_key(str(row.subcategory)):
-				subcategories[str(row.subcategory)]['count'] += 1
-				subcategories[str(row.subcategory)]['total'] += float(row.stressval)
-			else:
-				tmp = {	'count':1, 
-					'total':float(row.stressval),
-					'category':str(row.category)}
-				subcategories[str(row.subcategory)] = tmp
+		self.response.out.write('<html><body>\n')
+		self.response.out.write('<form action="/debug/populate_user_csv" method="post">\n')
+		self.response.out.write('<select name="userid">\n')
+		for user in ulist:
+			self.response.out.write('<option value="'+user.user_id+'">'+user.user_id+'</option>\n')
+		self.response.out.write('</select>')
+		self.response.out.write('<input type="submit" name="Submit">')
+		self.response.out.write('</form></body></html>')
 
+# Populates the User csv
+# this should only be run once to populate the datastore with existing values
+# this will have to be reimplemented with the task queue and cursors (or something...) if attempting to run on much larger data sets
+class PopulateUserCSV(webapp.RequestHandler):
+	def post(self):
+		if not self.request.get('userid'):
+			self.error(401, 'No user selected')
+			return
 
-		for cat_keys in categories.keys():
-			cstat = CategoryStat()
-			cstat.category = cat_keys
-			cstat.count = categories[cat_keys]['count']
-			cstat.total = categories[cat_keys]['total']
-			cstat.put()
-			categories[cat_keys]['db_key'] = cstat.key()
-			
-		for subcat_keys in subcategories.keys():
-			scstat = SubCategoryStat()
-			scstat.category = subcategories[subcat_keys]['category']
-			scstat.category_key = categories[subcategories[subcat_keys]['category']]['db_key']
-			scstat.subcategory = subcat_keys
-			scstat.count = subcategories[subcat_keys]['count']
-			scstat.total = subcategories[subcat_keys]['total']
-			scstat.put()
+		q = UserSurveyCSV().all().filter('userid =', self.request.get('userid')).fetch(10)
+		db.delete(q)
 
+		#write to csv blob and update memcache
+		result = SurveyData().all().filter('username =', self.request.get('userid'))
+
+		data = ''
+		count = 0
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		header_row = [	'id',
+			'userid',
+			'timestamp',
+			'latitude',
+			'longitude',
+			'stress_value',
+			'category',
+			'subcategory',
+			'comments',
+			'image_url'
+			]
+		writer.writerow(header_row)
+
+		try:
+			self.response.out.write('<html><body>')
+			res_count = 0
+			for s in result:
+				res_count += 1
+				self.response.out.write(str(count+res_count)+',')
+				self.response.out.write(str(s.timestamp)+',')
+				self.response.out.write(str(s.username)+',')
+				self.response.out.write(str(s.stressval)+'<br/>\n')
+
+				# form image url
+				if s.hasphoto:
+					try:
+						photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
+					except:
+						photo_url = 'no_image'
+
+				else:
+					photo_url = 'no_image'
+
+				hashedval = hashlib.sha1(str(s.key()))
+				sha1val = hashedval.hexdigest()
+
+				usersha1val = 'Anon'
+				if s.username is not None:
+					userhashedval = hashlib.sha1(s.username)
+					usersha1val = userhashedval.hexdigest()
+
+				# write csv data row
+				new_row = [
+						sha1val,
+						usersha1val,
+						s.timestamp,
+						s.latitude,
+						s.longitude,
+						s.stressval,
+						s.category,
+						s.subcategory,
+						s.comments,
+						photo_url
+						]
+				writer.writerow(new_row)
+
+			# append to blob
+			data += str(output.getvalue())
+			count += res_count
+
+			self.response.out.write('</html></body>')
+
+			insert_csv = UserSurveyCSV()
+			insert_csv.csv = db.Text(data)
+			insert_csv.count = count
+			insert_csv.page = 1
+			insert_csv.userid = self.request.get('userid')
+			insert_csv.put()
+			return
+		except DeadlineExceededError:
+			self.response.out.write('deadline exceeded.<br>')
+			return
+
+		return
 
 # Populates the csv
 # this should only be run once to populate the datastore with existing values
@@ -657,7 +731,6 @@ class DeleteDatastore(webapp.RequestHandler):
 	def post(self):
 		self.handler()
 	def handler(self):
-		'''
 		uid_list = []
 		q = UserStat().all().fetch(500)
 		for row in q:
@@ -683,10 +756,66 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = UserSurveyCSV().all().fetch(500)
 		db.delete(q)
+
+		q = SurveyData().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyPhoto().all().fetch(500)
+		db.delete(q)
+
 		memcache.delete('saved')
-		'''
 		memcache.delete('csv')
 
+class CreateClassList(webapp.RequestHandler):
+	def get(self):
+		q = ClassList()
+		q.teacher = 'qTDm3LvAT7VAR2yP'
+		q.classid = 'benainous1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'b76WTLnSXEdDR2N4'
+		q.classid = 'pacheco1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'aNnzndqrLQJgdVJb'
+		q.classid = 'lee1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'aNnzndqrLQJgdVJb'
+		q.classid = 'lee2'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'Epdg7UrLMgZpdy63'
+		q.classid = 'pagan1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'sSZXddQGu3MenSPh'
+		q.classid = 'casas1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'mPT3z3PMJhHdE9PE'
+		q.classid = 'andrews1'
+		q.head_teacher = True
+		q.put()
+
+		q = ClassList()
+		q.teacher = 'VJtQ7tZPySp6Y6St'
+		q.classid = 'testers'
+		q.head_teacher = True
+		q.put()
+		
 
 
 application = webapp.WSGIApplication(
@@ -701,10 +830,12 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_daily_stat', PopulateDailyStat),
 									  ('/debug/populate_stat', PopulateStat),
 									  ('/debug/populate_user_stat', PopulateUserStat),
+									  ('/debug/show_user_csv', ShowUserCSV),
 									  ('/debug/populate_user_csv', PopulateUserCSV),
 									  ('/debug/populate_csv', PopulateCSV),
 									  ('/debug/show_mem_csv.csv', MemCSV),
 									  ('/debug/write_mem_csv', WriteMemCSV),
+									  ('/debug/create_class_list', CreateClassList),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
