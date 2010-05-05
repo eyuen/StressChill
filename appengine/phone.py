@@ -332,7 +332,12 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 		self.paramdict = {}
 		for j in self.request.arguments():
 			self.paramdict[j] = self.request.get(j)
-		logging.debug('parameters received: ' +str(self.paramdict))
+
+		logparam = self.paramdict
+		if logparam['file']:
+			del logparam['file']
+
+		logging.debug('parameters received: ' +str(logparam))
 
 		req_token = self.request.get('oauth_token')
 
@@ -402,7 +407,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					# set reference to photo for SurveyData
 					s.photo_ref = new_photo.key()
 					s.hasphoto = True
-				except TypeError:
+				except:
 					s.photo_ref = None
 					s.hasphoto = False
 			else:
@@ -677,7 +682,6 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 						d.pop()
 					d.appendleft(extract[0])
 					memcache.set('saved', list(d))
-					logging.debug(list(d))
 				else:
 					logging.debug('no cache set')
 			except:

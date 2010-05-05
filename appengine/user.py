@@ -301,8 +301,30 @@ class ConfirmLogin(webapp.RequestHandler):
 				self.redirect('/user/login')
 				return
 			else:
+				# get official class list from memcache if exists
+				classlist = memcache.get('classlist')
+				# if not exist, fetch from datastore
+				if not classlist:
+					cl = ClassList().all()
+
+					classlist = []
+					for c in cl:
+						classlist.append(c.classid)
+
+					# save to memcache to prevent this lookup from happening everytime
+					memcache.set('classlist', classlist)
+
+				# get classid of class, or set to 'tester'
+
+				userclass = UserTable().all().filter('ckey =', uid).get()
+
+				classid = 'testers'
+				if userclass.classid in classlist:
+					classid = user.classid
+
 				sess['username'] = self.request.get('username')
 				sess['userid'] = uid
+				sess['classid'] = classid
 
 				sess['success'] = 'Welcome ' + sess['username']
 				sess.save()
@@ -782,6 +804,32 @@ class UserSummaryHandler(webapp.RequestHandler):
 	# end handle method
 # End SummaryHandler Class
 
+# handler for: /user/user_data_download.csv
+class DownloadClassData(webapp.RequestHandler):
+	# returns csv of all data
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		# check if csv blob exist
+		data_csv = ClassSurveyCSV.all().filter('classid =', sess['classid']).get()
+
+		# if csv blob exist, output
+		if data_csv is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data_csv.csv)
+			return
+
+	# end get method
+# End DownloadAllData
+
+
 
 application = webapp.WSGIApplication(
 									 [
@@ -792,7 +840,8 @@ application = webapp.WSGIApplication(
 									  ('/user/logout', LogoutHandler),
 									  ('/user/delete', SetupDelete),
 									  ('/user/confirm_delete', ConfirmDelete),
-									  ('/user/user_data_download.csv', DownloadUserData)
+									  ('/user/user_data_download.csv', DownloadUserData),
+									  ('/user/class_data_download.csv', DownloadClassData)
 									 ],
 									 debug=True)
 

@@ -735,6 +735,7 @@ class DeleteDatastore(webapp.RequestHandler):
 		self.handler()
 	def handler(self):
 		uid_list = []
+		'''
 		q = UserStat().all().fetch(500)
 		for row in q:
 			uid_list.append(row.user_id)
@@ -757,17 +758,19 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = SurveyCSV().all().fetch(500)
 		db.delete(q)
 
-		q = UserSurveyCSV().all().fetch(500)
-		db.delete(q)
-
 		q = SurveyData().all().fetch(500)
 		db.delete(q)
 
 		q = SurveyPhoto().all().fetch(500)
 		db.delete(q)
 
+		q = UserSurveyCSV().all().fetch(500)
+		db.delete(q)
+		'''
+
 		memcache.delete('saved')
 		memcache.delete('csv')
+		memcache.delete('classlist')
 
 class CreateClassList(webapp.RequestHandler):
 	def get(self):
@@ -959,6 +962,9 @@ class UserPopulateCSVMemcache(webapp.RequestHandler):
 		user_data = {}
 
 		for s in data:
+			if not s['username']:
+				s['username'] = 'Anon'
+
 			if not user_data.has_key(str(s['username'])):
 				user_data[s['username']] = []
 			user_data[s['username']].append(s)
@@ -996,7 +1002,7 @@ class UserPopulateCSVMemcache(webapp.RequestHandler):
 				sha1val = hashedval.hexdigest()
 
 				usersha1val = 'Anon'
-				if s['username'] is not None:
+				if s['username'] is not None and s['username'] != 'Anon':
 					userhashedval = hashlib.sha1(s['username'])
 					usersha1val = userhashedval.hexdigest()
 
@@ -1022,6 +1028,7 @@ class UserPopulateCSVMemcache(webapp.RequestHandler):
 			insert_csv.count = count
 			insert_csv.page = 1
 			insert_csv.userid = key
+			self.response.out.write(str(insert_csv.userid)+': '+str(insert_csv.count)+'<br>\n')
 			insert_csv.put()
 			output.close()
 
@@ -1137,7 +1144,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/data2memcache', Datastore2Memcache),
 									  ('/debug/show_mem_store', ShowMemStore),
 									  ('/debug/populate_all_user_csv', UserPopulateCSVMemcache),
-									  ('/debug/populate_all_class_csv', UserPopulateCSVMemcache),
+									  ('/debug/populate_all_class_csv', ClassPopulateCSVMemcache),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
