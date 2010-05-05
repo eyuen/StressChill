@@ -3,7 +3,6 @@ package edu.ucla.cens.stresschillmap;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,10 +28,8 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
@@ -40,16 +37,16 @@ import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
 public class survey_upload extends Service{
     private survey_db sdb;
-    private SharedPreferences preferences;
 
 	PostThread post;
+
+	public boolean ran = false;
 	private static final String TAG = "SurveyUploadThread";
 
     private static HttpClient httpClient = new DefaultHttpClient();
 
     @Override
     public void onCreate() {
-        preferences = getSharedPreferences(getString(R.string.preferences), Activity.MODE_PRIVATE);
         /* XXX temporarily allow unauthorized upload... (testing and stuff)
         if (!preferences.getBoolean("authenticated", false)) {
             Log.d(TAG, "user is not authenticated... stopping this service");
@@ -59,10 +56,17 @@ public class survey_upload extends Service{
 
 		sdb = new survey_db(this);
 
-        Toast.makeText(this, R.string.surveyuploadstarted, Toast.LENGTH_SHORT).show();
+		//if there are no entries to submit, we should just stop
+		if(!sdb.has_entries()) {
+			Log.d(TAG, "stopping?");
+			stopSelf();
+		} else {
 
-    	post = new PostThread();
-    	post.start();
+			Toast.makeText(this, R.string.surveyuploadstarted, Toast.LENGTH_SHORT).show();
+
+			post = new PostThread();
+			post.start();
+		}
     }
 
 	@Override
@@ -73,27 +77,30 @@ public class survey_upload extends Service{
 	
     @Override
     public void onDestroy() {
-        Toast.makeText(this, R.string.surveyuploadstopped, Toast.LENGTH_SHORT).show();
         Log.d(TAG, "Stopping the thread");
-        post.exit();
+        if(ran) {
+        	post.exit(); 
+        	Toast.makeText(survey_upload.this, R.string.surveyuploadstopped, Toast.LENGTH_SHORT).show();
+        }
+
     }
 	    
 	public class PostThread extends Thread{
 		
 		public Boolean runThread = true;
 		
-		private class PicFiles implements FilenameFilter{
-			public boolean accept(File file, String name) {
-				return (name.endsWith(".jpg"));
-			}	
-		}
-		
 		@Override
 		public void run(){
+			ran = true;
 
 			while(runThread)
 			{
 				Log.d(TAG, "Running the thread");
+				
+				//we need to make sure the gps is trying to get a lock if there are entries which don't have gps loc.
+				if(sdb.has_gpsless_entries()) {
+					survey_upload.this.startService(new Intent(survey_upload.this,light_loc.class));
+				}
 
 				//list all trace files
 				sdb.open();
@@ -141,13 +148,9 @@ public class survey_upload extends Service{
 
 				}
 				//we have finished submitting all samples
-				sdb.open();
-				boolean stop = !sdb.has_gpsless_entries();
-				sdb.close();
 				
-				if(stop) {
+				if(!sdb.has_entries()) {
 					stopService(new Intent(survey_upload.this, light_loc.class));
-	                preferences.edit().putBoolean ("light_loc", false).commit ();
 
 					survey_upload.this.stopSelf();
 				} else { 

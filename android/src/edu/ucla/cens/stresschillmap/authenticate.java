@@ -470,6 +470,8 @@ public class authenticate extends Activity implements Runnable {
         if (true == auth()) {
             ctx.startActivity(new Intent(ctx, home.class));
             Log.d(TAG, "started survey intent");
+            ctx.startService(new Intent(ctx, survey_upload.class));
+            Log.d(TAG, "started survey upload");
             authenticate.this.finish();
             mProgressDialog.dismiss();
         } else {

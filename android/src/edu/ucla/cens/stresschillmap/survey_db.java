@@ -284,6 +284,10 @@ public class survey_db {
         String where_clause = KEY_LONGITUDE + "=\"\"" + " AND " + KEY_LATITUDE + "=\"\"";
 
         int ret = db.update (DATABASE_TABLE, values, where_clause, null);
+        
+		//to notify people who want to know if there are surveys left to upload
+		mCtx.sendBroadcast(new Intent(constants.INTENT_ACTION_SURVEYS_CHANGED));
+        
         return ret;
     }
     
@@ -295,8 +299,21 @@ public class survey_db {
     	return db.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_LONGITUDE, KEY_LATITUDE}, null, null, null, null, null);
     }
     
-    public Boolean has_gpsless_entries() {
-    	Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_LONGITUDE, KEY_LATITUDE}, KEY_LONGITUDE + "=\"\"" + " AND " + KEY_LATITUDE + "=\"\"", null, null, null, null);
-    	return c.getCount() > 0;
+    public boolean has_gpsless_entries() {
+    	this.open();
+    	Cursor cursor = gpsless_entries();
+    	int count = cursor.getCount();
+    	cursor.close();
+    	this.close();
+    	return count > 0;
+    }
+
+	public boolean has_entries() {
+    	this.open();
+    	Cursor cursor = all_entries();
+    	int count = cursor.getCount();
+    	cursor.close();
+    	this.close();
+    	return count > 0;
     }
 }

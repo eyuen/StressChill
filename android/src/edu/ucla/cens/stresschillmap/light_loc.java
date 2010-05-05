@@ -1,21 +1,16 @@
 package edu.ucla.cens.stresschillmap;
 
-import android.os.Bundle;
-import android.os.IBinder;
-import android.content.Intent;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.app.Service;
 import android.app.Activity;
-
-
+import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
-
-import edu.ucla.cens.stresschillmap.survey_db;
-import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
 public class light_loc extends Service {
     private LocationManager lm;
@@ -78,7 +73,6 @@ public class light_loc extends Service {
                 sdb.close();
 
                 if (0 != ret) {
-                    pref.edit ().putBoolean ("light_loc", false).commit ();
                     Log.d (TAG, "stopping location listener service: light_loc");
                     stopSelf ();
                 }

@@ -84,7 +84,6 @@ public class survey extends Activity
 
         /* start location service */
         startService (new Intent(ctx, light_loc.class));
-        preferences.edit().putBoolean ("light_loc", true).commit ();
 
         Log.d(TAG, "gps listener and db are started");
 
@@ -183,12 +182,9 @@ public class survey extends Activity
     @Override
     public void onDestroy() {
     	super.onDestroy();
-    	sdb.open();
         if (!sdb.has_gpsless_entries()) {
             stopService (new Intent(ctx, light_loc.class));
-            preferences.edit().putBoolean ("light_loc", false).commit ();
         }
-        sdb.close();
     }
 
     @Override
@@ -332,11 +328,8 @@ public class survey extends Activity
                                    sr.version + ", " +
                                    sr.photo_filename + ".");
 
-            /* start location service */
-            if (!preferences.getBoolean("light_loc", false)) {
-                startService (new Intent(ctx, light_loc.class));
-                preferences.edit().putBoolean ("light_loc", true).commit ();
-            }
+            /* start location service (wont be restarted if it is already running) */
+            startService (new Intent(ctx, light_loc.class));
             
             // should start the service upload thread when there is actually a survey to upload
             startService(new Intent(ctx, survey_upload.class));
