@@ -1,21 +1,26 @@
 package edu.ucla.cens.stresschillmap;
-import android.os.Bundle;
-import android.util.Log;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.content.Intent;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.widget.Button;
-import android.location.LocationManager;
+import android.widget.TextView;
 
 public class home extends Activity {
     final public static String TAG = "Home Activity";
     private Context ctx;
-
+	private survey_db sdb;
+	
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate (b);
@@ -33,8 +38,41 @@ public class home extends Activity {
 
         ((Button) findViewById (R.id.start_survey)).setOnClickListener (survey_button_listener);
         ((Button) findViewById (R.id.start_map)).setOnClickListener (map_button_listener);
+        
+        sdb = new survey_db(this);
+        
+        set_count();
+        
+		registerReceiver(mSurveysChangedReciever, new IntentFilter(constants.INTENT_ACTION_SURVEYS_CHANGED));
     }
+    
+	private final BroadcastReceiver mSurveysChangedReciever = new BroadcastReceiver() {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+	        set_count();
+		}
+	};
+	
+	public void set_count() {
+        sdb.open();
+        Cursor gpsless_entries = sdb.gpsless_entries();
+        Cursor all_entries = sdb.all_entries();
+        
+        TextView num = ((TextView) home.this.findViewById (R.id.num_surveys));
+        num.setText("There are "+gpsless_entries.getCount()+" surveys waiting for a gps lock \n There are "+all_entries.getCount()+" surveys waiting to upload");
+        
+        gpsless_entries.close();
+        all_entries.close();
+        sdb.close();
+	}
+	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
 
+		unregisterReceiver(mSurveysChangedReciever);
+	}
+	
     private void alert_no_gps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage("Yout GPS seems to be disabled, You need GPS to run this application. do you want to enable it?")
@@ -53,7 +91,8 @@ public class home extends Activity {
         alert.show();
     }
 
-    protected void onActivityResult (int requestCode, int resultCode, Intent data) {
+    @Override
+	protected void onActivityResult (int requestCode, int resultCode, Intent data) {
     }
 
     @Override

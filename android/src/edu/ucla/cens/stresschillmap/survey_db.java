@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -140,6 +141,10 @@ public class survey_db {
         vals.put(KEY_REQUEST_TOKEN, authenticate.tokens.request_token);
 		
 		long rowid = db.insert(DATABASE_TABLE, null, vals);
+		
+		//to notify people who want to know if there are surveys left to upload
+		mCtx.sendBroadcast(new Intent(constants.INTENT_ACTION_SURVEYS_CHANGED));
+		
 		return rowid;
 	}
 	
@@ -148,6 +153,9 @@ public class survey_db {
 		int count = 0;
 		count = db.delete(DATABASE_TABLE, KEY_ROWID+"="+rowId, null);
 		
+		//to notify people who want to know if there are surveys left to upload
+		mCtx.sendBroadcast(new Intent(constants.INTENT_ACTION_SURVEYS_CHANGED));
+
         if(count > 0) {
             return true;
         }
@@ -277,6 +285,14 @@ public class survey_db {
 
         int ret = db.update (DATABASE_TABLE, values, where_clause, null);
         return ret;
+    }
+    
+    public Cursor gpsless_entries() {
+    	return db.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_LONGITUDE, KEY_LATITUDE}, KEY_LONGITUDE + "=\"\"" + " AND " + KEY_LATITUDE + "=\"\"", null, null, null, null);
+    }
+    
+    public Cursor all_entries() {
+    	return db.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_LONGITUDE, KEY_LATITUDE}, null, null, null, null, null);
     }
     
     public Boolean has_gpsless_entries() {
