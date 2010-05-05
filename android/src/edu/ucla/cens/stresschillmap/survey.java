@@ -1,58 +1,38 @@
 package edu.ucla.cens.stresschillmap;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.util.Log;
-
-import android.widget.TextView;
-
-import android.content.Context;
-import android.content.Intent;
-import android.content.DialogInterface;
-import android.content.SharedPreferences;
-
-import android.location.LocationManager;
-import android.location.Location;
-import android.location.Criteria;
-
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.LayoutInflater;
-
-import android.widget.ImageView;
-import android.widget.Button;
-import android.widget.ImageButton;
-import android.widget.EditText;
-import android.widget.Toast;
-import android.widget.CheckBox;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
-import android.widget.AdapterView;
-import android.app.AlertDialog;
-import android.app.Dialog;
-       
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Bitmap.CompressFormat;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Iterator;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Date;
 
-import edu.ucla.cens.stresschillmap.light_loc;
-import edu.ucla.cens.stresschillmap.survey_db;
-import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
-
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.CompressFormat;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
 
 public class survey extends Activity
 {
@@ -60,7 +40,7 @@ public class survey extends Activity
     private final String PIC_DATA_PATH = "/sdcard/stbpics";
     
     private Context ctx;
-    private String TAG = "Survey";
+    private final String TAG = "Survey";
     private Button take_picture;
     private Button submit_button;
     //private Button clear_history;
@@ -71,8 +51,8 @@ public class survey extends Activity
     private SharedPreferences preferences;
     private TextView stress_value;
     private SeekBar seek_bar;
-    private View[][] view_list = new View[8][2];
-    private Spinner[] spinner = new Spinner[8];
+    private final View[][] view_list = new View[8][2];
+    private final Spinner[] spinner = new Spinner[8];
     private TextView comment;
 
     /** Called when the activity is first created. */
@@ -199,6 +179,17 @@ public class survey extends Activity
 
         return;
     }
+    
+    @Override
+    public void onDestroy() {
+    	super.onDestroy();
+    	sdb.open();
+        if (!sdb.has_gpsless_entries()) {
+            stopService (new Intent(ctx, light_loc.class));
+            preferences.edit().putBoolean ("light_loc", false).commit ();
+        }
+        sdb.close();
+    }
 
     @Override
     public boolean onCreateOptionsMenu (Menu m) {
@@ -255,7 +246,8 @@ public class survey extends Activity
 
     // if this activity gets killed for any reason, save the status of the
     // check boxes so that they are filled in the next time it gets run
-    public void onSaveInstanceState(Bundle savedInstanceState) {
+    @Override
+	public void onSaveInstanceState(Bundle savedInstanceState) {
         savedInstanceState.putBoolean("started", true);
         savedInstanceState.putString("filename", filename);
 
@@ -345,6 +337,10 @@ public class survey extends Activity
                 startService (new Intent(ctx, light_loc.class));
                 preferences.edit().putBoolean ("light_loc", true).commit ();
             }
+            
+            // should start the service upload thread when there is actually a survey to upload
+            startService(new Intent(ctx, survey_upload.class));
+            Log.d(TAG, "started survey upload intent");
 
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
@@ -388,7 +384,7 @@ public class survey extends Activity
         }
     };
 
-    private Spinner.OnItemSelectedListener spin_listener_0 = new Spinner.OnItemSelectedListener() {
+    private final Spinner.OnItemSelectedListener spin_listener_0 = new Spinner.OnItemSelectedListener() {
         public void onItemSelected(AdapterView parent, View v, int position, long id) {
             for (int i = 0; i < 2; i++) {
                 view_list[position][i].setVisibility (View.VISIBLE);
@@ -403,7 +399,8 @@ public class survey extends Activity
         public void onNothingSelected(AdapterView parent) { }
     };
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    @Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch(requestCode) {
         case ACTIVITY_CAPTURE_PHOTO:
             if (RESULT_CANCELED != resultCode) {

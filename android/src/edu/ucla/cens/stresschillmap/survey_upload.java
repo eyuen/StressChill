@@ -7,8 +7,27 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
-import java.net.URL;
+import java.util.ArrayList;
+import java.util.Map;
+
+import net.oauth.OAuth;
+import net.oauth.OAuthAccessor;
+import net.oauth.OAuthConsumer;
+import net.oauth.OAuthException;
+import net.oauth.OAuthMessage;
+import net.oauth.OAuthServiceProvider;
+import net.oauth.client.OAuthClient;
+import net.oauth.client.httpclient4.HttpClient4;
+import net.oauth.http.HttpMessage;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
 import android.app.Service;
@@ -17,45 +36,7 @@ import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
-
-import net.oauth.OAuth;
-import net.oauth.OAuthAccessor;
-import net.oauth.OAuthConsumer;
-import net.oauth.OAuthServiceProvider;
-import net.oauth.OAuthException;
-import net.oauth.OAuthMessage;
-import net.oauth.client.OAuthClient;
-import net.oauth.client.OAuthResponseMessage;
-import net.oauth.client.httpclient4.HttpClient4;
-import net.oauth.http.HttpMessageDecoder;
-import net.oauth.http.HttpResponseMessage;
-import net.oauth.http.HttpMessage;
-
-
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.HttpStatus;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.CoreConnectionPNames;
-import org.apache.http.params.HttpParams;
-
-
-import edu.ucla.cens.stresschillmap.survey_db;
 import edu.ucla.cens.stresschillmap.survey_db.survey_db_row;
-import edu.ucla.cens.stresschillmap.authenticate.token_store;
 
 public class survey_upload extends Service{
     private survey_db sdb;
@@ -107,66 +88,77 @@ public class survey_upload extends Service{
 			}	
 		}
 		
+		@Override
 		public void run(){
 
-			try {
-				while(runThread)
-				{
-					this.sleep(10000);
-					Log.d(TAG, "Running the thread");
-
-					//list all trace files
-			        sdb.open();
-					ArrayList<survey_db_row> sr_list = sdb.fetch_all_completed_entries();
-					sdb.close();
-					
-	                Log.d(TAG, "Points to submit: " + Integer.toString(sr_list.size()));
-                    Log.d(TAG, "uploading to: " + getString(R.string.surveyuploadurl));
-                    Log.d(TAG, "version: " + getString(R.string.version));
-
-					for (int i=0; i < sr_list.size(); i++)
-					{
-						survey_db_row sr = sr_list.get(i);
-						File file = null;
-						if ((sr.photo_filename != null) && (!sr.photo_filename.toString().equals(""))) {
-                            Log.d(TAG, "FILENAME: is not null/empty");
-							file = new File(sr.photo_filename.toString());
-                        } else {
-                            Log.d(TAG, "FILENAME: IS NULL");
-                        }
-                        Log.d(TAG, "FILENAME: " + sr.photo_filename);
-						try
-						{
-							if(doPost2(getString(R.string.surveyuploadurl),
-                                      sr.q_int, sr.q_cat, sr.q_sub, sr.q_com,
-                                      sr.longitude, sr.latitude,
-                                      sr.time, sr.version, sr.photo_filename,
-                                      sr.access_token, sr.token_secret,
-                                      sr.request_token))
-							{
-								if(file != null) {
-									file.delete();
-								}
-						        sdb.open();
-								sdb.deleteEntry(sr.row_id);
-						        sdb.close();
-							}
-						}
-						catch (IOException e) 
-						{
-							// TODO Auto-generated catch block
-							Log.d(TAG, "threw an IOException for sending file.");
-							e.printStackTrace();
-						}
-						this.sleep(1000);
-					}
-				} 
-			}
-			catch (InterruptedException e) 
+			while(runThread)
 			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+				Log.d(TAG, "Running the thread");
+
+				//list all trace files
+				sdb.open();
+				ArrayList<survey_db_row> sr_list = sdb.fetch_all_completed_entries();
+				sdb.close();
+
+				Log.d(TAG, "Points to submit: " + Integer.toString(sr_list.size()));
+				Log.d(TAG, "uploading to: " + getString(R.string.surveyuploadurl));
+				Log.d(TAG, "version: " + getString(R.string.version));
+
+				for (int i=0; i < sr_list.size(); i++)
+				{
+					survey_db_row sr = sr_list.get(i);
+					File file = null;
+					if ((sr.photo_filename != null) && (!sr.photo_filename.toString().equals(""))) {
+						Log.d(TAG, "FILENAME: is not null/empty");
+						file = new File(sr.photo_filename.toString());
+					} else {
+						Log.d(TAG, "FILENAME: IS NULL");
+					}
+					Log.d(TAG, "FILENAME: " + sr.photo_filename);
+					try
+					{
+						if(doPost2(getString(R.string.surveyuploadurl),
+								sr.q_int, sr.q_cat, sr.q_sub, sr.q_com,
+								sr.longitude, sr.latitude,
+								sr.time, sr.version, sr.photo_filename,
+								sr.access_token, sr.token_secret,
+								sr.request_token))
+						{
+							if(file != null) {
+								file.delete();
+							}
+							sdb.open();
+							sdb.deleteEntry(sr.row_id);
+							sdb.close();
+						}
+					}
+					catch (IOException e) 
+					{
+						// TODO Auto-generated catch block
+						Log.d(TAG, "threw an IOException for sending file.");
+						e.printStackTrace();
+					}
+
+				}
+				//we have finished submitting all samples
+				sdb.open();
+				boolean stop = !sdb.has_gpsless_entries();
+				sdb.close();
+				
+				if(stop) {
+					stopService(new Intent(survey_upload.this, light_loc.class));
+	                preferences.edit().putBoolean ("light_loc", false).commit ();
+
+					survey_upload.this.stopSelf();
+				} else { 
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			} 
 		}
 	
 		public void exit()

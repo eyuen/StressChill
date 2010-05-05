@@ -1,64 +1,40 @@
 package edu.ucla.cens.stresschillmap;
 
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.BufferedReader;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.entity.mime.content.StringBody;
-
-
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.app.ProgressDialog;
-
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.Context;
-
-import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
-
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.Button;
-import android.widget.Toast;
-
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.os.Looper;
-import android.util.Log;
-
-import android.net.Uri;
-
-import java.util.*;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Map;
 
 import net.oauth.OAuth;
 import net.oauth.OAuthAccessor;
 import net.oauth.OAuthConsumer;
-import net.oauth.OAuthServiceProvider;
 import net.oauth.OAuthException;
 import net.oauth.OAuthMessage;
-import net.oauth.OAuthProblemException;
+import net.oauth.OAuthServiceProvider;
 import net.oauth.client.OAuthClient;
 import net.oauth.client.OAuthResponseMessage;
 import net.oauth.client.httpclient4.HttpClient4;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.os.Looper;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
 
 public class authenticate extends Activity implements Runnable {
     private Context ctx;
@@ -494,8 +470,6 @@ public class authenticate extends Activity implements Runnable {
         if (true == auth()) {
             ctx.startActivity(new Intent(ctx, home.class));
             Log.d(TAG, "started survey intent");
-            startService(new Intent(ctx, survey_upload.class));
-            Log.d(TAG, "started survey upload intent");
             authenticate.this.finish();
             mProgressDialog.dismiss();
         } else {

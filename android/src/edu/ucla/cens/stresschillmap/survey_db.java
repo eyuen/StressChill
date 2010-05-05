@@ -2,7 +2,6 @@ package edu.ucla.cens.stresschillmap;
 
 import java.util.ArrayList;
 
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -278,5 +277,10 @@ public class survey_db {
 
         int ret = db.update (DATABASE_TABLE, values, where_clause, null);
         return ret;
+    }
+    
+    public Boolean has_gpsless_entries() {
+    	Cursor c = db.query(DATABASE_TABLE, new String[] {KEY_ROWID, KEY_LONGITUDE, KEY_LATITUDE}, KEY_LONGITUDE + "=\"\"" + " AND " + KEY_LATITUDE + "=\"\"", null, null, null, null);
+    	return c.getCount() > 0;
     }
 }
