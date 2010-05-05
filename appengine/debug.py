@@ -606,6 +606,9 @@ class PopulateUserCSV(webapp.RequestHandler):
 
 # Populates the csv
 # this should only be run once to populate the datastore with existing values
+# this will only work while the number of rows is not so high that it will not fit in memcache
+# once row count gets very high, will probably have to write to a TextProperty instead
+# this was not meant to be done very frequently anyway...
 class PopulateCSV(webapp.RequestHandler):
 	def get(self):
 		#write to csv blob and update memcache
@@ -768,54 +771,349 @@ class DeleteDatastore(webapp.RequestHandler):
 
 class CreateClassList(webapp.RequestHandler):
 	def get(self):
-		q = ClassList()
-		q.teacher = 'qTDm3LvAT7VAR2yP'
-		q.classid = 'benainous1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'benainous1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'qTDm3LvAT7VAR2yP'
+			q.classid = 'benainous1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'b76WTLnSXEdDR2N4'
-		q.classid = 'pacheco1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'pacheco1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'b76WTLnSXEdDR2N4'
+			q.classid = 'pacheco1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'aNnzndqrLQJgdVJb'
-		q.classid = 'lee1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'lee1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'aNnzndqrLQJgdVJb'
+			q.classid = 'lee1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'aNnzndqrLQJgdVJb'
-		q.classid = 'lee2'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'lee2').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'aNnzndqrLQJgdVJb'
+			q.classid = 'lee2'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'Epdg7UrLMgZpdy63'
-		q.classid = 'pagan1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'pagan1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'Epdg7UrLMgZpdy63'
+			q.classid = 'pagan1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'sSZXddQGu3MenSPh'
-		q.classid = 'casas1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'casas1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'sSZXddQGu3MenSPh'
+			q.classid = 'casas1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'mPT3z3PMJhHdE9PE'
-		q.classid = 'andrews1'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'andrews1').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'mPT3z3PMJhHdE9PE'
+			q.classid = 'andrews1'
+			q.head_teacher = True
+			q.put()
 
-		q = ClassList()
-		q.teacher = 'VJtQ7tZPySp6Y6St'
-		q.classid = 'testers'
-		q.head_teacher = True
-		q.put()
+		q = ClassList().all().filter('classid =', 'testers').get()
+		if not q:
+			q = ClassList()
+			q.teacher = 'VJtQ7tZPySp6Y6St'
+			q.classid = 'testers'
+			q.head_teacher = True
+			q.put()
 		
+# this will only work while the number of rows is not so high that it will not fit in memcache
+# once row count gets very high, will probably have to write to a TextProperty instead
+# this was not meant to be done very frequently anyway...
+# saves SurveyData to memcache to preform operations on the entire datastore
+class Datastore2Memcache(webapp.RequestHandler):
+	def get(self):
+		#write to csv blob and update memcache
+		result = SurveyData().all()
+
+		data = []
+		count = 0
+
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		if self.request.get('cursor'):
+			result.with_cursor(self.request.get('cursor'))
+			data = memcache.get('datastore_all')
+			count = memcache.get('datastore_count')
+
+		try:
+			self.response.out.write('<html><body>')
+			res_count = 0
+			for s in result.fetch(100):
+				res_count += 1
+				self.response.out.write(str(count+res_count)+',')
+				self.response.out.write(str(s.timestamp)+',')
+				self.response.out.write(str(s.username)+',')
+				self.response.out.write(str(s.stressval)+'<br/>\n')
+
+				if s.classid not in classlist:
+					s.classid = 'testers'
+					s.put()
+
+				photo_ref = None
+				if s.hasphoto:
+					try:
+						photo_ref = str(s.photo_ref.key())
+					except:
+						pass
+
+				new_row = {
+						'key':str(s.key()),
+						'username':s.username,
+						'classid':s.classid,
+						'timestamp':s.timestamp,
+						'latitude':s.latitude,
+						'longitude':s.longitude,
+						'stressval':s.stressval,
+						'category':s.category,
+						'subcategory':s.subcategory,
+						'comments':s.comments,
+						'photo_ref':photo_ref,
+						'hasphoto':s.hasphoto,
+						'version':s.version
+						}
+				data.append(new_row)
+
+			count += res_count
+
+			memcache.set('datastore_all', data)
+			memcache.set('datastore_count', count)
+
+			cursor = result.cursor()
+			if cursor is not None and cursor != self.request.get('cursor'):
+				self.response.out.write('<a href="/debug/data2memcache?cursor='+cursor+'">click to continue</a>')
+			self.response.out.write('</html></body>')
+			return
+		except DeadlineExceededError:
+			self.response.out.write('deadline exceeded.<br>')
+			self.response.out.write('<a href="/debug/data2memcache?cursor='+self.request.get('cursor')+'">click to retry</a>')
+			return
+
+		return
+
+class ShowMemStore(webapp.RequestHandler):
+	def get(self):
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			return
+
+		self.response.out.write('<html><body><pre>')
+		for s in data:
+			self.response.out.write(str(s)+'<br />\n')
+			'''
+			self.response.out.write(str(s['timestamp'])+',')
+			self.response.out.write(str(s['username'])+',')
+			self.response.out.write(str(s['category'])+',')
+			self.response.out.write(str(s['subcategory'])+',')
+			self.response.out.write(str(s['stressval'])+'<br/>\n')
+			'''
+		self.response.out.write('</pre></body></html>')
+		return
+
+# Populates user csv from memcache
+# this should only be run once to populate the datastore with existing values
+class UserPopulateCSVMemcache(webapp.RequestHandler):
+	def get(self):
+		# get data from memcache if exist, exit if none
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			return
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		#form user csvs
+		user_data = {}
+
+		for s in data:
+			if not user_data.has_key(str(s['username'])):
+				user_data[s['username']] = []
+			user_data[s['username']].append(s)
+
+		for key,user in user_data.iteritems():
+			output = cStringIO.StringIO()
+			writer = csv.writer(output, delimiter=',')
+
+			header_row = [	'id',
+				'userid',
+				'timestamp',
+				'latitude',
+				'longitude',
+				'stress_value',
+				'category',
+				'subcategory',
+				'comments',
+				'image_url'
+				]
+			writer.writerow(header_row)
+
+			count = 0
+			for s in user:
+				# form image url
+				if s['hasphoto']:
+					try:
+						photo_url = 'http://' + base_url + "/get_an_image?key="+s['photo_ref']
+					except:
+						photo_url = 'no_image'
+
+				else:
+					photo_url = 'no_image'
+
+				hashedval = hashlib.sha1(s['key'])
+				sha1val = hashedval.hexdigest()
+
+				usersha1val = 'Anon'
+				if s['username'] is not None:
+					userhashedval = hashlib.sha1(s['username'])
+					usersha1val = userhashedval.hexdigest()
+
+				# write csv data row
+				new_row = [
+						sha1val,
+						usersha1val,
+						s['timestamp'],
+						s['latitude'],
+						s['longitude'],
+						s['stressval'],
+						s['category'],
+						s['subcategory'],
+						s['comments'],
+						photo_url
+						]
+				writer.writerow(new_row)
+				count += 1
+			q = UserSurveyCSV().all().filter('userid =', key).fetch(10)
+			db.delete(q)
+			insert_csv = UserSurveyCSV()
+			insert_csv.csv = db.Text(output.getvalue())
+			insert_csv.count = count
+			insert_csv.page = 1
+			insert_csv.userid = key
+			insert_csv.put()
+			output.close()
+
+		return
+
+# Populates class csv from memcache
+# this should only be run once to populate the datastore with existing values
+class ClassPopulateCSVMemcache(webapp.RequestHandler):
+	def get(self):
+		# get data from memcache if exist, exit if none
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			return
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		#form user csvs
+		class_data = {}
+
+		for s in data:
+			if not class_data.has_key(str(s['classid'])):
+				class_data[s['classid']] = []
+			class_data[s['classid']].append(s)
+
+		for key,classes in class_data.iteritems():
+			output = cStringIO.StringIO()
+			writer = csv.writer(output, delimiter=',')
+
+			header_row = [	'id',
+				'userid',
+				'timestamp',
+				'latitude',
+				'longitude',
+				'stress_value',
+				'category',
+				'subcategory',
+				'comments',
+				'image_url'
+				]
+			writer.writerow(header_row)
+
+			count = 0
+			for s in classes:
+				# form image url
+				if s['hasphoto']:
+					try:
+						photo_url = 'http://' + base_url + "/get_an_image?key="+s['photo_ref']
+					except:
+						photo_url = 'no_image'
+
+				else:
+					photo_url = 'no_image'
+
+				hashedval = hashlib.sha1(s['key'])
+				sha1val = hashedval.hexdigest()
+
+				usersha1val = 'Anon'
+				if s['username'] is not None:
+					userhashedval = hashlib.sha1(s['username'])
+					usersha1val = userhashedval.hexdigest()
+
+				# write csv data row
+				new_row = [
+						sha1val,
+						usersha1val,
+						s['timestamp'],
+						s['latitude'],
+						s['longitude'],
+						s['stressval'],
+						s['category'],
+						s['subcategory'],
+						s['comments'],
+						photo_url
+						]
+				writer.writerow(new_row)
+				count += 1
+			q = ClassSurveyCSV().all().filter('classid =', key).fetch(10)
+			db.delete(q)
+			insert_csv = ClassSurveyCSV()
+			insert_csv.csv = db.Text(output.getvalue())
+			insert_csv.count = count
+			insert_csv.page = 1
+			insert_csv.classid = key
+			insert_csv.put()
+			output.close()
+
+		return
 
 
 application = webapp.WSGIApplication(
@@ -836,6 +1134,10 @@ application = webapp.WSGIApplication(
 									  ('/debug/show_mem_csv.csv', MemCSV),
 									  ('/debug/write_mem_csv', WriteMemCSV),
 									  ('/debug/create_class_list', CreateClassList),
+									  ('/debug/data2memcache', Datastore2Memcache),
+									  ('/debug/show_mem_store', ShowMemStore),
+									  ('/debug/populate_all_user_csv', UserPopulateCSVMemcache),
+									  ('/debug/populate_all_class_csv', UserPopulateCSVMemcache),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
