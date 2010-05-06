@@ -95,7 +95,7 @@ public class register extends Activity implements Runnable {
     et_pass = (EditText) findViewById(R.id.password);
     et_pass2 = (EditText) findViewById(R.id.password2);
     et_user = (EditText) findViewById(R.id.user_input);
-    et_classid = (EditText) findViewById(R.id.classid);
+    et_classid = (EditText) findViewById(R.id.classid_et);
     submit = (Button) findViewById(R.id.login);
     ctx = register.this;
 
