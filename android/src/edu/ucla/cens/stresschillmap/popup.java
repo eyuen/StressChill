@@ -88,7 +88,7 @@ public class popup extends Activity {
 
         Log.d("POPUP", "about to set values from appspot");
 
-        WebView wv = (WebView) findViewById (R.id.image);
+        WebView wv = (WebView) findViewById (R.id.image_wv);
         wv.getSettings().setJavaScriptEnabled(false);
         wv.loadUrl(photo);
         Log.d("POPUP", "loaded url: " + photo);
