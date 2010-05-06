@@ -54,6 +54,7 @@ public class survey extends Activity
     private final View[][] view_list = new View[8][2];
     private final Spinner[] spinner = new Spinner[8];
     private TextView comment;
+    private final String image_button_alt_text = "Retake Your Picture";
 
     /** Called when the activity is first created. */
     @Override
@@ -397,6 +398,7 @@ public class survey extends Activity
         switch(requestCode) {
         case ACTIVITY_CAPTURE_PHOTO:
             if (RESULT_CANCELED != resultCode) {
+                take_picture.setText (image_button_alt_text);
                 Bitmap image = (Bitmap) data.getExtras().get("data");
 
                 Date date = new Date();
