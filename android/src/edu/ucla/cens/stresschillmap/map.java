@@ -121,6 +121,7 @@ public class map extends MapActivity {
         if (null != location_overlay) {
             location_overlay.disableMyLocation();
         }
+        map.this.finish();
         super.onStop();
     }
 

@@ -337,8 +337,8 @@ public class survey extends Activity
 
             // restart this view
             Toast.makeText(survey.this, "Survey successfully submitted!", Toast.LENGTH_LONG).show();
-            ctx.startActivity (new Intent(ctx, home.class));
-            //survey.this.finish();
+            //ctx.startActivity (new Intent(ctx, home.class));
+            survey.this.finish();
         }
     };
 
