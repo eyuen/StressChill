@@ -111,16 +111,19 @@
         android:text="Save for next time."/>
     <Button
         android:id="@+id/login"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Login" 
+        android:layout_width="140sp"
+        android:layout_height="65sp"
+        android:text="Login"
+        android:textStyle="bold"
+        android:textSize="20sp"
         android:layout_below="@+id/password2"
         android:layout_alignParentRight="true"/>
     <Button
         android:id="@+id/register"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Register" 
+        android:layout_width="140sp"
+        android:layout_height="65sp"
+        android:text="Register"
+        android:textSize="18sp"
         android:layout_below="@+id/login"
         android:layout_alignParentRight="true"/>
 
