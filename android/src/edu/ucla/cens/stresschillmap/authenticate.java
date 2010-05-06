@@ -120,7 +120,6 @@ public class authenticate extends Activity implements Runnable {
                 user = et_user.getText().toString();
                 pass1 = et_pass.getText().toString();
                 save_login = cb_save_login.isChecked();
-                Intent i = new Intent(ctx, authenticate.class);
 
                 if (save_login) {
                     preferences.edit().putString("user", user)
@@ -477,6 +476,9 @@ public class authenticate extends Activity implements Runnable {
         } else {
             mProgressDialog.dismiss();
             Log.d(TAG, "handler(): login failed... calling auth_failed()");
+
+            /* dont save an incorrect password... */
+            preferences.edit().putString("pass", "").commit();
             auth_failed();
         }
 
