@@ -153,9 +153,9 @@ public class survey_upload extends Service{
 					stopService(new Intent(survey_upload.this, light_loc.class));
 
 					survey_upload.this.stopSelf();
-				} else { 
+				} else {
 					try {
-						Thread.sleep(1000);
+						Thread.sleep(30*1000);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
