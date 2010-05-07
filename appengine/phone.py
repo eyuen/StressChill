@@ -687,7 +687,6 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			except:
 				logging.debug('cache write failed')
 
-
 			try:
 				# update user data page cache with new value, pop oldest value
 				cache_name = 'data_' + s.username
@@ -703,8 +702,24 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					d.appendleft(extract[0])
 					memcache.set(cache_name, list(d))
 			except:
-				logging.debug('cache write failed')
+				logging.debug('user cache write failed')
 
+			try:
+				# update class data page cache with new value, pop oldest value
+				cache_name = 'class_' + s.classid
+				saved = memcache.get(cache_name)
+				logging.debug('updating class cache: ' + cache_name)
+				if saved is not None:
+					s_list = []
+					s_list.append(s)
+					extract = helper.extract_surveys(s_list)
+					d = deque(saved)
+					if len(saved) >= 5*PAGE_SIZE:
+						d.pop()
+					d.appendleft(extract[0])
+					memcache.set(cache_name, list(d))
+			except:
+				logging.debug('class cache write failed')
 
 			# we should convert the dict to a list so this is easier to do
 			try:

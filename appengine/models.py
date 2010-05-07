@@ -280,6 +280,7 @@ class UserTable(db.Model):
 	classid = db.StringProperty()
 	created= db.IntegerProperty(default=long(time()))
 	admin = db.BooleanProperty(default=False)
+	teacher = db.BooleanProperty(default=False)
 
 	# username: proposed username, string
 	# password: plaintext password, string
@@ -447,6 +448,7 @@ class SurveyPhoto(db.Model):
 	photo = db.BlobProperty()
 	thumb = db.BlobProperty()
 	timestamp =	db.DateTimeProperty(auto_now=True)
+	flagged = db.BooleanProperty(default=False)
 # End SurveyPhoto Class
 
 # model to hold survey data
@@ -464,6 +466,25 @@ class SurveyData(db.Model):
 	hasphoto =	db.BooleanProperty()
 	photo_ref = db.ReferenceProperty(SurveyPhoto)
 	classid = db.StringProperty()
+	flagged = db.BooleanProperty(default=False)
+# End SurveyData Class
+
+# model to hold quarantined survey data
+class QuarantineSurveyData(db.Model):
+	user = db.ReferenceProperty(UserTable)
+	username = db.StringProperty()
+	timestamp =	db.DateTimeProperty(auto_now=True)
+	longitude =	db.StringProperty()
+	latitude =	db.StringProperty()
+	stressval =	db.FloatProperty()
+	comments =	db.TextProperty()
+	category =	db.StringProperty()
+	subcategory = db.StringProperty()
+	version =	db.StringProperty()
+	hasphoto =	db.BooleanProperty()
+	photo_ref = db.ReferenceProperty(SurveyPhoto)
+	classid = db.StringProperty()
+	flagged = db.BooleanProperty(default=False)
 # End SurveyData Class
 
 # model to hold data blob

@@ -7,11 +7,15 @@ from google.appengine.ext.webapp import template
 import gmemsess
 
 from datastore import *
+import re
 
 ### date time stuff
 
 # from python tzinfo docs
 ZERO = datetime_module.timedelta(0)
+PAGE_SIZE = 20
+
+
 class UTC_tzinfo(datetime_module.tzinfo):
 	"""UTC"""
 
@@ -179,3 +183,130 @@ def render(parent_request_handler, path, values):
 	return template.render(path, values)	
 
 # end render function
+
+# get data page
+# display data in table format
+def get_data_page(template_values, cache_name, filter_field = None, filter_value = None, bookmark = None, page = 1):
+	forward = True
+
+	# fetch cached values if any
+	saved = None
+	extracted = None
+
+	query = SurveyData.all()
+
+	if filter_field is not None and filter_value is not None:
+		query.filter(filter_field, filter_value)
+
+	# if page set, and page in range, get page for cache
+	if page > 0 and page <=5: 
+		saved = memcache.get(cache_name)
+		logging.debug('get from cache: '+str(cache_name))
+
+		# if not in cache, try fetching from datastore
+		if not saved:
+			logging.debug('cache miss, populate')
+			# get 5 pages of most recent records and cache
+			#surveys = SurveyData.all().filter(filter_field, filter_value).order('-timestamp').fetch(PAGE_SIZE*5 + 1)
+			surveys = query.order('-timestamp').fetch(PAGE_SIZE*5 + 1)
+			saved = extract_surveys (surveys)
+			# if values returned, save in cache
+			if surveys is not None:
+				memcache.set(cache_name, saved)
+
+		# if data, setup display 
+		if saved:
+			# get page
+			extracted = get_page_from_cache(saved, page, PAGE_SIZE)
+
+			logging.debug(len(extracted))
+
+			# if got page
+			if extracted is not None:
+				if len(extracted) == PAGE_SIZE + 1:
+					template_values['next'] = str(extracted[-1]['realtime'])
+					template_values['nextpage'] = page + 1
+					extracted = extracted[:PAGE_SIZE-1]
+
+				# if not on first page, setup back  
+				if page > 1:
+					template_values['back'] = str(extracted[0]['realtime'])
+					template_values['backpage'] = page - 1
+
+
+	else: # pages beyond 5th not cached
+		logging.debug('not using cache')
+		# determine direction to retreive records
+		# if starts with '-', going backwards
+		if bookmark.startswith('-'):
+			forward = False
+			bookmark = bookmark[1:]
+		
+		# if bookmark set, retrieve page relative to bookmark
+		if bookmark:
+			# string to datetime code from:
+			#	http://aralbalkan.com/1512
+			m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
+				str(bookmark))
+			datestr, fractional, tzname, tzhour, tzmin = m.groups()
+			if tzname is None:
+				tz = None
+			else:
+				tzhour, tzmin = int(tzhour), int(tzmin)
+				if tzhour == tzmin == 0:
+					tzname = 'UTC'
+				tz = FixedOffset(timedelta(hours=tzhour,
+										   minutes=tzmin), tzname)
+			x = datetime_module.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+			if fractional is None:
+				fractional = '0'
+				fracpower = 6 - len(fractional)
+				fractional = float(fractional) * (10 ** fracpower)
+			dt = x.replace(microsecond=int(fractional), tzinfo=tz)
+
+
+			if forward:
+				#surveys = SurveyData.all().filter(filter_field, filter_value).filter('timestamp <', dt).order('-timestamp').fetch(PAGE_SIZE+1)
+				surveys = query.filter('timestamp <', dt).order('-timestamp').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to display
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['next'] = str(surveys[-2].timestamp)
+					if page is not None:
+						logging.debug(page)
+						template_values['nextpage'] = page + 1
+					surveys = surveys[:PAGE_SIZE]
+
+				# if bookmark set, assume there was a back page
+				template_values['back'] = '-'+str(surveys[0].timestamp)
+				if page is not None:
+					template_values['backpage'] = page - 1
+			else:
+				#surveys = SurveyData.all().filter(filter_field, filter_value).filter('timestamp >', dt).order('timestamp').fetch(PAGE_SIZE+1)
+				surveys = query.filter('timestamp >', dt).order('timestamp').fetch(PAGE_SIZE+1)
+				# if PAGE_SIZE + 1 rows returned, more pages to diplay
+				if len(surveys) == PAGE_SIZE + 1:
+					template_values['back'] = '-'+str(surveys[-2].timestamp)
+					if page is not None:
+						template_values['backpage'] = page - 1
+					surveys = surveys[:PAGE_SIZE]
+				# if bookmark set, assume there is a next page
+				template_values['next'] = str(surveys[0].timestamp)
+				if page is not None:
+					template_values['nextpage'] = page + 1
+				# reverse order of results since they were returned backwards by query
+				surveys.reverse()
+		else: # if no bookmark set, retrieve first records
+			#surveys = SurveyData.all().filter(filter_field, filter_value).order('-timestamp').fetch(PAGE_SIZE+1)
+			surveys = query.order('-timestamp').fetch(PAGE_SIZE+1)
+			if len(surveys) == PAGE_SIZE + 1:
+				template_values['next'] = str(surveys[-2].timestamp)
+				template_values['nextpage'] = 2
+				surveys = surveys[:PAGE_SIZE]
+
+		extracted = extract_surveys (surveys)
+
+	template_values['surveys'] = extracted 
+
+	return
+# end get method
+# End UserDataByDatePage Class

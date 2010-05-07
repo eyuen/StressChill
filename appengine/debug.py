@@ -728,50 +728,6 @@ class WriteMemCSV(webapp.RequestHandler):
 			insert_csv.put()
 		return
 
-class DeleteDatastore(webapp.RequestHandler):
-	def get(self):
-		self.handler()
-	def post(self):
-		self.handler()
-	def handler(self):
-		uid_list = []
-		'''
-		q = UserStat().all().fetch(500)
-		for row in q:
-			uid_list.append(row.user_id)
-		db.delete(q)
-
-		for row in uid_list:
-			if row is not None:
-				cache_name = 'data_' + row
-				memcache.delete(cache_name)
-
-		q = DailySubCategoryStat().all().fetch(500)
-		db.delete(q)
-
-		q = SubCategoryStat().all().fetch(500)
-		db.delete(q)
-
-		q = UserSurveyCSV().all().fetch(500)
-		db.delete(q)
-
-		q = SurveyCSV().all().fetch(500)
-		db.delete(q)
-
-		q = SurveyData().all().fetch(500)
-		db.delete(q)
-
-		q = SurveyPhoto().all().fetch(500)
-		db.delete(q)
-
-		q = UserSurveyCSV().all().fetch(500)
-		db.delete(q)
-		'''
-
-		memcache.delete('saved')
-		memcache.delete('csv')
-		memcache.delete('classlist')
-
 class CreateClassList(webapp.RequestHandler):
 	def get(self):
 		q = ClassList().all().filter('classid =', 'benainous1').get()
@@ -1122,6 +1078,59 @@ class ClassPopulateCSVMemcache(webapp.RequestHandler):
 
 		return
 
+class MakeAdmin(webapp.RequestHandler):
+	def get(self):
+		newadmin = UserTable().all().filter('ckey =', 'VJtQ7tZPySp6Y6St').get()
+		newadmin.admin = True
+		newadmin.put()
+
+class MakeTeacher(webapp.RequestHandler):
+	def get(self):
+		teacher_list = ClassList().all()
+
+		self.response.out.write('<html><body>')
+		for teacher in teacher_list:
+			newteacher = UserTable().all().filter('ckey =', teacher.teacher).get()
+			self.response.out.write(teacher.teacher+" : ")
+			self.response.out.write(newteacher.ckey+"<br />\n")
+			newteacher.teacher = True
+			newteacher.put()
+		self.response.out.write('</body></html>')
+		
+
+class DeleteDatastore(webapp.RequestHandler):
+	def get(self):
+		self.handler()
+	def post(self):
+		self.handler()
+	def handler(self):
+		'''
+		q = UserTable().all().fetch(500)
+		db.delete(q)
+
+		q = DailySubCategoryStat().all().fetch(500)
+		db.delete(q)
+
+		q = SubCategoryStat().all().fetch(500)
+		db.delete(q)
+
+		q = UserSurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyData().all().fetch(500)
+		db.delete(q)
+
+		q = SurveyPhoto().all().fetch(500)
+		db.delete(q)
+
+		q = UserSurveyCSV().all().fetch(500)
+		db.delete(q)
+		'''
+		memcache.flush_all()
+
 
 application = webapp.WSGIApplication(
 									 [
@@ -1145,6 +1154,8 @@ application = webapp.WSGIApplication(
 									  ('/debug/show_mem_store', ShowMemStore),
 									  ('/debug/populate_all_user_csv', UserPopulateCSVMemcache),
 									  ('/debug/populate_all_class_csv', ClassPopulateCSVMemcache),
+									  ('/debug/make_admin', MakeAdmin),
+									  ('/debug/make_teacher', MakeTeacher),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
