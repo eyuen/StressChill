@@ -727,72 +727,6 @@ class WriteMemCSV(webapp.RequestHandler):
 			insert_csv.page = 1
 			insert_csv.put()
 		return
-
-class CreateClassList(webapp.RequestHandler):
-	def get(self):
-		q = ClassList().all().filter('classid =', 'benainous1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'qTDm3LvAT7VAR2yP'
-			q.classid = 'benainous1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'pacheco1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'b76WTLnSXEdDR2N4'
-			q.classid = 'pacheco1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'lee1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'aNnzndqrLQJgdVJb'
-			q.classid = 'lee1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'lee2').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'aNnzndqrLQJgdVJb'
-			q.classid = 'lee2'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'pagan1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'Epdg7UrLMgZpdy63'
-			q.classid = 'pagan1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'casas1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'sSZXddQGu3MenSPh'
-			q.classid = 'casas1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'andrews1').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'mPT3z3PMJhHdE9PE'
-			q.classid = 'andrews1'
-			q.head_teacher = True
-			q.put()
-
-		q = ClassList().all().filter('classid =', 'testers').get()
-		if not q:
-			q = ClassList()
-			q.teacher = 'VJtQ7tZPySp6Y6St'
-			q.classid = 'testers'
-			q.head_teacher = True
-			q.put()
 		
 # this will only work while the number of rows is not so high that it will not fit in memcache
 # once row count gets very high, will probably have to write to a TextProperty instead
@@ -1078,26 +1012,6 @@ class ClassPopulateCSVMemcache(webapp.RequestHandler):
 
 		return
 
-class MakeAdmin(webapp.RequestHandler):
-	def get(self):
-		newadmin = UserTable().all().filter('ckey =', 'VJtQ7tZPySp6Y6St').get()
-		newadmin.admin = True
-		newadmin.put()
-
-class MakeTeacher(webapp.RequestHandler):
-	def get(self):
-		teacher_list = ClassList().all()
-
-		self.response.out.write('<html><body>')
-		for teacher in teacher_list:
-			newteacher = UserTable().all().filter('ckey =', teacher.teacher).get()
-			self.response.out.write(teacher.teacher+" : ")
-			self.response.out.write(newteacher.ckey+"<br />\n")
-			newteacher.teacher = True
-			newteacher.put()
-		self.response.out.write('</body></html>')
-		
-
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
 		self.handler()
@@ -1149,13 +1063,10 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_csv', PopulateCSV),
 									  ('/debug/show_mem_csv.csv', MemCSV),
 									  ('/debug/write_mem_csv', WriteMemCSV),
-									  ('/debug/create_class_list', CreateClassList),
 									  ('/debug/data2memcache', Datastore2Memcache),
 									  ('/debug/show_mem_store', ShowMemStore),
 									  ('/debug/populate_all_user_csv', UserPopulateCSVMemcache),
 									  ('/debug/populate_all_class_csv', ClassPopulateCSVMemcache),
-									  ('/debug/make_admin', MakeAdmin),
-									  ('/debug/make_teacher', MakeTeacher),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

@@ -8,10 +8,14 @@
 		<form action="/user/confirm_delete" method="post">
 			<input type="hidden" name="key" value="{{observation.key}}">
 			<input type="submit" value="Confirm Delete">
+			<input type="hidden" name="bookmark" value="{{current_bookmark}}">
+			<input type="hidden" name="page" value="{{current_page}}">
 		</form>
 	</div>
 	<div class="span-11 last">&nbsp;</div>
 	<div class="span-24 last">
+		<a href="/user/data?bookmark={{current_bookmark}}&page={{current_page}}">&lt;&lt; Back to data page.</a>
+		<br /><hr />
 		<table>
 			<thead>
 				<tr>

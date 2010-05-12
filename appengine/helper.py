@@ -179,6 +179,11 @@ def render(parent_request_handler, path, values):
 			del sess['success']
 			sess.save()
 
+		if sess.has_key('admin'):
+			values['admin'] = sess['admin']
+
+		if sess.has_key('teacher'):
+			values['teacher'] = sess['teacher']
 
 	return template.render(path, values)	
 

@@ -19,6 +19,8 @@ handlers:
 -   url: /task/.*
     script: process.py
     login: admin
+-   url: /admin/.*
+    script: admin.py
 -   url: /debug/.*
     script: debug.py
     login: admin

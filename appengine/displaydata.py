@@ -157,14 +157,17 @@ class GetAnImage(webapp.RequestHandler):
 				db_key = db.Key(req_key)
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
-					self.response.headers['Content-type'] = 'image/jpeg'
-					self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
-					x = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-					self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
-					self.response.headers['Cache-Control'] = 'public, max-age=315360000'
-					self.response.headers['Date'] = datetime.datetime.utcnow() 
-				
-					self.response.out.write(s.photo)
+					if s.flagged:
+						self.redirect('/images/blocked.jpg')
+					else:
+						self.response.headers['Content-type'] = 'image/jpeg'
+						self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						x = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+						self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						self.response.headers['Date'] = datetime.datetime.utcnow() 
+					
+						self.response.out.write(s.photo)
 				else:
 					self.response.set_status(401, 'Image not found.')
 			except (db.Error):
@@ -185,13 +188,16 @@ class GetAThumb(webapp.RequestHandler):
 				db_key = db.Key(req_key)
 				s = db.GqlQuery("SELECT * FROM SurveyPhoto WHERE __key__ = :1", db_key).get()
 				if s:
-					self.response.headers['Content-type'] = 'image/jpeg'
-					self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
-					x = datetime.datetime.now() + datetime.timedelta(days=30)
-					self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
-					self.response.headers['Cache-Control'] = 'public, max-age=315360000'
-					self.response.headers['Date'] = datetime.datetime.utcnow() 
-					self.response.out.write(s.thumb)
+					if s.flagged:
+						self.redirect('/images/blocked.jpg')
+					else:
+						self.response.headers['Content-type'] = 'image/jpeg'
+						self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						x = datetime.datetime.now() + datetime.timedelta(days=30)
+						self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						self.response.headers['Date'] = datetime.datetime.utcnow() 
+						self.response.out.write(s.thumb)
 				else:
 					self.response.set_status(401, 'Image not found.')
 			except (db.Error):

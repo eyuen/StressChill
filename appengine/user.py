@@ -79,6 +79,8 @@ class UserDataByDatePage(webapp.RequestHandler):
 		helper.get_data_page(template_values, cache_name, 'username =', sess['userid'], bookmark, page)
 
 		template_values['userdata'] = True
+		template_values['current_bookmark'] = bookmark
+		template_values['current_page'] = page
 
 		path = os.path.join (os.path.dirname(__file__), 'views/user_data.html')
 		self.response.out.write (helper.render(self, path, template_values))
@@ -320,6 +322,10 @@ class ConfirmLogin(webapp.RequestHandler):
 				sess['username'] = self.request.get('username')
 				sess['userid'] = uid
 				sess['classid'] = classid
+				if userclass.admin:
+					sess['admin'] = True
+				if userclass.teacher:
+					sess['teacher'] = True
 
 				sess['success'] = 'Welcome ' + sess['username']
 				sess.save()
@@ -353,10 +359,29 @@ class SetupDelete(webapp.RequestHandler):
 	def get(self):
 		sess = gmemsess.Session(self)
 
+		bookmark = self.request.get('bookmark')
+		page = self.request.get('page')
+
+		data_redirect_str = '/user/data'
+		delete_redirect_str = '/user/delete?key=' + self.request.get('key')
+		if bookmark and len(bookmark) != 0:
+			data_redirect_str += '?bookmark=' + str(bookmark)
+			delete_redirect_str += '&bookmark=' + str(bookmark)
+			if page and len(page) != 0:
+				data_redirect_str += '&page=' + str(page)
+				delete_redirect_str += '&page=' + str(page)
+		elif page and len(page) != 0:
+				data_redirect_str += '?page=' + str(page)
+				delete_redirect_str += '&page=' + str(page)
+
+		logging.debug('data redirect: ' + data_redirect_str)
+		logging.debug('delete redirect: ' + delete_redirect_str)
+
 		# redirect to login page if not logged in
 		if sess.is_new() or not sess.has_key('username'):
 			sess['error'] = 'Please log in to use this feature.'
-			sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			#sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			sess['redirect'] = delete_redirect_str
 			sess.save()
 			self.redirect('/user/login')
 			return
@@ -365,7 +390,7 @@ class SetupDelete(webapp.RequestHandler):
 		if not self.request.get('key'):
 			sess['error'] = 'No observation was selected.'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# check valid key
@@ -374,13 +399,13 @@ class SetupDelete(webapp.RequestHandler):
 			if db_key.kind() != 'SurveyData':
 				sess['error'] = 'Bad key.'
 				sess.save()
-				self.redirect('/user/data')
+				self.redirect(data_redirect_str)
 				return
 
 		except:
 			sess['error'] = 'Bad key.'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# check if user owns observation
@@ -390,14 +415,14 @@ class SetupDelete(webapp.RequestHandler):
 		if not observation:
 			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# if user not have permission, error
 		if observation.username != sess['userid']:
 			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# format data...
@@ -413,6 +438,8 @@ class SetupDelete(webapp.RequestHandler):
 
 		# display delete confirmation page
 		template_values = {'observation': observation, 'base_url':base_url}
+		template_values['current_bookmark'] = bookmark
+		template_values['current_page'] = page
 
 		path = os.path.join (os.path.dirname(__file__), 'views/delete.html')
 		self.response.out.write (helper.render(self, path, template_values))
@@ -425,10 +452,30 @@ class ConfirmDelete(webapp.RequestHandler):
 	def post(self):
 		sess = gmemsess.Session(self)
 
+		bookmark = self.request.get('bookmark')
+		page = self.request.get('page')
+
+		data_redirect_str = '/user/data'
+		delete_redirect_str = '/user/delete?key=' + self.request.get('key')
+		if bookmark and len(bookmark) != 0:
+			data_redirect_str += '?bookmark=' + str(bookmark)
+			delete_redirect_str += '&bookmark=' + str(bookmark)
+			if page and len(page) != 0:
+				data_redirect_str += '&page=' + str(page)
+				delete_redirect_str += '&page=' + str(page)
+		elif page and len(page) != 0:
+				data_redirect_str += '?page=' + str(page)
+				delete_redirect_str += '&page=' + str(page)
+
+		logging.debug('data redirect: ' + data_redirect_str)
+		logging.debug('delete redirect: ' + delete_redirect_str)
+
+
 		# redirect to login page if not logged in
 		if sess.is_new() or not sess.has_key('username'):
 			sess['error'] = 'Please log in to use this feature.'
-			sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			#sess['redirect'] = '/user/delete?key=' + self.request.get('key')
+			sess['redirect'] = delete_redirect_str
 			sess.save()
 			self.redirect('/user/login')
 			return
@@ -437,7 +484,7 @@ class ConfirmDelete(webapp.RequestHandler):
 		if not self.request.get('key'):
 			sess['error'] = 'No observation was selected.'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# check valid key
@@ -446,13 +493,13 @@ class ConfirmDelete(webapp.RequestHandler):
 			if db_key.kind() != 'SurveyData':
 				sess['error'] = 'Bad key.'
 				sess.save()
-				self.redirect('/user/data')
+				self.redirect(data_redirect_str)
 				return
 
 		except:
 			sess['error'] = 'Bad key.'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# check if user owns observation
@@ -462,14 +509,14 @@ class ConfirmDelete(webapp.RequestHandler):
 		if not observation:
 			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		# if user not have permission, error
 		if observation.username != sess['userid']:
 			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
 			sess.save()
-			self.redirect('/user/data')
+			self.redirect(data_redirect_str)
 			return
 
 		#
@@ -524,8 +571,8 @@ class ConfirmDelete(webapp.RequestHandler):
 			userstat.count -= 1
 			userstat.total -= observation.stressval
 			userstat.put()
-			logging.debug('user count: '+str(dailysubcatstat.count))
-			logging.debug('user total: '+str(dailysubcatstat.total))
+			logging.debug('user count: '+str(userstat.count))
+			logging.debug('user total: '+str(userstat.total))
 		else:
 			logging.debug('user stat not found')
 
@@ -755,8 +802,6 @@ class ConfirmDelete(webapp.RequestHandler):
 		else:
 			logging.debug('the class csv blob could not be retreived')
 
-
-
 		# invalidate related cached items
 		saved = memcache.get('saved')
 		if saved is not None:
@@ -770,7 +815,6 @@ class ConfirmDelete(webapp.RequestHandler):
 
 		usersaved = memcache.get(cache_name)
 
-		db.delete(observation)
 		if usersaved is not None:
 			oldest_date = usersaved[-1]['realtime']
 
@@ -782,7 +826,6 @@ class ConfirmDelete(webapp.RequestHandler):
 
 		usersaved = memcache.get(cache_name)
 
-		db.delete(observation)
 		if usersaved is not None:
 			oldest_date = usersaved[-1]['realtime']
 
@@ -791,10 +834,11 @@ class ConfirmDelete(webapp.RequestHandler):
 
 		memcache.delete('csv')
 
+		db.delete(observation)
 
 		sess['success'] = 'Observation deleted.'
 		sess.save()
-		self.redirect('/user/data')
+		self.redirect(data_redirect_str)
 	# end post method
 # End ConfirmDelete Class
 
