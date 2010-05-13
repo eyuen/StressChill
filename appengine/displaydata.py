@@ -28,9 +28,9 @@ from google.appengine.api import quota
 import cStringIO
 import csv
 
-from datastore import *
 import helper
 import phone
+from datastore import *
 
 # number of observations shown per page
 PAGE_SIZE = 20
@@ -63,8 +63,6 @@ class GetPointSummary(webapp.RequestHandler):
 	# returns json string of all survey data
 	# TODO: this needs to be changed to return only a subset of the surveys, add paging
 	def get(self):
-		#surveys = db.GqlQuery("SELECT * FROM SurveyData ORDER BY timestamp DESC LIMIT 50")
-
 		# this should be changed to just use the same extracted format everything else uses...
 		d = memcache.get('pointsummary')
 
@@ -251,113 +249,11 @@ class DataByDatePage(webapp.RequestHandler):
 		elif not bookmark:
 			page = 1
 
-		# fetch cached values if any
-		saved = None
-		extracted = None
+		helper.get_data_page(template_values, 'saved', None, None, bookmark, page)
+		template_values['current_bookmark'] = bookmark
+		template_values['current_page'] = page
 
-		# if page set, and page in range, get page for cache
-		if page > 0 and page <=5: 
-			saved = memcache.get('saved')
-
-			# if not in cache, try fetching from datastore
-			if not saved:
-				logging.debug('cache miss, populate')
-				# get 5 pages of most recent records and cache
-				surveys = SurveyData.all().order('-timestamp').fetch(PAGE_SIZE*5 + 1)
-				saved = helper.extract_surveys (surveys)
-				# if values returned, save in cache
-				if surveys is not None:
-					memcache.set('saved', saved)
-
-			# if data, setup display
-			if saved:
-				# get page
-				extracted = helper.get_page_from_cache(saved, page, PAGE_SIZE)
-
-				logging.debug(len(extracted))
-
-				# if got page
-				if extracted is not None:
-					if len(extracted) == PAGE_SIZE + 1:
-						template_values['next'] = str(extracted[-1]['realtime'])
-						template_values['nextpage'] = page + 1
-						extracted = extracted[:PAGE_SIZE-1]
-
-					# if not on first page, setup back  
-					if page > 1:
-						template_values['back'] = str(extracted[0]['realtime'])
-						template_values['backpage'] = page - 1
-
-
-		else: # pages beyond 5th not cached
-			logging.debug('not using cache')
-			# determine direction to retreive records
-			# if starts with '-', going backwards
-			if bookmark.startswith('-'):
-				forward = False
-				bookmark = bookmark[1:]
-			
-			# if bookmark set, retrieve page relative to bookmark
-			if bookmark:
-				# string to datetime code from:
-				#	http://aralbalkan.com/1512
-				m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
-					str(bookmark))
-				datestr, fractional, tzname, tzhour, tzmin = m.groups()
-				if tzname is None:
-					tz = None
-				else:
-					tzhour, tzmin = int(tzhour), int(tzmin)
-					if tzhour == tzmin == 0:
-						tzname = 'UTC'
-					tz = FixedOffset(timedelta(hours=tzhour,
-											   minutes=tzmin), tzname)
-				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-				if fractional is None:
-					fractional = '0'
-					fracpower = 6 - len(fractional)
-					fractional = float(fractional) * (10 ** fracpower)
-				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
-
-
-				if forward:
-					surveys = SurveyData.all().filter('timestamp <', dt).order('-timestamp').fetch(PAGE_SIZE+1)
-					# if PAGE_SIZE + 1 rows returned, more pages to display
-					if len(surveys) == PAGE_SIZE + 1:
-						template_values['next'] = str(surveys[-2].timestamp)
-						if page is not None:
-							logging.debug(page)
-							template_values['nextpage'] = page + 1
-						surveys = surveys[:PAGE_SIZE]
-
-					# if bookmark set, assume there was a back page
-					template_values['back'] = '-'+str(surveys[0].timestamp)
-					if page is not None:
-						template_values['backpage'] = page - 1
-				else:
-					surveys = SurveyData.all().filter('timestamp >', dt).order('timestamp').fetch(PAGE_SIZE+1)
-					# if PAGE_SIZE + 1 rows returned, more pages to diplay
-					if len(surveys) == PAGE_SIZE + 1:
-						template_values['back'] = '-'+str(surveys[-2].timestamp)
-						if page is not None:
-							template_values['backpage'] = page - 1
-						surveys = surveys[:PAGE_SIZE]
-					# if bookmark set, assume there is a next page
-					template_values['next'] = str(surveys[0].timestamp)
-					if page is not None:
-						template_values['nextpage'] = page + 1
-					# reverse order of results since they were returned backwards by query
-					surveys.reverse()
-			else: # if no bookmark set, retrieve first records
-				surveys = SurveyData.all().order('-timestamp').fetch(PAGE_SIZE+1)
-				if len(surveys) == PAGE_SIZE + 1:
-					template_values['next'] = str(surveys[-2].timestamp)
-					template_values['nextpage'] = 2
-					surveys = surveys[:PAGE_SIZE]
-
-			extracted = helper.extract_surveys (surveys)
-
-		template_values['surveys'] = extracted 
+		#template_values['surveys'] = extracted 
 		template_values['data'] = True
 
 		path = os.path.join (os.path.dirname(__file__), 'views/data.html')
@@ -392,94 +288,6 @@ class DownloadAllData(webapp.RequestHandler):
 			self.response.headers['Content-type'] = 'text/csv'
 			self.response.out.write(data_csv.csv)
 			return
-
-		'''
-		# you should never get here except for the first time this url is called
-		# if you need to populate the blob, make sure to call this url
-		#	before any requests to write new data or the blob will start from that entry instead
-		# NOTE: this will probably only work as long as the number of entries in your survey is low
-		#	If there are too many entries already, this will likely time out
-		#	I have added page as a property of the model incase we need it in future
-		surveys = SurveyData.all().order('timestamp').fetch(1000)
-
-		if os.environ.get('HTTP_HOST'):
-			base_url = os.environ['HTTP_HOST']
-		else:
-			base_url = os.environ['SERVER_NAME']
-
-		counter = 0
-		last_entry_date = ''
-		page = 1
-
-		# setup csv
-		output = cStringIO.StringIO()
-		writer = csv.writer(output, delimiter=',')
-
-		header_row = [	'id',
-						'userid', 
-						'timestamp',
-						'latitude',
-						'longitude',
-						'stress_value',
-						'category',
-						'subcategory',
-						'comments',
-						'image_url'
-						]
-
-		writer.writerow(header_row)
-		for s in surveys:
-			photo_url = ''
-			if s.hasphoto:
-				try:
-					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
-				except:
-					photo_url = 'no_image'
-
-			else:
-				photo_url = 'no_image'
-
-			hashedval = hashlib.sha1(str(s.key()))
-			sha1val = hashedval.hexdigest()
-
-			usersha1val = ''
-			if s.username is not None:
-				userhashedval = hashlib.sha1(s.username)
-				usersha1val = userhashedval.hexdigest()
-			else:
-				usersha1val = 'none'
-
-			new_row = [
-					sha1val,
-					usersha1val,
-					s.timestamp,
-					s.latitude,
-					s.longitude,
-					s.stressval,
-					s.category,
-					s.subcategory,
-					s.comments,
-					photo_url
-					]
-			writer.writerow(new_row)
-			counter += 1
-			last_entry_date = s.timestamp
-
-		# write blob csv so we dont have to do this again
-		insert_csv = SurveyCSV()
-		insert_csv.csv = db.Text(output.getvalue())
-		insert_csv.last_entry_date = last_entry_date
-		insert_csv.count = counter
-		insert_csv.page = page
-		insert_csv.put()
-
-		# add to cache for 1 week (writes should update this cached value)
-		#memcache.set('csv', output.getvalue(), 604800)
-		memcache.set('csv', output.getvalue())
-
-		self.response.headers['Content-type'] = 'text/csv'
-		self.response.out.write(output.getvalue())
-		'''
 	# end get method
 # End DownloadAllData
 

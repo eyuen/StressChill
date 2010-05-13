@@ -316,8 +316,9 @@ class ConfirmLogin(webapp.RequestHandler):
 				userclass = UserTable().all().filter('ckey =', uid).get()
 
 				classid = 'testers'
-				if userclass.classid in classlist:
-					classid = user.classid
+				if userclass is not None:
+					if userclass.classid in classlist:
+						classid = userclass.classid
 
 				sess['username'] = self.request.get('username')
 				sess['userid'] = uid
@@ -863,90 +864,6 @@ class DownloadUserData(webapp.RequestHandler):
 			self.response.headers['Content-type'] = 'text/csv'
 			self.response.out.write(data_csv.csv)
 			return
-
-
-		# you should never get here except for the first time this url is called
-		# if you need to populate the blob, make sure to call this url
-		#	before any requests to write new data or the blob will start from that entry instead
-		# NOTE: this will probably only work as long as the number of entries in your survey is low
-		#	If there are too many entries already, this will likely time out
-		#	I have added page as a property of the model incase we need it in future
-		surveys = SurveyData.all().filter('username =', sess['userid']).order('timestamp').fetch(1000)
-
-		if os.environ.get('HTTP_HOST'):
-			base_url = os.environ['HTTP_HOST']
-		else:
-			base_url = os.environ['SERVER_NAME']
-
-		counter = 0
-		last_entry_date = ''
-		page = 1
-
-		# setup csv
-		output = cStringIO.StringIO()
-		writer = csv.writer(output, delimiter=',')
-
-		header_row = [	'id',
-						'userid', 
-						'timestamp',
-						'latitude',
-						'longitude',
-						'stress_value',
-						'category',
-						'subcategory',
-						'comments',
-						'image_url'
-						]
-
-		writer.writerow(header_row)
-		for s in surveys:
-			photo_url = ''
-			if s.hasphoto:
-				try:
-					photo_url = 'http://' + base_url + "/get_an_image?key="+str(s.photo_ref.key())
-				except:
-					photo_url = 'no_image'
-
-			else:
-				photo_url = 'no_image'
-
-			hashedval = hashlib.sha1(str(s.key()))
-			sha1val = hashedval.hexdigest()
-
-			usersha1val = ''
-			if s.username is not None:
-				userhashedval = hashlib.sha1(s.username)
-				usersha1val = userhashedval.hexdigest()
-			else:
-				usersha1val = 'none'
-
-			new_row = [
-					sha1val,
-					usersha1val,
-					s.timestamp,
-					s.latitude,
-					s.longitude,
-					s.stressval,
-					s.category,
-					s.subcategory,
-					s.comments,
-					photo_url
-					]
-			writer.writerow(new_row)
-			counter += 1
-			last_entry_date = s.timestamp
-
-		# write blob csv so we dont have to do this again
-		insert_csv = UserSurveyCSV()
-		insert_csv.csv = db.Blob(output.getvalue())
-		insert_csv.last_entry_date = last_entry_date
-		insert_csv.count = counter
-		insert_csv.page = page
-		insert_csv.userid = sess['userid']
-		insert_csv.put()
-
-		self.response.headers['Content-type'] = 'text/csv'
-		self.response.out.write(output.getvalue())
 	# end get method
 # End DownloadAllData
 

@@ -1019,7 +1019,7 @@ class DeleteDatastore(webapp.RequestHandler):
 		self.handler()
 	def handler(self):
 		'''
-		q = UserTable().all().fetch(500)
+		q = UserStat().all().fetch(500)
 		db.delete(q)
 
 		q = DailySubCategoryStat().all().fetch(500)
@@ -1041,6 +1041,9 @@ class DeleteDatastore(webapp.RequestHandler):
 		db.delete(q)
 
 		q = UserSurveyCSV().all().fetch(500)
+		db.delete(q)
+
+		q = ClassSurveyCSV().all().fetch(500)
 		db.delete(q)
 		'''
 		memcache.flush_all()

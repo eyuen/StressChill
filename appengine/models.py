@@ -21,8 +21,12 @@ import hashlib
 import binascii
 import string
 import random
+import logging
 from time import time
 
+import cStringIO
+import csv
+import os
 
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
@@ -443,6 +447,71 @@ class Survey(db.Model):
 # End Survey Class
 '''
 
+# function to write csv blob
+def write_csv(data, csv_blob = None):
+	# init csv writer
+	output = cStringIO.StringIO()
+	writer = csv.writer(output, delimiter=',')
+
+	base_url = ''
+	if os.environ.get('HTTP_HOST'):
+		base_url = os.environ['HTTP_HOST']
+	else:
+		base_url = os.environ['SERVER_NAME']
+
+	# write header row if csv blob doesnt exist yet
+	if not csv_blob:
+		logging.debug('csv not exist, writing header row')
+		header_row = [	'id',
+			'userid',
+			'timestamp',
+			'latitude',
+			'longitude',
+			'stress_value',
+			'category',
+			'subcategory',
+			'comments',
+			'image_url'
+			]
+		writer.writerow(header_row)
+	else:
+		logging.debug('csv exist, do not output header')
+
+	# form image url
+	if data['hasphoto']:
+		photo_url = 'http://' + base_url + "/get_an_image?key="+str(data['photo_key'])
+
+	else:
+		photo_url = 'no_image'
+
+	hashedval = hashlib.sha1(str(data['key']))
+	sha1val = hashedval.hexdigest()
+
+	userhashedval = hashlib.sha1(data['username'])
+	usersha1val = hashedval.hexdigest()
+
+	# write csv data row
+	new_row = [
+			sha1val,
+			usersha1val,
+			data['timestamp'],
+			data['latitude'],
+			data['longitude'],
+			data['stressval'],
+			data['category'],
+			data['subcategory'],
+			data['comments'],
+			photo_url
+			]
+	writer.writerow(new_row)
+	#logging.debug('output: ' + str(output.getvalue()))
+
+	if not csv_blob:
+		return str(output.getvalue())
+	else:
+		return csv_blob + str(output.getvalue())
+# end write_csv function
+
 # model to hold image blob
 class SurveyPhoto(db.Model):
 	photo = db.BlobProperty()
@@ -494,6 +563,29 @@ class SurveyCSV(db.Model):
 	page = db.IntegerProperty()
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
+
+	def update_csv(self, data, key=None):
+		# create new blob if one does not exist
+		if not key:
+			csv_blob = write_csv(data) #write the csv (defined above)
+			logging.debug('csv not exist, setup')
+			insert_csv = SurveyCSV()
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count = 1
+			insert_csv.page = 1
+		else:	#if blob exists, append and update
+			insert_csv = db.get(key)
+			csv_blob = write_csv(data, insert_csv.csv) #write the csv (defined above)
+			logging.debug('csv exist, append')
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count += 1
+
+		insert_csv.put()
+		return insert_csv
+	# end update_csv method
+
 # End SurveyCSV Class
 
 # model to hold data blob
@@ -504,6 +596,29 @@ class UserSurveyCSV(db.Model):
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
 	userid = db.StringProperty()
+
+	def update_csv(self, data, key=None):
+		# create new blob if one does not exist
+		if not key:
+			csv_blob = write_csv(data)
+			logging.debug('csv not exist, setup')
+			insert_csv = UserSurveyCSV()
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count = 1
+			insert_csv.page = 1
+			insert_csv.userid = data['username']
+		else:	#if blob exists, append and update
+			insert_csv = db.get(key)
+			csv_blob = write_csv(data, insert_csv.csv)
+			logging.debug('csv exist, append')
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count += 1
+
+		insert_csv.put()
+		return insert_csv
+	# end update_csv method
 # End UserSurveyCSV Class
 
 # model to hold data blob
@@ -514,6 +629,29 @@ class ClassSurveyCSV(db.Model):
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
 	classid = db.StringProperty()
+
+	def update_csv(self, data, key=None):
+		# create new blob if one does not exist
+		if not key:
+			csv_blob = write_csv(data)
+			logging.debug('csv not exist, setup')
+			insert_csv = ClassSurveyCSV()
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count = 1
+			insert_csv.page = 1
+			insert_csv.classid = data['classid']
+		else:	#if blob exists, append and update
+			insert_csv = db.get(key)
+			csv_blob = write_csv(data, insert_csv.csv)
+			logging.debug('csv exist, append')
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count += 1
+
+		insert_csv.put()
+		return insert_csv
+	# end update_csv method
 # End ClassSurveyCSV Class
 
 # model to keep running stats of sub-categories
@@ -709,4 +847,3 @@ class UserStat(db.Model):
 			else:
 				return None
 # End CategoryStat Class
-

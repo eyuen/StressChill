@@ -9,6 +9,10 @@ import gmemsess
 from datastore import *
 import re
 
+import cStringIO
+import csv
+import os
+
 ### date time stuff
 
 # from python tzinfo docs
@@ -198,7 +202,7 @@ def get_data_page(template_values, cache_name, filter_field = None, filter_value
 	saved = None
 	extracted = None
 
-	query = SurveyData.all()
+	query = SurveyData().all()
 
 	if filter_field is not None and filter_value is not None:
 		query.filter(filter_field, filter_value)
@@ -313,5 +317,4 @@ def get_data_page(template_values, cache_name, filter_field = None, filter_value
 	template_values['surveys'] = extracted 
 
 	return
-# end get method
-# End UserDataByDatePage Class
+# end get_data_page
