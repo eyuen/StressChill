@@ -59,6 +59,7 @@
 		<div class="span-3 colborder center {% if client %}selected{% endif %}">
 			<a href="/clients">Android Client</a>
 		</div>
+		{% if show_all %}
 		<div class="span-3 colborder center {% if map %}selected{% endif %}">
 			<a href="/map">Map</a>
 		</div>
@@ -68,6 +69,11 @@
 		<div class="span-4 last center {% if datasummary %}selected{% endif %}">
 			<a href="/summary">Summary</a>
 		</div>
+		{% else %}
+		<div class="span-12 last">
+			&nbsp;
+		</div>
+		{% endif %}
 		{% if username %}
 		<hr />
 		<div class="span-3 colborder center {% if userdata %}selected{% endif %}">

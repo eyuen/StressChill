@@ -102,6 +102,7 @@ class SetupQuarantine(webapp.RequestHandler):
 	def get(self):
 		sess = gmemsess.Session(self)
 
+		# setup redirect strings
 		bookmark = self.request.get('bookmark')
 		page = self.request.get('page')
 
@@ -307,14 +308,8 @@ class QuarantineObservation(webapp.RequestHandler):
 
 		# decrement subcategory count and subtract from total
 		subcatstat = SubCategoryStat().all().filter('category =', observation.category).filter('subcategory =', observation.subcategory).get()
-		if subcatstat is not None:
-			subcatstat.count -= 1
-			subcatstat.total -= observation.stressval
-			subcatstat.put()
-			logging.debug('subcategory count: '+str(subcatstat.count))
-			logging.debug('subcategory total: '+str(subcatstat.total))
-		else:
-			logging.debug('subcategory stat not found')
+
+		db.run_in_transaction(SubCategoryStat().decrement_stats, subcatstat.key(), observation.stressval)
 
 		pdt = observation.timestamp - datetime.timedelta(hours=7)
 		time_key = str(pdt).split(' ')[0]
@@ -323,252 +318,28 @@ class QuarantineObservation(webapp.RequestHandler):
 
 		# decrement daily subcategory count and subtract from total
 		dailysubcatstat = DailySubCategoryStat().all().filter('category =', observation.category).filter('date =', date).filter('subcategory =', observation.subcategory).get()
-		if dailysubcatstat is not None:
-			dailysubcatstat.count -= 1
-			dailysubcatstat.total -= observation.stressval
-			dailysubcatstat.put()
-			logging.debug('daily subcategory count: '+str(dailysubcatstat.count))
-			logging.debug('daily subcategory total: '+str(dailysubcatstat.total))
-		else:
-			logging.debug('daily subcategory stat not found')
+
+		db.run_in_transaction(DailySubCategoryStat().decrement_stats, dailysubcatstat.key(), observation.stressval)
 
 		# decrement user count and subtract from total
 		userstat = UserStat().all().filter('category =', observation.category).filter('subcategory =', observation.subcategory).get()
-		if userstat is not None:
-			userstat.count -= 1
-			userstat.total -= observation.stressval
-			userstat.put()
-			logging.debug('user count: '+str(dailysubcatstat.count))
-			logging.debug('user total: '+str(dailysubcatstat.total))
-		else:
-			logging.debug('user stat not found')
+
+		db.run_in_transaction(UserStat().decrement_stats, userstat.key(), observation.stressval)
 
 		# delete observation from csv blob
 		# get csv blob
 		csv_store = SurveyCSV.all().filter('page = ', 1).get()
-		if csv_store is not None:
-			# init csv reader
-			csv_file = csv.DictReader(cStringIO.StringIO(str(csv_store.csv)))
-
-			# hack... for some reason cant access csv_file.fieldnames until after tryng to iterate through csv_file...
-			header_keys = []
-			for row in csv_file:
-				self.response.out.write('rowkeys: '+str(row.keys()))
-				header_keys = row.keys()
-				break
-
-			# init csv writer
-			output = cStringIO.StringIO()
-			writer = csv.DictWriter(output, csv_file.fieldnames)
-
-			# output csv header
-			header = {}
-			for h in csv_file.fieldnames:
-				header[h] = h
-			writer.writerow(header)
-
-			row_count = 0
-			last_entry_date = csv_store.last_entry_date
-			del_flag = False
-
-			hashedval = hashlib.sha1(str(observation.key()))
-			sha1val = hashedval.hexdigest()
-
-
-			# iterate through csv file
-			for row in csv_file:
-
-				# if csv row id matches key to delete, do not copy to output
-				if row['id'] == sha1val:
-					del_flag = True
-					logging.debug('csv row to del: '+str(row))
-				else: # if not row to delete, copy to output
-					writer.writerow(row)
-					row_count+= 1
-					last_entry_date = row['timestamp']
-
-			# if deleted flag set, write new csv
-			if del_flag:
-				logging.debug('del row cnt: '+str(row_count))
-				# convert string to time
-				m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
-					str(last_entry_date))
-				datestr, fractional, tzname, tzhour, tzmin = m.groups()
-				if tzname is None:
-					tz = None
-				else:
-					tzhour, tzmin = int(tzhour), int(tzmin)
-					if tzhour == tzmin == 0:
-						tzname = 'UTC'
-					tz = FixedOffset(timedelta(hours=tzhour,
-											   minutes=tzmin), tzname)
-				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-				if fractional is None:
-					fractional = '0'
-					fracpower = 6 - len(fractional)
-					fractional = float(fractional) * (10 ** fracpower)
-				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
-
-				# write csv values/blob
-				csv_store.last_entry_date = dt
-				csv_store.count = row_count
-				csv_store.csv = db.Blob(output.getvalue())
-				csv_store.put()
-			else:
-				logging.debug('row not found')
-		else:
-			logging.debug('the csv blob could not be retreived')
+		db.run_in_transaction(SurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
 		# delete observation from user csv blob
 		# get csv blob
 		csv_store = UserSurveyCSV.all().filter('page = ', 1).filter('userid =', observation.username).get()
-		if csv_store is not None:
-			# init csv reader
-			csv_file = csv.DictReader(cStringIO.StringIO(str(csv_store.csv)))
-
-			# hack... for some reason cant access csv_file.fieldnames until after tryng to iterate through csv_file...
-			header_keys = []
-			for row in csv_file:
-				self.response.out.write('rowkeys: '+str(row.keys()))
-				header_keys = row.keys()
-				break
-
-			# init csv writer
-			output = cStringIO.StringIO()
-			writer = csv.DictWriter(output, csv_file.fieldnames)
-
-			# output csv header
-			header = {}
-			for h in csv_file.fieldnames:
-				header[h] = h
-			writer.writerow(header)
-
-			row_count = 0
-			last_entry_date = csv_store.last_entry_date
-			del_flag = False
-
-			hashedval = hashlib.sha1(str(observation.key()))
-			sha1val = hashedval.hexdigest()
-
-			# iterate through csv file
-			for row in csv_file:
-
-				# if csv row id matches key to delete, do not copy to output
-				if row['id'] == sha1val:
-					del_flag = True
-					logging.debug('csv row to del: '+str(row))
-				else: # if not row to delete, copy to output
-					writer.writerow(row)
-					row_count+= 1
-					last_entry_date = row['timestamp']
-
-			# if deleted flag set, write new csv
-			if del_flag:
-				logging.debug('del row cnt: '+str(row_count))
-				# convert string to time
-				m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
-					str(last_entry_date))
-				datestr, fractional, tzname, tzhour, tzmin = m.groups()
-				if tzname is None:
-					tz = None
-				else:
-					tzhour, tzmin = int(tzhour), int(tzmin)
-					if tzhour == tzmin == 0:
-						tzname = 'UTC'
-					tz = FixedOffset(timedelta(hours=tzhour,
-											   minutes=tzmin), tzname)
-				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-				if fractional is None:
-					fractional = '0'
-					fracpower = 6 - len(fractional)
-					fractional = float(fractional) * (10 ** fracpower)
-				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
-
-				# write csv values/blob
-				csv_store.last_entry_date = dt
-				csv_store.count = row_count
-				csv_store.csv = db.Blob(output.getvalue())
-				csv_store.put()
-			else:
-				logging.debug('user csv row not found')
-		else:
-			logging.debug('the user csv blob could not be retreived')
+		db.run_in_transaction(UserSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
 		# delete observation from class csv blob
 		# get csv blob
 		csv_store = ClassSurveyCSV.all().filter('page = ', 1).filter('classid =', observation.classid).get()
-		if csv_store is not None:
-			# init csv reader
-			csv_file = csv.DictReader(cStringIO.StringIO(str(csv_store.csv)))
-
-			# hack... for some reason cant access csv_file.fieldnames until after tryng to iterate through csv_file...
-			header_keys = []
-			for row in csv_file:
-				self.response.out.write('rowkeys: '+str(row.keys()))
-				header_keys = row.keys()
-				break
-
-			# init csv writer
-			output = cStringIO.StringIO()
-			writer = csv.DictWriter(output, csv_file.fieldnames)
-
-			# output csv header
-			header = {}
-			for h in csv_file.fieldnames:
-				header[h] = h
-			writer.writerow(header)
-
-			row_count = 0
-			last_entry_date = csv_store.last_entry_date
-			del_flag = False
-
-			hashedval = hashlib.sha1(str(observation.key()))
-			sha1val = hashedval.hexdigest()
-
-			# iterate through csv file
-			for row in csv_file:
-
-				# if csv row id matches key to delete, do not copy to output
-				if row['id'] == sha1val:
-					del_flag = True
-					logging.debug('csv row to del: '+str(row))
-				else: # if not row to delete, copy to output
-					writer.writerow(row)
-					row_count+= 1
-					last_entry_date = row['timestamp']
-
-			# if deleted flag set, write new csv
-			if del_flag:
-				logging.debug('del row cnt: '+str(row_count))
-				# convert string to time
-				m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
-					str(last_entry_date))
-				datestr, fractional, tzname, tzhour, tzmin = m.groups()
-				if tzname is None:
-					tz = None
-				else:
-					tzhour, tzmin = int(tzhour), int(tzmin)
-					if tzhour == tzmin == 0:
-						tzname = 'UTC'
-					tz = FixedOffset(timedelta(hours=tzhour,
-											   minutes=tzmin), tzname)
-				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-				if fractional is None:
-					fractional = '0'
-					fracpower = 6 - len(fractional)
-					fractional = float(fractional) * (10 ** fracpower)
-				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
-
-				# write csv values/blob
-				csv_store.last_entry_date = dt
-				csv_store.count = row_count
-				csv_store.csv = db.Blob(output.getvalue())
-				csv_store.put()
-			else:
-				logging.debug('class csv row not found')
-		else:
-			logging.debug('the class csv blob could not be retreived')
-
+		db.run_in_transaction(ClassSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
 		# invalidate related cached items
 		saved = memcache.get('saved')

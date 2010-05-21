@@ -323,7 +323,7 @@ class SummaryHandler(webapp.RequestHandler):
 			else:
 				categories[row.category]['count'] += row.count
 				categories[row.category]['total'] += row.total
-				if categories[row.category]['total'] != 0:
+				if categories[row.category]['count'] != 0:
 					categories[row.category]['average'] = \
 						categories[row.category]['total'] / categories[row.category]['count']
 
@@ -340,7 +340,7 @@ class SummaryHandler(webapp.RequestHandler):
 			else:
 				categories[row.category]['subcategories'][row.subcategory]['count'] += row.count
 				categories[row.category]['subcategories'][row.subcategory]['total'] += row.total
-				if categories[row.category]['subcategories'][row.subcategory]['total'] != 0:
+				if categories[row.category]['subcategories'][row.subcategory]['count'] != 0:
 					categories[row.category]['subcategories'][row.subcategory]['average'] = \
 						categories[row.category]['subcategories'][row.subcategory]['total'] / categories[row.category]['subcategories'][row.subcategory]['count']
 

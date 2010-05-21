@@ -189,6 +189,8 @@ def render(parent_request_handler, path, values):
 		if sess.has_key('teacher'):
 			values['teacher'] = sess['teacher']
 
+		values['show_all'] = False
+
 	return template.render(path, values)	
 
 # end render function

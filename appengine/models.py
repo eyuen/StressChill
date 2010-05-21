@@ -28,6 +28,9 @@ import cStringIO
 import csv
 import os
 
+import re
+import datetime
+
 from google.appengine.ext import db
 from google.appengine.api import urlfetch
 
@@ -428,25 +431,6 @@ def generateString(length):
 	return rnd_string
 # end generateString
 
-'''
-# original model to hold data collected from phone survey
-# replaced by SurveyData and SurveyPhoto
-class Survey(db.Model):
-	user = db.UserProperty()
-	username = db.StringProperty()
-	timestamp =	db.DateTimeProperty(auto_now_add=True)
-	longitude =	db.StringProperty()
-	latitude =	db.StringProperty()
-	stressval =	db.FloatProperty()
-	comments =	db.TextProperty()
-	category =	db.StringProperty()
-	subcategory = db.StringProperty()
-	version =	db.StringProperty()
-	photo =		db.BlobProperty()
-	hasphoto =	db.BooleanProperty()
-# End Survey Class
-'''
-
 # function to write csv blob
 def write_csv(data, csv_blob = None):
 	# init csv writer
@@ -488,7 +472,7 @@ def write_csv(data, csv_blob = None):
 	sha1val = hashedval.hexdigest()
 
 	userhashedval = hashlib.sha1(data['username'])
-	usersha1val = hashedval.hexdigest()
+	usersha1val = userhashedval.hexdigest()
 
 	# write csv data row
 	new_row = [
@@ -511,6 +495,87 @@ def write_csv(data, csv_blob = None):
 	else:
 		return csv_blob + str(output.getvalue())
 # end write_csv function
+
+# function to delete from csv blob
+def delete_from_csv_blob(csv_blob, del_key):
+	if csv_blob == None:
+		return None
+
+	# init csv reader
+	csv_file = csv.DictReader(cStringIO.StringIO(str(csv_blob)))
+
+
+	row_count = 0
+	last_entry_date = None
+	del_flag = False
+
+	hashedval = hashlib.sha1(str(del_key))
+	sha1val = hashedval.hexdigest()
+
+	output = None
+	writer = None
+
+	header_flag = False
+
+	# iterate through csv file
+	for row in csv_file:
+		# seems you have to try accessing the csv_file before fieldnames is populated?
+		if not header_flag:
+			# init csv writer
+			output = cStringIO.StringIO()
+			writer = csv.DictWriter(output, csv_file.fieldnames)
+
+			# output csv header
+			header = {}
+			for h in csv_file.fieldnames:
+				header[h] = h
+			writer.writerow(header)
+
+			# set header_flag True, so only write header once
+			header_flag = True
+
+		# if csv row id matches key to delete, do not copy to output
+		if row['id'] == sha1val:
+			del_flag = True
+			logging.debug('csv row to del: '+str(row))
+		else: # if not row to delete, copy to output
+			writer.writerow(row)
+			row_count+= 1
+			last_entry_date = row['timestamp']
+
+	# if deleted flag set, write new csv
+	if del_flag:
+		logging.debug('del row cnt: '+str(row_count))
+		# convert string to time
+		m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
+			str(last_entry_date))
+		datestr, fractional, tzname, tzhour, tzmin = m.groups()
+		if tzname is None:
+			tz = None
+		else:
+			tzhour, tzmin = int(tzhour), int(tzmin)
+			if tzhour == tzmin == 0:
+				tzname = 'UTC'
+			tz = FixedOffset(timedelta(hours=tzhour,
+									   minutes=tzmin), tzname)
+		x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+		if fractional is None:
+			fractional = '0'
+			fracpower = 6 - len(fractional)
+			fractional = float(fractional) * (10 ** fracpower)
+		dt = x.replace(microsecond=int(fractional), tzinfo=tz)
+
+		# write csv values/blob
+		return_val = {}
+		return_val['csv'] = db.Blob(output.getvalue())
+		return_val['count'] = row_count
+		return_val['dt'] = dt
+		return return_val
+	else:
+		logging.debug('row not found')
+		return None
+# end delete_from_csv_blob function
+	
 
 # model to hold image blob
 class SurveyPhoto(db.Model):
@@ -584,7 +649,29 @@ class SurveyCSV(db.Model):
 
 		insert_csv.put()
 		return insert_csv
-	# end update_csv method
+
+	def delete_from_csv(self, key, del_key):
+		# create new blob if one does not exist
+		if not key:
+			return None
+
+		csv_store = db.get(key)
+
+		if csv_store is not None:
+			rtn_value = delete_from_csv_blob(csv_store.csv, del_key)
+			if not rtn_value:
+				logging.debug('the csv row not found')
+				return None
+
+			csv_store.csv = rtn_value['csv']
+			csv_store.count = rtn_value['count']
+			csv_store.last_entry_date = rtn_value['dt']
+			csv_store.put()
+		else:
+			logging.debug('the csv blob could not be retreived')
+
+		return True
+	# end delete_from_csv method
 
 # End SurveyCSV Class
 
@@ -619,6 +706,29 @@ class UserSurveyCSV(db.Model):
 		insert_csv.put()
 		return insert_csv
 	# end update_csv method
+
+	def delete_from_csv(self, key, del_key):
+		# create new blob if one does not exist
+		if not key:
+			return None
+
+		csv_store = db.get(key)
+
+		if csv_store is not None:
+			rtn_value = delete_from_csv_blob(csv_store.csv, del_key)
+			if not rtn_value:
+				logging.debug('the csv row not found')
+				return None
+
+			csv_store.csv = rtn_value['csv']
+			csv_store.count = rtn_value['count']
+			csv_store.last_entry_date = rtn_value['dt']
+			csv_store.put()
+		else:
+			logging.debug('the csv blob could not be retreived')
+
+		return True
+	# end delete_from_csv method
 # End UserSurveyCSV Class
 
 # model to hold data blob
@@ -652,6 +762,29 @@ class ClassSurveyCSV(db.Model):
 		insert_csv.put()
 		return insert_csv
 	# end update_csv method
+
+	def delete_from_csv(self, key, del_key):
+		# create new blob if one does not exist
+		if not key:
+			return None
+
+		csv_store = db.get(key)
+
+		if csv_store is not None:
+			rtn_value = delete_from_csv_blob(csv_store.csv, del_key)
+			if not rtn_value:
+				logging.debug('the csv row not found')
+				return None
+
+			csv_store.csv = rtn_value['csv']
+			csv_store.count = rtn_value['count']
+			csv_store.last_entry_date = rtn_value['dt']
+			csv_store.put()
+		else:
+			logging.debug('the csv blob could not be retreived')
+
+		return True
+	# end delete_from_csv method
 # End ClassSurveyCSV Class
 
 # model to keep running stats of sub-categories
@@ -712,6 +845,22 @@ class SubCategoryStat(db.Model):
 				return subcat.key()
 			else:
 				return None
+	# end increment_stats method
+
+	# decrement the subcategory
+	def decrement_stats(self, key, value):
+		subcatstat = db.get(key)
+		if subcatstat is not None:
+			subcatstat.count -= 1
+			subcatstat.total -= value
+			subcatstat.put()
+			logging.debug('subcategory count: '+str(subcatstat.count))
+			logging.debug('subcategory total: '+str(subcatstat.total))
+			return True
+		else:
+			logging.debug('subcategory stat not found')
+			return False
+	# end decrement_stats method
 # End SubCategoryStat Class
 
 # model to keep running stats of sub-categories per day
@@ -774,6 +923,22 @@ class DailySubCategoryStat(db.Model):
 				return subcat.key()
 			else:
 				return None
+
+	# decrement the subcategory
+	def decrement_stats(self, key, value):
+		dailysubcatstat = db.get(key)
+
+		if dailysubcatstat is not None:
+			dailysubcatstat.count -= 1
+			dailysubcatstat.total -= value
+			dailysubcatstat.put()
+			logging.debug('daily subcategory count: '+str(dailysubcatstat.count))
+			logging.debug('daily subcategory total: '+str(dailysubcatstat.total))
+			return True
+		else:
+			logging.debug('daily subcategory stat not found')
+			return False
+	# end decrement_stats method
 # End CategoryStat Class
 
 #model to hold class info
@@ -846,4 +1011,18 @@ class UserStat(db.Model):
 				return userstat.key()
 			else:
 				return None
+
+	# decrement the subcategory
+	def decrement_stats(self, key, value):
+		userstat = db.get(key)
+
+		if userstat is not None:
+			userstat.count -= 1
+			userstat.total -= value
+			userstat.put()
+			logging.debug('user count: '+str(userstat.count))
+			logging.debug('user total: '+str(userstat.total))
+		else:
+			logging.debug('user stat not found')
+	# end decrement_stats method
 # End CategoryStat Class

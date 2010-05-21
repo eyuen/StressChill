@@ -408,6 +408,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 					s.photo_ref = new_photo.key()
 					s.hasphoto = True
 				except:
+					logging.debug('exception occured when trying to process or insert photo')
 					s.photo_ref = None
 					s.hasphoto = False
 			else:
@@ -560,7 +561,6 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			except:
 				logging.debug('class cache write failed')
 
-			# we should convert the dict to a list so this is easier to do
 			try:
 				# update point summary cache with new value, pop oldest value
 				pointsummary = memcache.get('pointsummary')

@@ -91,7 +91,21 @@ class DataDebugPage(webapp.RequestHandler):
 			base_url = 'http://' + os.environ['HTTP_HOST'] + '/'
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
+
+		keylist = SurveyData.__dict__.keys()
+		self.response.out.write(str(keylist))
+
+		for key in keylist:
+			if key.startswith('_'):
+				keylist.remove(key)
+
+		self.response.out.write(str(keylist))
+
+		row = SurveyData.all().get()
+		self.response.out.write(str(row.__dict__['_'+str(keylist[0])]))
+
 		'''
+
 		csv_store = SurveyCSV.all().filter('page = ', 1).get()
 		if csv_store is not None:
 			# init csv reader
@@ -1012,13 +1026,70 @@ class ClassPopulateCSVMemcache(webapp.RequestHandler):
 
 		return
 
+class ChangePassword(webapp.RequestHandler):
+	def get(self):
+		self.response.out.write('''
+<html><body>
+	<form action="/debug/change_pass" method="POST">
+		<input type="text" name="username">
+		<input type="password" name="password">
+		<input type="password" name="repeat">
+		<input type="submit">
+	</form>
+</body></html>
+		''')
+
+	def post(self):
+		if not self.request.get('username') or \
+				not self.request.get('password') or \
+				not self.request.get('repeat'):
+			self.response.out.write('missing field.')
+			return
+
+		if self.request.get('password') != self.request.get('repeat'):
+			self.response.out.write('mismatch')
+			return
+		
+		if UserTable().update_user(self.request.get('username'), self.request.get('password')):
+			self.response.out.write('changed')
+		else:
+			self.response.out.write('failed')
+# End ChanePassword Class
+
+class UploadUsers(webapp.RequestHandler):
+	def get(self):
+		self.response.out.write('''
+<html><body>
+	<form action="/debug/upload_users" method="POST" enctype="multipart/form-data">
+		<input type="file" name="classfile">
+		<input type="submit">
+	</form>
+</body></html>
+		''')
+	def post(self):
+		if not self.request.get('classfile'):
+			self.response.out.write('missing file')
+			return
+
+		data = self.request.get('classfile').split('\r\n')
+
+		self.response.out.write('<html><body>')
+		for row in data:
+			field = row.split(',')
+			if len(field) > 6:
+				if field[2] != 'username':
+					self.response.out.write('--' + field[2] + ': ' + field[3] + ' - ' + field[4] + ' - ' + field[5] + '<br />')
+					if not UserTable().create_user(field[2], field[3], field[5], field[4]):
+						self.response.out.write ('<strong><font color="red">could not create user</font></strong><br /><br />')
+
+		self.response.out.write('</body></html>')
+
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
 		self.handler()
 	def post(self):
 		self.handler()
 	def handler(self):
-		'''
 		q = UserStat().all().fetch(500)
 		db.delete(q)
 
@@ -1045,7 +1116,7 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = ClassSurveyCSV().all().fetch(500)
 		db.delete(q)
-		'''
+
 		memcache.flush_all()
 
 
@@ -1070,6 +1141,8 @@ application = webapp.WSGIApplication(
 									  ('/debug/show_mem_store', ShowMemStore),
 									  ('/debug/populate_all_user_csv', UserPopulateCSVMemcache),
 									  ('/debug/populate_all_class_csv', ClassPopulateCSVMemcache),
+									  ('/debug/change_pass', ChangePassword),
+									  ('/debug/upload_users', UploadUsers),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
