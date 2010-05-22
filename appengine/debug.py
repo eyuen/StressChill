@@ -1084,13 +1084,57 @@ class UploadUsers(webapp.RequestHandler):
 
 		self.response.out.write('</body></html>')
 
+# Populates user csv from memcache
+# this should only be run once to populate the datastore with existing values
+class UserTotalMemcache(webapp.RequestHandler):
+	def get(self):
+		# get data from memcache if exist, exit if none
+		self.response.out.write('<html><body>')
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			self.response.out.write('</body></html>')
+			return
+
+		user_data = {}
+
+		for s in data:
+			if not s['username']:
+				s['username'] = 'Anon'
+
+			if not user_data.has_key(str(s['username'])):
+				user_data[s['username']] = 0
+			user_data[s['username']] += 1
+
+		usertotalstat = UserTotalStat().all().fetch(500)
+		db.delete(usertotalstat)
+
+		for user,count in user_data.iteritems():
+			newstat = UserTotalStat()
+			newstat.user_id = user
+			uname = UserTable().get_username(user)
+			if uname:
+				newstat.username = uname
+			else:
+				newstat.username = 'Anon'
+			newstat.count = count
+			newstat.put()
+			self.response.out.write(str(newstat.username)+' - '+str(user)+': '+str(count)+'<br />')
+
+		self.response.out.write('</body></html>')
+		return
+
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
 		self.handler()
 	def post(self):
 		self.handler()
 	def handler(self):
+		'''
 		q = UserStat().all().fetch(500)
+		db.delete(q)
+
+		q = UserTotalStat().all().fetch(500)
 		db.delete(q)
 
 		q = DailySubCategoryStat().all().fetch(500)
@@ -1116,6 +1160,7 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = ClassSurveyCSV().all().fetch(500)
 		db.delete(q)
+		'''
 
 		memcache.flush_all()
 
@@ -1143,6 +1188,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/populate_all_class_csv', ClassPopulateCSVMemcache),
 									  ('/debug/change_pass', ChangePassword),
 									  ('/debug/upload_users', UploadUsers),
+									  ('/debug/populate_total_stat', UserTotalMemcache),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

@@ -372,7 +372,7 @@ class UserTable(db.Model):
 
 	def get_username(self, user_key):
 		uname = self.gql('WHERE ckey = :1', user_key).get()
-		if not username:
+		if not uname:
 			return False
 		else:
 			return uname.username
@@ -850,9 +850,26 @@ class SubCategoryStat(db.Model):
 	# decrement the subcategory
 	def decrement_stats(self, key, value):
 		subcatstat = db.get(key)
+
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
+
 		if subcatstat is not None:
 			subcatstat.count -= 1
 			subcatstat.total -= value
+			subcatstat.stress_count -= scount
+			subcatstat.stress_total -= sval
+			subcatstat.chill_count -= ccount
+			subcatstat.chill_total -= cval
 			subcatstat.put()
 			logging.debug('subcategory count: '+str(subcatstat.count))
 			logging.debug('subcategory total: '+str(subcatstat.total))
@@ -928,9 +945,25 @@ class DailySubCategoryStat(db.Model):
 	def decrement_stats(self, key, value):
 		dailysubcatstat = db.get(key)
 
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
+
 		if dailysubcatstat is not None:
 			dailysubcatstat.count -= 1
 			dailysubcatstat.total -= value
+			dailysubcatstat.stress_count -= scount
+			dailysubcatstat.stress_total -= sval
+			dailysubcatstat.chill_count -= ccount
+			dailysubcatstat.chill_total -= cval
 			dailysubcatstat.put()
 			logging.debug('daily subcategory count: '+str(dailysubcatstat.count))
 			logging.debug('daily subcategory total: '+str(dailysubcatstat.total))
@@ -939,16 +972,7 @@ class DailySubCategoryStat(db.Model):
 			logging.debug('daily subcategory stat not found')
 			return False
 	# end decrement_stats method
-# End CategoryStat Class
-
-#model to hold class info
-class ClassList(db.Model):
-	teacher = db.StringProperty()
-	head_teacher = db.BooleanProperty()
-	classid = db.StringProperty()
-	classname = db.StringProperty()
-	created = db.DateTimeProperty(auto_now_add=True)
-# End ClassList Class
+# End DailySubCategoryStat Class
 
 # model to keep running stats of user's sub-categories
 class UserStat(db.Model):
@@ -1016,13 +1040,87 @@ class UserStat(db.Model):
 	def decrement_stats(self, key, value):
 		userstat = db.get(key)
 
+		scount = 0
+		sval = 0
+		ccount = 0
+		cval = 0
+
+		if value < 0:
+			scount = 1
+			sval = value
+		else:
+			ccount = 1
+			cval = value
+
 		if userstat is not None:
 			userstat.count -= 1
 			userstat.total -= value
+			userstat.stress_count -= scount
+			userstat.stress_total -= sval
+			userstat.chill_count -= ccount
+			userstat.chill_total -= cval
 			userstat.put()
 			logging.debug('user count: '+str(userstat.count))
 			logging.debug('user total: '+str(userstat.total))
 		else:
 			logging.debug('user stat not found')
 	# end decrement_stats method
-# End CategoryStat Class
+# End UserStat Class
+
+# model to keep total stats per user
+class UserTotalStat(db.Model):
+	user_id = db.StringProperty()
+	username = db.StringProperty()
+	count =	db.IntegerProperty()
+	last_updated = 	db.DateTimeProperty(auto_now=True)
+
+	# increments the subcategory
+	def increment_stats(self, key, user_id, username = None):
+		userstat = None
+		if key is not None:
+			userstat = db.get(key)
+
+		if not userstat:
+			self.user_id = user_id
+			if not username:
+				self.username = 'Anon'
+			else:
+				self.username = username
+			self.count = 1
+			self.put()
+
+			if self.is_saved():
+				return self.key()
+			else:
+				return None
+		else:
+			userstat.count += 1
+			userstat.put()
+
+			if userstat.is_saved():
+				return userstat.key()
+			else:
+				return None
+
+	# decrement the subcategory
+	def decrement_stats(self, key):
+		userstat = db.get(key)
+
+		if userstat is not None:
+			userstat.count -= 1
+			userstat.put()
+			logging.debug('user count: '+str(userstat.count))
+		else:
+			logging.debug('user stat not found')
+	# end decrement_stats method
+# End UserTotalStat Class
+
+#model to hold class info
+class ClassList(db.Model):
+	teacher = db.StringProperty()
+	head_teacher = db.BooleanProperty()
+	classid = db.StringProperty()
+	classname = db.StringProperty()
+	created = db.DateTimeProperty(auto_now_add=True)
+# End ClassList Class
+

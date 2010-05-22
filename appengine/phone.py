@@ -448,10 +448,21 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			userstat = UserStat().all().filter('subcategory =', s.subcategory).filter('category = ', s.category).filter('user_id = ', s.username).get()
 
 			ukey = None
-			if subcat is not None:
-				ukey = subcat.key()
+			if userstat is not None:
+				ukey = userstat.key()
 			
 			db.run_in_transaction(UserStat().increment_stats, ukey, s.username, s.subcategory, s.category, s.stressval)
+
+			# update user total stats (this should probably be moved to the task queue)
+			userstat = UserTotalStat().all().filter('user_id = ', s.username).get()
+
+			ukey = None
+			username = None
+			if userstat is not None:
+				ukey = userstat.key()
+				username = UserTable().get_username(s.username)
+			
+			db.run_in_transaction(UserTotalStat().increment_stats, ukey, s.username)
 				
 			#write to csv blob and update memcache
 

@@ -371,3 +371,32 @@ class SummaryHandler(webapp.RequestHandler):
 		self.response.out.write (helper.render(self, path, template_values))
 	# end handle method
 # End SummaryHandler Class
+
+# displays count of each category
+class ScoreBoard(webapp.RequestHandler):
+	def get(self):
+		ulist = UserTotalStat().all().order('-count')
+		
+		count = 0
+		top_thirty = []
+
+		for k in ulist:
+			if count > 30:
+				break
+
+			count += 1
+			
+			row = {}
+			row['username'] = k.username
+			row['count'] = k.count
+
+			top_thirty.append(row)
+
+		template_values = {}
+		template_values['topthirty'] = top_thirty
+		template_values['scoreboard'] = True
+		logging.debug(template_values)
+
+		path = os.path.join (os.path.dirname(__file__), 'views/topscore.html')
+		self.response.out.write (helper.render(self, path, template_values))
+		

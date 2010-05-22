@@ -1,0 +1,31 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Scoreboard{% endblock %}
+
+{% block content %}
+	<div class="span-24 last">
+		<div class="span-8">
+			<table>
+				<thead>
+					<tr>
+						<th class="span-5">User</th>
+						<th class="span-3">Count</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for s in topthirty %}
+					<tr>
+						<td class="span-5">{{s.username}}</td>
+						<td class="span-3">{{s.count}}</td>
+					</tr>
+					{% endfor %}
+
+				</tbody>
+			</table>
+		</div>
+		<div class="span-16 last">
+			&nbsp;
+		</div>
+
+	</div>
+{% endblock%}

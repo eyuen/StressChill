@@ -152,7 +152,8 @@ application = webapp.WSGIApplication(
 									  ('/summary', displaydata.SummaryHandler),
 									  ('/create_user', CreateUser),
 									  ('/confirm_user', phone.ConfirmUser),
-									  ('/web_confirm_user', WebConfirmUser)
+									  ('/web_confirm_user', WebConfirmUser),
+									  ('/score_board', displaydata.ScoreBoard)
 									  ],
 									 debug=True)
 
