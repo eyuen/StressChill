@@ -130,7 +130,7 @@ def extract_surveys(surveys):
 		else:
 			item['comments'] = cgi.escape(s.comments, True)
 
-		if s.hasphoto:
+		if s.hasphoto and s.photo_ref is not None:
 			item['hasphoto'] = True
 			try:
 				item['photo_key'] = str(s.photo_ref.key())

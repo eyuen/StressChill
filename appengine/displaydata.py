@@ -78,7 +78,7 @@ class GetPointSummary(webapp.RequestHandler):
 				e['comments'] = s.comments
 				e['key'] = str(s.key())
 				e['version'] = s.version
-				if s.hasphoto:
+				if s.hasphoto and s.photo_ref is not None:
 					e['photo_key'] = str(s.photo_ref.key())
 				else:
 					e['photo_key'] = None
@@ -117,30 +117,34 @@ class GetAPoint(webapp.RequestHandler):
 			try :
 				db_key = db.Key(req_key)
 				s = db.GqlQuery("SELECT * FROM SurveyData WHERE __key__ = :1", db_key).get()
-				e = {}
-				try:
-					e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + str(s.photo_ref.key());
-				except (AttributeError):
-					e['photo'] = ''
-				e['latitude'] = s.latitude
-				e['longitude'] = s.longitude
-				e['stressval'] = s.stressval
-				e['category'] = s.category
-				e['subcategory'] = s.subcategory
-				e['comments'] = s.comments
-				e['key'] = str(s.key())
-				e['version'] = s.version
-				if s.hasphoto:
-					e['photo_key'] = str(s.photo_ref.key())
+				if s is not None:
+					e = {}
+					try:
+						e['photo'] = 'http://' + base_url + "/get_image_thumb?key=" + str(s.photo_ref.key());
+					except (AttributeError):
+						e['photo'] = ''
+					e['latitude'] = s.latitude
+					e['longitude'] = s.longitude
+					e['stressval'] = s.stressval
+					e['category'] = s.category
+					e['subcategory'] = s.subcategory
+					e['comments'] = s.comments
+					e['key'] = str(s.key())
+					e['version'] = s.version
+					if s.hasphoto:
+						e['photo_key'] = str(s.photo_ref.key())
+					else:
+						e['photo_key'] = None
+					self.response.out.write(json.dumps(e))
+					return
 				else:
-					e['photo_key'] = None
-				self.response.out.write(json.dumps(e))
-				return
+					self.response.out.write("No data has been uploaded")
+					return
 
 			except (db.Error):
-				self.response.out.write("No data has been uploaded :[")
+				self.response.out.write("No data has been uploaded")
 				return
-		self.response.out.write("No data has been uploaded :[")
+		self.response.out.write("No data has been uploaded")
 	# end get method
 # End GetAPoint Class
 

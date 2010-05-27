@@ -536,7 +536,8 @@ class ConfirmDelete(webapp.RequestHandler):
 		# decrement subcategory count and subtract from total
 		subcatstat = SubCategoryStat().all().filter('category =', observation.category).filter('subcategory =', observation.subcategory).get()
 
-		db.run_in_transaction(SubCategoryStat().decrement_stats, subcatstat.key(), observation.stressval)
+		if subcatstat is not None:
+			db.run_in_transaction(SubCategoryStat().decrement_stats, subcatstat.key(), observation.stressval)
 
 		pdt = observation.timestamp - datetime.timedelta(hours=7)
 		time_key = str(pdt).split(' ')[0]
@@ -546,17 +547,20 @@ class ConfirmDelete(webapp.RequestHandler):
 		# decrement daily subcategory count and subtract from total
 		dailysubcatstat = DailySubCategoryStat().all().filter('category =', observation.category).filter('date =', date).filter('subcategory =', observation.subcategory).get()
 
-		db.run_in_transaction(DailySubCategoryStat().decrement_stats, dailysubcatstat.key(), observation.stressval)
+		if dailysubcatstat is not None:
+			db.run_in_transaction(DailySubCategoryStat().decrement_stats, dailysubcatstat.key(), observation.stressval)
 
 		# decrement user count and subtract from total
 		userstat = UserStat().all().filter('category =', observation.category).filter('subcategory =', observation.subcategory).filter('user_id =', sess['userid']).get()
 
-		db.run_in_transaction(UserStat().decrement_stats, userstat.key(), observation.stressval)
+		if userstat is not None:
+			db.run_in_transaction(UserStat().decrement_stats, userstat.key(), observation.stressval)
 
 		# decrement user total count
 		userstat = UserTotalStat().all().filter('user_id =', sess['userid']).get()
 
-		db.run_in_transaction(UserTotalStat().decrement_stats, userstat.key())
+		if userstat is not None:
+			db.run_in_transaction(UserTotalStat().decrement_stats, userstat.key())
 
 		# delete observation from csv blob
 		# get csv blob

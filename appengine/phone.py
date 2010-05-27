@@ -454,15 +454,30 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			db.run_in_transaction(UserStat().increment_stats, ukey, s.username, s.subcategory, s.category, s.stressval)
 
 			# update user total stats (this should probably be moved to the task queue)
-			userstat = UserTotalStat().all().filter('user_id = ', s.username).get()
+			classlist = memcache.get('classlist')
+			# if not exist, fetch from datastore
+			if not classlist:
+				cl = ClassList().all()
+
+				classlist = []
+				for c in cl:
+					classlist.append(c.classid)
+
+				# save to memcache to prevent this lookup from happening everytime
+				memcache.set('classlist', classlist)
+
+			statclass = 'testers'
+			if s.classid in classlist:
+				statclass = s.classid
+
+			userstat = UserTotalStat().all().filter('user_id = ', s.username).filter('class_id =', statclass).get()
 
 			ukey = None
-			username = None
+			username = UserTable().get_username(s.username)
 			if userstat is not None:
 				ukey = userstat.key()
-				username = UserTable().get_username(s.username)
 			
-			db.run_in_transaction(UserTotalStat().increment_stats, ukey, s.username)
+			db.run_in_transaction(UserTotalStat().increment_stats, ukey, s.username, username, statclass)
 				
 			#write to csv blob and update memcache
 

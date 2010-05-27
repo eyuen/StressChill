@@ -286,8 +286,11 @@ class UserTable(db.Model):
 	ckey = db.StringProperty()
 	classid = db.StringProperty()
 	created= db.IntegerProperty(default=long(time()))
+	date_created = db.DateTimeProperty(auto_now_add=True)
+	date_modified = db.DateTimeProperty(auto_now=True)
 	admin = db.BooleanProperty(default=False)
 	teacher = db.BooleanProperty(default=False)
+	approved = db.BooleanProperty(default=False)
 
 	# username: proposed username, string
 	# password: plaintext password, string
@@ -546,24 +549,30 @@ def delete_from_csv_blob(csv_blob, del_key):
 	# if deleted flag set, write new csv
 	if del_flag:
 		logging.debug('del row cnt: '+str(row_count))
-		# convert string to time
-		m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
-			str(last_entry_date))
-		datestr, fractional, tzname, tzhour, tzmin = m.groups()
-		if tzname is None:
-			tz = None
-		else:
-			tzhour, tzmin = int(tzhour), int(tzmin)
-			if tzhour == tzmin == 0:
-				tzname = 'UTC'
-			tz = FixedOffset(timedelta(hours=tzhour,
-									   minutes=tzmin), tzname)
-		x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-		if fractional is None:
-			fractional = '0'
-			fracpower = 6 - len(fractional)
-			fractional = float(fractional) * (10 ** fracpower)
-		dt = x.replace(microsecond=int(fractional), tzinfo=tz)
+		dt = None
+		if row_count > 0:
+			# convert string to time
+			m = re.match(r'(.*?)(?:\.(\d+))?(([-+]\d{1,2}):(\d{2}))?$',
+				str(last_entry_date))
+			datestr, fractional, tzname, tzhour, tzmin = m.groups()
+
+			logging.debug('datestr: '+str(datestr))
+
+			if datestr is not None and datestr != 'None':
+				if tzname is None:
+					tz = None
+				else:
+					tzhour, tzmin = int(tzhour), int(tzmin)
+					if tzhour == tzmin == 0:
+						tzname = 'UTC'
+					tz = FixedOffset(timedelta(hours=tzhour,
+											   minutes=tzmin), tzname)
+				x = datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+				if fractional is None:
+					fractional = '0'
+					fracpower = 6 - len(fractional)
+					fractional = float(fractional) * (10 ** fracpower)
+				dt = x.replace(microsecond=int(fractional), tzinfo=tz)
 
 		# write csv values/blob
 		return_val = {}
@@ -1072,13 +1081,18 @@ class UserTotalStat(db.Model):
 	user_id = db.StringProperty()
 	username = db.StringProperty()
 	count =	db.IntegerProperty()
+	class_id = db.StringProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
 
 	# increments the subcategory
-	def increment_stats(self, key, user_id, username = None):
+	def increment_stats(self, key, user_id, username = None, class_id = None):
 		userstat = None
 		if key is not None:
 			userstat = db.get(key)
+
+		setclass = 'testers'
+		if class_id is not None:
+			setclass = class_id
 
 		if not userstat:
 			self.user_id = user_id
@@ -1087,6 +1101,7 @@ class UserTotalStat(db.Model):
 			else:
 				self.username = username
 			self.count = 1
+			self.class_id = setclass
 			self.put()
 
 			if self.is_saved():

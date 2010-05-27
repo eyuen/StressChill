@@ -1098,18 +1098,40 @@ class UserTotalMemcache(webapp.RequestHandler):
 
 		user_data = {}
 
+		# update user total stats (this should probably be moved to the task queue)
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+
 		for s in data:
 			if not s['username']:
 				s['username'] = 'Anon'
 
 			if not user_data.has_key(str(s['username'])):
-				user_data[s['username']] = 0
-			user_data[s['username']] += 1
+				user_data[s['username']] = {}
+
+				user_data[s['username']]['count'] = 0
+
+				statclass = 'testers'
+				if s['classid'] in classlist:
+					statclass = s['classid']
+				user_data[s['username']]['classid'] = statclass
+
+			user_data[s['username']]['count'] += 1
 
 		usertotalstat = UserTotalStat().all().fetch(500)
 		db.delete(usertotalstat)
 
-		for user,count in user_data.iteritems():
+		for user,stat in user_data.iteritems():
 			newstat = UserTotalStat()
 			newstat.user_id = user
 			uname = UserTable().get_username(user)
@@ -1117,9 +1139,10 @@ class UserTotalMemcache(webapp.RequestHandler):
 				newstat.username = uname
 			else:
 				newstat.username = 'Anon'
-			newstat.count = count
+			newstat.count = stat['count']
+			newstat.class_id = stat['classid']
 			newstat.put()
-			self.response.out.write(str(newstat.username)+' - '+str(user)+': '+str(count)+'<br />')
+			self.response.out.write(str(newstat.username)+' - '+str(user)+': '+str(stat['count'])+' - '+str(stat['classid'])+'<br />')
 
 		self.response.out.write('</body></html>')
 		return
@@ -1130,7 +1153,6 @@ class DeleteDatastore(webapp.RequestHandler):
 	def post(self):
 		self.handler()
 	def handler(self):
-		'''
 		q = UserStat().all().fetch(500)
 		db.delete(q)
 
@@ -1160,7 +1182,6 @@ class DeleteDatastore(webapp.RequestHandler):
 
 		q = ClassSurveyCSV().all().fetch(500)
 		db.delete(q)
-		'''
 
 		memcache.flush_all()
 

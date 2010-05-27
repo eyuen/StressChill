@@ -490,8 +490,12 @@ class QuarantineImage(webapp.RequestHandler):
 				logging.debug('invalid photo reference')
 				sess['error'] = 'Image could not be quarantined.'
 				sess.save()
+		else:
+			sess['error'] = 'Observation has no photo flag set. Please contact.'
+			sess.save()
+			logging.debug('observation has no photo flag set: ' + str(observation.key()))
 
-		self.redirect('/admin/data')
+		self.redirect(data_redirect_str)
 
 	# end put method
 # End QuarantineImage Class
