@@ -18,6 +18,7 @@ from google.appengine.ext import db
 from google.appengine.ext.webapp import template
 from google.appengine.api import memcache
 from google.appengine.api import images
+from google.appengine.api import mail
 
 import cStringIO
 import csv
@@ -320,6 +321,11 @@ class ConfirmLogin(webapp.RequestHandler):
 				sess['username'] = self.request.get('username')
 				sess['userid'] = uid
 				sess['classid'] = classid
+				classentry = ClassList().all().filter('classid =',classid).get()
+				if classentry:
+					sess['classname'] = classentry.classname
+
+				logging.debug('class name: ' + str(sess['classname']))
 				if userclass.admin:
 					sess['admin'] = True
 				if userclass.teacher:
@@ -565,17 +571,24 @@ class ConfirmDelete(webapp.RequestHandler):
 		# delete observation from csv blob
 		# get csv blob
 		csv_store = SurveyCSV.all().filter('page = ', 1).get()
-		db.run_in_transaction(SurveyCSV().delete_from_csv, csv_store.key(), observation.key())
+		if csv_store is not None:
+			db.run_in_transaction(SurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
 		# delete observation from user csv blob
 		# get csv blob
 		csv_store = UserSurveyCSV.all().filter('page = ', 1).filter('userid =', sess['userid']).get()
-		db.run_in_transaction(UserSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
+		if csv_store is not None:
+			db.run_in_transaction(UserSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
-		# delete observation from class csv blob
-		# get csv blob
 		csv_store = ClassSurveyCSV.all().filter('page = ', 1).filter('classid =', sess['classid']).get()
-		db.run_in_transaction(ClassSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
+		if csv_store is not None:
+			db.run_in_transaction(ClassSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
+		
+		# remove from clean csv if class member
+		if sess['classid'] != 'testers':
+			csv_store = CleanSurveyCSV.all().filter('page = ', 1).get()
+			if csv_store is not None:
+				db.run_in_transaction(CleanSurveyCSV().delete_from_csv, csv_store.key(), observation.key())
 
 		# invalidate related cached items
 		saved = memcache.get('saved')
@@ -757,6 +770,199 @@ class DownloadClassData(webapp.RequestHandler):
 	# end get method
 # End DownloadAllData
 
+# displays users with highest observation count
+class ClassScoreBoard(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/class_score_board'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		# get user stats
+		result = UserStat().all().filter('user_id =', sess['userid'])
+
+		categories = {}
+
+		for row in result:
+			if not categories.has_key(row.category):
+				categories[row.category] = {
+						'category':row.category,
+						'count':row.count,
+						'total':row.total
+						}
+				if row.count != 0:
+					categories[row.category]['average'] = row.total/row.count
+				else:
+					categories[row.category]['average'] = 0
+
+				categories[row.category]['subcategories'] = {}
+			else:
+				categories[row.category]['count'] += row.count
+				categories[row.category]['total'] += row.total
+				if categories[row.category]['count'] != 0:
+					categories[row.category]['average'] = \
+						categories[row.category]['total'] / categories[row.category]['count']
+
+			if not categories[row.category]['subcategories'].has_key(row.subcategory):
+				subavg = 0
+				if row.count != 0:
+					subavg = row.total / row.count
+				categories[row.category]['subcategories'][row.subcategory] = { 
+						'subcategory':row.subcategory, 
+						'count':row.count,
+						'total':row.total,
+						'average':subavg 
+						}
+			else:
+				categories[row.category]['subcategories'][row.subcategory]['count'] += row.count
+				categories[row.category]['subcategories'][row.subcategory]['total'] += row.total
+				if categories[row.category]['subcategories'][row.subcategory]['count'] != 0:
+					categories[row.category]['subcategories'][row.subcategory]['average'] = \
+						categories[row.category]['subcategories'][row.subcategory]['total'] / categories[row.category]['subcategories'][row.subcategory]['count']
+
+		data = []
+		for key,cat in categories.items():
+			cat['subcatlist'] = []
+
+			for skey,scat in cat['subcategories'].items():
+				cat['subcatlist'].append(scat)
+
+			del cat['subcategories']
+			del cat['total']
+			data.append(cat)
+
+
+		template_values = { 'summary' : data }
+		logging.debug(template_values)
+
+		# get user's class scoreboard
+		ulist = UserTotalStat().all().filter('class_id =', sess['classid']).order('-count')
+		
+		count = 0
+		top_thirty = []
+
+		for k in ulist:
+			if count > 50:
+				break
+
+			count += 1
+			
+			row = {}
+			row['rank'] = count
+			row['username'] = k.username
+			row['count'] = k.count
+			if k.username == sess['username']:
+				row['highlight'] = True
+			else:
+				row['highlight'] = False
+
+			top_thirty.append(row)
+
+		#template_values = {}
+		# This now has more than 30 records in it...
+		template_values['topthirty'] = top_thirty
+		template_values['classscoreboard'] = True
+		logging.debug(template_values)
+
+		path = os.path.join (os.path.dirname(__file__), 'views/user_summary_score.html')
+		self.response.out.write (helper.render(self, path, template_values))
+	# end get method
+# End ScoreBoard Class
+
+class Contact(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/contact'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		template_values = {}
+
+		path = os.path.join (os.path.dirname(__file__), 'views/contact.html')
+		self.response.out.write (helper.render(self, path, template_values))
+
+	def post(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/contact'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		if not self.request.get('teacher'):
+			sess['error'] = 'Please enter your Teacher\'s last name'
+			sess.save()
+			self.redirect('/user/contact')
+			return
+
+		msgbody='User:' + sess['username'] + ' has requested to become part of class: ' + self.request.get('teacher') + '.\n'
+
+		if self.request.get('additional'):
+			msgbody+='Note:\n' + self.request.get('additional')
+
+
+		mail.send_mail(sender="eric.m.yuen@gmail.com",
+				to="eric.m.yuen@gmail.com",
+				subject="Class Change Request",
+				body=msgbody)
+		
+		sess['success'] = 'Your message has been sent. The admin will correct this as soon as possible'
+		self.redirect('/')
+		
+# handler for: /user/data_download_clean.csv
+class DownloadCleanData(webapp.RequestHandler):
+	# returns csv of all data
+	def get(self):
+		# redirect to login page if not logged in
+		sess = gmemsess.Session(self)
+
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/show_data_download'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		data_csv = CleanSurveyCSV.all().filter('page =', 1).get()
+
+		self.response.headers['Content-type'] = 'text/csv'
+		self.response.out.write(data_csv.csv)
+		return
+	# end get method
+# End DownloadAllData
+
+# handler for: /user/show_data_download
+class ShowDownload(webapp.RequestHandler):
+	# show donwload link for clean data
+	def get(self):
+		# redirect to login page if not logged in
+		sess = gmemsess.Session(self)
+
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/user/show_data_download'
+			sess.save()
+			self.redirect('/user/login')
+			return
+
+		path = os.path.join (os.path.dirname(__file__), 'views/show_download.html')
+		self.response.out.write (helper.render(self, path, {}))
+
+
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/user/data', UserDataByDatePage),
@@ -770,7 +976,11 @@ application = webapp.WSGIApplication(
 									  ('/user/confirm_delete', ConfirmDelete),
 									  ('/user/summary', UserSummaryHandler),
 									  ('/user/user_data_download.csv', DownloadUserData),
-									  ('/user/class_data_download.csv', DownloadClassData)
+									  ('/user/class_data_download.csv', DownloadClassData),
+									  ('/user/class_score_board', ClassScoreBoard),
+									  ('/user/contact', Contact),
+									  ('/user/data_download_clean.csv', DownloadCleanData),
+									  ('/user/show_data_download', ShowDownload)
 									 ],
 									 debug=True)
 

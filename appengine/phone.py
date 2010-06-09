@@ -444,6 +444,10 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			db.run_in_transaction(DailySubCategoryStat().increment_stats, dsckey, s.subcategory, s.category, date, s.stressval)
 
+			statclass = 'testers'
+			if s.classid in classlist:
+				statclass = s.classid
+
 			# update user running stats (this should probably be moved to the task queue)
 			userstat = UserStat().all().filter('subcategory =', s.subcategory).filter('category = ', s.category).filter('user_id = ', s.username).get()
 
@@ -451,25 +455,9 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			if userstat is not None:
 				ukey = userstat.key()
 			
-			db.run_in_transaction(UserStat().increment_stats, ukey, s.username, s.subcategory, s.category, s.stressval)
+			db.run_in_transaction(UserStat().increment_stats, ukey, s.username, s.subcategory, s.category, s.stressval, statclass)
 
 			# update user total stats (this should probably be moved to the task queue)
-			classlist = memcache.get('classlist')
-			# if not exist, fetch from datastore
-			if not classlist:
-				cl = ClassList().all()
-
-				classlist = []
-				for c in cl:
-					classlist.append(c.classid)
-
-				# save to memcache to prevent this lookup from happening everytime
-				memcache.set('classlist', classlist)
-
-			statclass = 'testers'
-			if s.classid in classlist:
-				statclass = s.classid
-
 			userstat = UserTotalStat().all().filter('user_id = ', s.username).filter('class_id =', statclass).get()
 
 			ukey = None
@@ -513,6 +501,17 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 
 			# add to cache (writes should update this cached value)
 			memcache.set('csv', insert_csv.csv)
+
+			# if not in testers, add to clean csv
+			if statclass != 'testers':
+				csv_data = CleanSurveyCSV.all().filter('page =', 1).get()
+
+				# run in transaction so update not overwritten by a concurrent request
+				insert_csv = None
+				if csv_data:
+					insert_csv = db.run_in_transaction(CleanSurveyCSV().update_csv, data_row, csv_data.key())
+				else:
+					insert_csv = db.run_in_transaction(CleanSurveyCSV().update_csv, data_row)
 
 			### append to user csv blob
 

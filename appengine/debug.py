@@ -92,6 +92,7 @@ class DataDebugPage(webapp.RequestHandler):
 		else:
 			base_url = 'http://' + os.environ['SERVER_NAME'] + '/'
 
+		'''
 		keylist = SurveyData.__dict__.keys()
 		self.response.out.write(str(keylist))
 
@@ -103,7 +104,7 @@ class DataDebugPage(webapp.RequestHandler):
 
 		row = SurveyData.all().get()
 		self.response.out.write(str(row.__dict__['_'+str(keylist[0])]))
-
+		'''
 		'''
 
 		csv_store = SurveyCSV.all().filter('page = ', 1).get()
@@ -448,50 +449,96 @@ class PopulateStat(webapp.RequestHandler):
 # this should only be run once to populate the datastore with existing values
 class PopulateUserStat(webapp.RequestHandler):
 	def get(self):
+		# get data from memcache if exist, exit if none
+		self.response.out.write('<html><body>')
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			self.response.out.write('</body></html>')
+			return
+		if not self.request.get('classid'):
+			self.response.out.write('no class set')
+			self.response.out.write('</body></html>')
+			return
+
 		subcategories = {}
 
-		result = db.GqlQuery("SELECT * FROM SurveyData")
+		# update user total stats (this should probably be moved to the task queue)
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
 
-		for row in result:
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		for row in data:
 			user_key = 'None'
-			if row.username is not None:
-				user_key = row.username
+			if row['username'] is not None:
+				user_key = row['username']
 
 			scount = 0
 			sval = 0
 			ccount = 0
 			cval = 0
 
-			if row.stressval < 0:
+			if row['stressval'] < 0:
 				scount = 1
-				sval = float(row.stressval)
+				sval = float(row['stressval'])
 			else:
 				ccount = 1
-				cval = float(row.stressval)
+				cval = float(row['stressval'])
 
 			if not subcategories.has_key(user_key):
 				subcategories[user_key] = {}
 
-			if subcategories[user_key].has_key(str(row.subcategory)):
-				subcategories[user_key][str(row.subcategory)]['count'] += 1
-				subcategories[user_key][str(row.subcategory)]['total'] += float(row.stressval)
-				subcategories[user_key][str(row.subcategory)]['stress_count'] += scount
-				subcategories[user_key][str(row.subcategory)]['stress_total'] += sval
-				subcategories[user_key][str(row.subcategory)]['chill_count'] += ccount
-				subcategories[user_key][str(row.subcategory)]['chill_total'] += cval
+			if subcategories[user_key].has_key(str(row['subcategory'])):
+				subcategories[user_key][str(row['subcategory'])]['count'] += 1
+				subcategories[user_key][str(row['subcategory'])]['total'] += float(row['stressval'])
+				subcategories[user_key][str(row['subcategory'])]['stress_count'] += scount
+				subcategories[user_key][str(row['subcategory'])]['stress_total'] += sval
+				subcategories[user_key][str(row['subcategory'])]['chill_count'] += ccount
+				subcategories[user_key][str(row['subcategory'])]['chill_total'] += cval
 			else:
 				tmp = {	'count':1, 
-					'total':float(row.stressval),
-					'category':str(row.category),
+					'total':float(row['stressval']),
+					'category':str(row['category']),
 					'stress_count':scount,
 					'stress_total':sval,
 					'chill_count':ccount,
 					'chill_total':cval
 					}
-				subcategories[user_key][str(row.subcategory)] = tmp
+
+				statclass = 'testers'
+				if row['classid'] in classlist:
+					statclass = row['classid']
+				tmp['class_id'] = statclass
+				subcategories[user_key][str(row['subcategory'])] = tmp
 			
+		count = 0
+
 		for user_key in subcategories.keys():
 			for subcat_keys in subcategories[user_key].keys():
+				if subcategories[user_key][subcat_keys]['class_id'] != self.request.get('classid'):
+					self.response.out.write('wrong class. skipping. <br />')
+					continue
+				else:
+					self.response.out.write('writing user stat. <br />')
+
+				count += 1
+				if self.request.get('lower'):
+					if count < int(self.request.get('lower')):
+						continue
+
+				if self.request.get('upper'):
+					if count >= int(self.request.get('upper')):
+						break
+
+
 				scstat = UserStat()
 				scstat.category = subcategories[user_key][subcat_keys]['category']
 				scstat.subcategory = subcat_keys
@@ -502,6 +549,7 @@ class PopulateUserStat(webapp.RequestHandler):
 				scstat.chill_count = subcategories[user_key][subcat_keys]['chill_count']
 				scstat.chill_total = float(subcategories[user_key][subcat_keys]['chill_total'])
 				scstat.user_id = user_key
+				scstat.class_id = subcategories[user_key][subcat_keys]['class_id']
 				scstat.put()
 
 class ShowUserCSV(webapp.RequestHandler):
@@ -660,7 +708,7 @@ class PopulateCSV(webapp.RequestHandler):
 		try:
 			self.response.out.write('<html><body>')
 			res_count = 0
-			for s in result.fetch(100):
+			for s in result.fetch(50):
 				res_count += 1
 				self.response.out.write(str(count+res_count)+',')
 				self.response.out.write(str(s.timestamp)+',')
@@ -774,7 +822,7 @@ class Datastore2Memcache(webapp.RequestHandler):
 		try:
 			self.response.out.write('<html><body>')
 			res_count = 0
-			for s in result.fetch(100):
+			for s in result.fetch(50):
 				res_count += 1
 				self.response.out.write(str(count+res_count)+',')
 				self.response.out.write(str(s.timestamp)+',')
@@ -957,10 +1005,54 @@ class ClassPopulateCSVMemcache(webapp.RequestHandler):
 		#form user csvs
 		class_data = {}
 
+
+		# get official class list from memcache if exists
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		userlist = memcache.get('user_all')
+		# if not exist, fetch from datastore
+		if not userlist:
+			self.response.out.write('retreive user list first')
+			return
+
 		for s in data:
-			if not class_data.has_key(str(s['classid'])):
-				class_data[s['classid']] = []
-			class_data[s['classid']].append(s)
+			# get classid of class, or set to 'tester'
+			classid = 'testers'
+
+			if not s['username']:
+				pass
+			elif userlist.has_key(s['username']):
+				classid = userlist[s['username']]
+
+				if classid not in classlist:
+					classid = 'testers'
+				elif s['classid'] != classid:
+					self.response.out.write('class: ' + s['classid'] + ' -> ' + classid + '<br />')
+					#updaterow = db.get(db.Key(s['key']))
+					#updaterow.classid = classid
+					#self.response.out.write(updaterow.classid)
+					#updaterow.put()
+					#if updaterow.is_saved():
+					#	self.response.out.write('updated')
+					#self.response.out.write('<hr/>')
+			else:
+				self.response.out.write('user not in list<br />')
+
+
+			if not class_data.has_key(classid):
+				class_data[classid] = []
+			class_data[classid].append(s)
+
 
 		for key,classes in class_data.iteritems():
 			output = cStringIO.StringIO()
@@ -1023,7 +1115,6 @@ class ClassPopulateCSVMemcache(webapp.RequestHandler):
 			insert_csv.classid = key
 			insert_csv.put()
 			output.close()
-
 		return
 
 class ChangePassword(webapp.RequestHandler):
@@ -1095,6 +1186,10 @@ class UserTotalMemcache(webapp.RequestHandler):
 			self.response.out.write('no data')
 			self.response.out.write('</body></html>')
 			return
+		if not self.request.get('classid'):
+			self.response.out.write('no class set')
+			self.response.out.write('</body></html>')
+			return
 
 		user_data = {}
 
@@ -1111,6 +1206,11 @@ class UserTotalMemcache(webapp.RequestHandler):
 			# save to memcache to prevent this lookup from happening everytime
 			memcache.set('classlist', classlist)
 
+		userlist = memcache.get('full_user')
+		# if not exist, fetch from datastore
+		if not userlist:
+			self.response.out.write('retreive user list first')
+			return
 
 		for s in data:
 			if not s['username']:
@@ -1128,24 +1228,292 @@ class UserTotalMemcache(webapp.RequestHandler):
 
 			user_data[s['username']]['count'] += 1
 
-		usertotalstat = UserTotalStat().all().fetch(500)
+		usertotalstat = UserTotalStat().all().filter('class_id =', self.request.get('classid')).fetch(500)
 		db.delete(usertotalstat)
 
 		for user,stat in user_data.iteritems():
+			if user == 'Anon':
+				continue
+
+			if not userlist.has_key(user):
+				self.response.out.write(user+' not found.<br />\n')
+				continue
+
 			newstat = UserTotalStat()
 			newstat.user_id = user
-			uname = UserTable().get_username(user)
+			uname = userlist[user]['username']
 			if uname:
 				newstat.username = uname
 			else:
 				newstat.username = 'Anon'
 			newstat.count = stat['count']
 			newstat.class_id = stat['classid']
+
+			if stat['classid'] != self.request.get('classid'):
+				self.response.out.write('wrong class. skipping. <br />')
+				continue
+
 			newstat.put()
 			self.response.out.write(str(newstat.username)+' - '+str(user)+': '+str(stat['count'])+' - '+str(stat['classid'])+'<br />')
 
 		self.response.out.write('</body></html>')
 		return
+
+# unapprove all user
+# /debug/unapprove_user
+class UnapproveUser(webapp.RequestHandler):
+	def get(self):
+		result = UserTable().all()
+
+		data = []
+		count = 0
+
+		if self.request.get('cursor'):
+			result.with_cursor(self.request.get('cursor'))
+
+		self.response.out.write('<html><body>')
+		for s in result.fetch(100):
+			self.response.out.write(str(s.username) + '<br />\n')
+			s.approved = False
+			s.put()
+
+		cursor = result.cursor()
+
+		if cursor is not None and cursor != self.request.get('cursor'):
+			self.response.out.write('<a href="/debug/unapprove_user?cursor='+cursor+'">click to continue</a>')
+		self.response.out.write('</body></html>')
+
+class ApproveUser(webapp.RequestHandler):
+	def get(self):
+		result = UserTable().all().filter('approved =', False)
+
+
+		s = result.get()
+
+		if s:
+			self.response.out.write('<html><body>')
+			self.response.out.write('<form action="/debug/approve_user" method="POST">')
+			self.response.out.write(str(s.username))
+			self.response.out.write('<input name = "classid" type="text" value="' + str(s.classid) + '">')
+			cursor = result.cursor()
+			self.response.out.write('<input type="hidden" name="cursor" value="' + str(cursor) + '">')
+			self.response.out.write('<input type="hidden" name="key" value="' + str(s.key()) + '">')
+			self.response.out.write('<input type="submit"')
+
+
+			self.response.out.write('</form>')
+			self.response.out.write('</body></html>')
+		else:
+			self.response.out.write('no user found')
+
+	def post(self):
+		if self.request.get('key'):
+			db_key = db.Key(self.request.get('key'))
+
+			res = db.get(db_key)
+
+			if not res:
+				self.response.out.write('error, bad key')
+				return
+
+			res.classid = self.request.get('classid')
+			res.approved = True
+			res.put()
+		else:
+			logging.debug('key: not set')
+
+		if not self.request.get('cursor'):
+			self.response.out.write('no more user')
+			return
+
+
+		result = UserTable().all().filter('approved =', False).with_cursor(self.request.get('cursor'))
+
+
+		s = result.get()
+		if s:
+			self.response.out.write('<html><body>')
+			self.response.out.write('<form action="/debug/approve_user" method="POST">')
+			self.response.out.write(str(s.username))
+			self.response.out.write('<input name = "classid" type="text" value="' + str(s.classid) + '">')
+			cursor = result.cursor()
+			self.response.out.write('<input type="hidden" name="cursor" value="' + str(cursor) + '">')
+			self.response.out.write('<input type="hidden" name="key" value="' + str(s.key()) + '">')
+			self.response.out.write('<input type="submit"')
+
+
+			self.response.out.write('</form>')
+			self.response.out.write('</body></html>')
+		else:
+			self.response.out.write('no user found')
+
+class User2Mem(webapp.RequestHandler):
+	def get(self):
+		#write to csv blob and update memcache
+		result = UserTable().all()
+
+		data = {}
+		fulldata = {}
+		count = 0
+
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		if self.request.get('cursor'):
+			result.with_cursor(self.request.get('cursor'))
+			data = memcache.get('user_all')
+			count = memcache.get('user_count')
+
+		try:
+			self.response.out.write('<html><body>')
+			res_count = 0
+			classid = 'testers'
+			for s in result.fetch(500):
+				res_count += 1
+
+				classid = 'testers'
+				if s.classid not in classlist:
+					classid = 'testers'
+				else:
+					classid = s.classid
+				self.response.out.write(str(count+res_count)+',')
+				self.response.out.write(str(s.ckey)+',')
+				self.response.out.write(str(classid)+'<br />')
+
+				data[s.ckey] = classid
+
+				fulldata[s.ckey] = {}
+				fulldata[s.ckey]['username'] = s.username
+				fulldata[s.ckey]['classid'] = classid
+				
+
+			memcache.set('user_all', data)
+			memcache.set('user_count', count)
+			memcache.set('full_user', fulldata)
+
+			cursor = result.cursor()
+			if cursor is not None and cursor != self.request.get('cursor'):
+				self.response.out.write('<a href="/debug/user2mem?cursor='+cursor+'">click to continue</a>')
+			self.response.out.write('</html></body>')
+			return
+		except DeadlineExceededError:
+			self.response.out.write('deadline exceeded.<br>')
+			return
+
+		return
+
+# create csv from memcache including no testers
+class CleanPopulateCSVMemcache(webapp.RequestHandler):
+	def get(self):
+		# get data from memcache if exist, exit if none
+		data = memcache.get('datastore_all')
+		if not data:
+			self.response.out.write('no data')
+			return
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		#form user csvs
+		out_data = []
+
+		# get official class list from memcache if exists
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		for s in data:
+			# get classid of class, or set to 'tester'
+			classid = 'testers'
+			if s['classid'] in classlist:
+				classid = s['classid']
+
+			if classid != 'testers':
+				out_data.append(s)
+
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+
+		header_row = [	'id',
+			'userid',
+			'timestamp',
+			'latitude',
+			'longitude',
+			'stress_value',
+			'category',
+			'subcategory',
+			'comments',
+			'image_url'
+			]
+		writer.writerow(header_row)
+
+		count = 0
+		for s in out_data:
+			# form image url
+			if s['hasphoto']:
+				try:
+					photo_url = 'http://' + base_url + "/get_an_image?key="+s['photo_ref']
+				except:
+					photo_url = 'no_image'
+
+			else:
+				photo_url = 'no_image'
+
+			hashedval = hashlib.sha1(s['key'])
+			sha1val = hashedval.hexdigest()
+
+			usersha1val = 'Anon'
+			if s['username'] is not None:
+				userhashedval = hashlib.sha1(s['username'])
+				usersha1val = userhashedval.hexdigest()
+
+			# write csv data row
+			new_row = [
+					sha1val,
+					usersha1val,
+					s['timestamp'],
+					s['latitude'],
+					s['longitude'],
+					s['stressval'],
+					s['category'],
+					s['subcategory'],
+					s['comments'],
+					photo_url
+					]
+			writer.writerow(new_row)
+			count += 1
+
+		q = CleanSurveyCSV().all().filter('page =', 1).fetch(10)
+		db.delete(q)
+		insert_csv = CleanSurveyCSV()
+		insert_csv.csv = db.Text(output.getvalue())
+		insert_csv.count = count
+		insert_csv.page = 1
+		insert_csv.put()
+		output.close()
+		return
+
 
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
@@ -1153,7 +1521,8 @@ class DeleteDatastore(webapp.RequestHandler):
 	def post(self):
 		self.handler()
 	def handler(self):
-		q = UserStat().all().fetch(500)
+		'''
+		q = UserStat().all().filter('class_id =', 'testers').fetch(500)
 		db.delete(q)
 
 		q = UserTotalStat().all().fetch(500)
@@ -1183,6 +1552,7 @@ class DeleteDatastore(webapp.RequestHandler):
 		q = ClassSurveyCSV().all().fetch(500)
 		db.delete(q)
 
+		'''
 		memcache.flush_all()
 
 
@@ -1210,6 +1580,10 @@ application = webapp.WSGIApplication(
 									  ('/debug/change_pass', ChangePassword),
 									  ('/debug/upload_users', UploadUsers),
 									  ('/debug/populate_total_stat', UserTotalMemcache),
+									  ('/debug/unapprove_user', UnapproveUser),
+									  ('/debug/approve_user', ApproveUser),
+									  ('/debug/user2mem', User2Mem),
+									  ('/debug/clean_csv', CleanPopulateCSVMemcache),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

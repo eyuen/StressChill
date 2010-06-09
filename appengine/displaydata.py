@@ -165,8 +165,10 @@ class GetAnImage(webapp.RequestHandler):
 						self.response.headers['Content-type'] = 'image/jpeg'
 						self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
 						x = datetime.datetime.utcnow() + datetime.timedelta(days=30)
-						self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
-						self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						#self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						#self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						# forcing download due to quarantining images...
+						self.response.headers['Cache-Control'] = 'no-cache, must-revalidate'
 						self.response.headers['Date'] = datetime.datetime.utcnow() 
 					
 						self.response.out.write(s.photo)
@@ -196,8 +198,10 @@ class GetAThumb(webapp.RequestHandler):
 						self.response.headers['Content-type'] = 'image/jpeg'
 						self.response.headers['Last-Modified'] = s.timestamp.strftime("%a, %d %b %Y %H:%M:%S GMT")
 						x = datetime.datetime.now() + datetime.timedelta(days=30)
-						self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
-						self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						#self.response.headers['Expires'] = x.strftime("%a, %d %b %Y %H:%M:%S GMT")
+						#self.response.headers['Cache-Control'] = 'public, max-age=315360000'
+						# forcing download due to quarantining images...
+						self.response.headers['Cache-Control'] = 'no-cache, must-revalidate'
 						self.response.headers['Date'] = datetime.datetime.utcnow() 
 						self.response.out.write(s.thumb)
 				else:
@@ -403,4 +407,3 @@ class ScoreBoard(webapp.RequestHandler):
 
 		path = os.path.join (os.path.dirname(__file__), 'views/topscore.html')
 		self.response.out.write (helper.render(self, path, template_values))
-		

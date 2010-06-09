@@ -130,11 +130,12 @@ def extract_surveys(surveys):
 		else:
 			item['comments'] = cgi.escape(s.comments, True)
 
-		if s.hasphoto and s.photo_ref is not None:
-			item['hasphoto'] = True
+		if s.hasphoto:
 			try:
+				item['hasphoto'] = True
 				item['photo_key'] = str(s.photo_ref.key())
 			except:
+				item['hasphoto'] = False
 				item['photo_key'] = None
 		else:
 			item['hasphoto'] = False
@@ -188,6 +189,9 @@ def render(parent_request_handler, path, values):
 
 		if sess.has_key('teacher'):
 			values['teacher'] = sess['teacher']
+
+		if sess.has_key('classname'):
+			values['classname'] = sess['classname']
 
 		values['show_all'] = False
 

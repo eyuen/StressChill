@@ -28,7 +28,7 @@ import helper
 # number of observations shown per page
 PAGE_SIZE = 20
 
-# list data page: /user/data
+# list data page: /admin/data
 class AdminDataByDatePage(webapp.RequestHandler):
 	# display data in table format
 	# TODO: page results

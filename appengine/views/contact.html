@@ -1,0 +1,28 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Contact{% endblock %}
+
+{% block content %}
+<div class="span-8">
+	<form action="/user/contact" method="post">
+		<div class="span-4">
+			<label for="teacher">Teacher's last name*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="teacher">
+		</div>
+		<div class="span-4">
+			<label for="additional">Additional Notes:</label>
+		</div>
+		<div class="span-4 last">
+			<textarea name="additional"></textarea>
+		</div>
+		<div class="span-8 last">
+			<input type="submit" value="Submit">
+		</div>
+	</form>
+</div>
+<div class="span-16 last">
+	&nbsp;
+</div>
+{% endblock%}

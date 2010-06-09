@@ -1,0 +1,84 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Summary{% endblock %}
+
+{% block content %}
+	<div class="span-24 last">
+		<p>
+		<!--		<a href="/data_download_all.csv">Download All Data (.csv)</a>-->
+		</p>
+
+		<div class="span-11 colborder">
+			<h3>Summary of your observations: </h3>
+{% for s in summary %}
+
+			<table>
+				<caption>
+					<i>
+						<strong>Category:</strong> {{s.category}}<br/>
+						<strong>Count:</strong> {{s.count}}<br/>
+						<strong>Average</strong> {{s.average}}<br/>
+					</i>
+				</caption>
+
+				<thead>
+					<tr>
+						<th class="span-4">SubCategory</th>
+						<th class="span-3">Count</th>
+						<th class="span-4 last">Average</th>
+					</tr>
+				</thead>
+				<tbody>
+{% 	for sub in s.subcatlist %}
+						<!--{{sub}}-->
+						<!--{{sub.subcategory}}-->
+					<tr>
+						<td class="span-4">{{sub.subcategory}}</td>
+						<td class="span-3">{{sub.count}}</td>
+						<td class="span-4 last">{{sub.average}}</td>
+					</tr>
+{% 	endfor %}
+				</tbody>
+			</table>
+			<hr />
+			<br />
+{% endfor %}
+		</div>
+		<div class="span-12 last">
+			<div class="span-8 colborder">
+				<h3>The top submitters in your class: </h3>
+				<table>
+					<thead>
+						<tr>
+							<th class="span-2">Rank</th>
+							<th class="span-4">User</th>
+							<th class="span-2">Count</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for s in topthirty %}
+						<tr>
+							{% if s.highlight %}
+							<td class="span-2 selected">{{s.rank}}</td>
+							<td class="span-4 selected">{{s.username}}</td>
+							<td class="span-2 selected">{{s.count}}</td>
+							{% else %}
+							<td class="span-2">{{s.rank}}</td>
+							<td class="span-4">{{s.username}}</td>
+							<td class="span-2">{{s.count}}</td>
+							{% endif %}
+						</tr>
+						{% endfor %}
+
+					</tbody>
+				</table>
+			</div>
+			<div class="span-3">
+				&nbsp;
+			</div>
+			
+		</div>
+	
+
+	</div>
+{% endblock%}

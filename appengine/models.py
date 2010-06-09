@@ -681,7 +681,6 @@ class SurveyCSV(db.Model):
 
 		return True
 	# end delete_from_csv method
-
 # End SurveyCSV Class
 
 # model to hold data blob
@@ -795,6 +794,59 @@ class ClassSurveyCSV(db.Model):
 		return True
 	# end delete_from_csv method
 # End ClassSurveyCSV Class
+
+# model to hold data blob
+class CleanSurveyCSV(db.Model):
+	csv = db.TextProperty()
+	last_updated = db.DateTimeProperty(auto_now=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+
+	def update_csv(self, data, key=None):
+		# create new blob if one does not exist
+		if not key:
+			csv_blob = write_csv(data) #write the csv (defined above)
+			logging.debug('csv not exist, setup')
+			insert_csv = CleanSurveyCSV()
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count = 1
+			insert_csv.page = 1
+		else:	#if blob exists, append and update
+			insert_csv = db.get(key)
+			csv_blob = write_csv(data, insert_csv.csv) #write the csv (defined above)
+			logging.debug('csv exist, append')
+			insert_csv.csv = str(csv_blob)
+			insert_csv.last_entry_date = data['timestamp']
+			insert_csv.count += 1
+
+		insert_csv.put()
+		return insert_csv
+
+	def delete_from_csv(self, key, del_key):
+		# create new blob if one does not exist
+		if not key:
+			return None
+
+		csv_store = db.get(key)
+
+		if csv_store is not None:
+			rtn_value = delete_from_csv_blob(csv_store.csv, del_key)
+			if not rtn_value:
+				logging.debug('the csv row not found')
+				return None
+
+			csv_store.csv = rtn_value['csv']
+			csv_store.count = rtn_value['count']
+			csv_store.last_entry_date = rtn_value['dt']
+			csv_store.put()
+		else:
+			logging.debug('the csv blob could not be retreived')
+
+		return True
+	# end delete_from_csv method
+# End SurveyCSV Class
 
 # model to keep running stats of sub-categories
 class SubCategoryStat(db.Model):
@@ -995,9 +1047,10 @@ class UserStat(db.Model):
 	chill_count = db.IntegerProperty()
 	chill_total =	db.FloatProperty()
 	last_updated = 	db.DateTimeProperty(auto_now=True)
+	class_id = db.StringProperty()
 
 	# increments the subcategory
-	def increment_stats(self, key, user_id, user_subcategory, user_category, value):
+	def increment_stats(self, key, user_id, user_subcategory, user_category, value, statclass):
 		userstat = None
 		if key is not None:
 			userstat = db.get(key)
@@ -1025,6 +1078,7 @@ class UserStat(db.Model):
 			self.stress_total = float(sval)
 			self.chill_count = ccount
 			self.chill_total = float(cval)
+			self.class_id = statclass
 			self.put()
 
 			if self.is_saved():
