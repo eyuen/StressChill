@@ -1457,6 +1457,7 @@ class CleanPopulateCSVMemcache(webapp.RequestHandler):
 
 		header_row = [	'id',
 			'userid',
+			'classid',
 			'timestamp',
 			'latitude',
 			'longitude',
@@ -1488,10 +1489,14 @@ class CleanPopulateCSVMemcache(webapp.RequestHandler):
 				userhashedval = hashlib.sha1(s['username'])
 				usersha1val = userhashedval.hexdigest()
 
+			classhashedval = hashlib.sha1(s['classid'])
+			classsha1val = classhashedval.hexdigest()
+
 			# write csv data row
 			new_row = [
 					sha1val,
 					usersha1val,
+					classsha1val,
 					s['timestamp'],
 					s['latitude'],
 					s['longitude'],

@@ -803,10 +803,80 @@ class CleanSurveyCSV(db.Model):
 	last_entry_date = db.DateTimeProperty()
 	count = db.IntegerProperty()
 
+	# function to write csv blob, this differs from the default write_csv used by other classes
+	def write_csv(self, data, csv_blob = None):
+		# init csv writer
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+		base_url = ''
+		if os.environ.get('HTTP_HOST'):
+			base_url = os.environ['HTTP_HOST']
+		else:
+			base_url = os.environ['SERVER_NAME']
+
+		# write header row if csv blob doesnt exist yet
+		if not csv_blob:
+			logging.debug('csv not exist, writing header row')
+			header_row = [	'id',
+				'userid',
+				'classid',
+				'timestamp',
+				'latitude',
+				'longitude',
+				'stress_value',
+				'category',
+				'subcategory',
+				'comments',
+				'image_url'
+				]
+			writer.writerow(header_row)
+		else:
+			logging.debug('csv exist, do not output header')
+
+		# form image url
+		if data['hasphoto']:
+			photo_url = 'http://' + base_url + "/get_an_image?key="+str(data['photo_key'])
+
+		else:
+			photo_url = 'no_image'
+
+		hashedval = hashlib.sha1(str(data['key']))
+		sha1val = hashedval.hexdigest()
+
+		userhashedval = hashlib.sha1(data['username'])
+		usersha1val = userhashedval.hexdigest()
+
+		classhashedval = hashlib.sha1(data['classid'])
+		classsha1val = classhashedval.hexdigest()
+
+		# write csv data row
+		new_row = [
+				sha1val,
+				usersha1val,
+				classsha1val,
+				data['timestamp'],
+				data['latitude'],
+				data['longitude'],
+				data['stressval'],
+				data['category'],
+				data['subcategory'],
+				data['comments'],
+				photo_url
+				]
+		writer.writerow(new_row)
+		#logging.debug('output: ' + str(output.getvalue()))
+
+		if not csv_blob:
+			return str(output.getvalue())
+		else:
+			return csv_blob + str(output.getvalue())
+	# end write_csv function
+
 	def update_csv(self, data, key=None):
 		# create new blob if one does not exist
 		if not key:
-			csv_blob = write_csv(data) #write the csv (defined above)
+			csv_blob = self.write_csv(data) #write the csv (defined above)
 			logging.debug('csv not exist, setup')
 			insert_csv = CleanSurveyCSV()
 			insert_csv.csv = str(csv_blob)
@@ -815,7 +885,7 @@ class CleanSurveyCSV(db.Model):
 			insert_csv.page = 1
 		else:	#if blob exists, append and update
 			insert_csv = db.get(key)
-			csv_blob = write_csv(data, insert_csv.csv) #write the csv (defined above)
+			csv_blob = self.write_csv(data, insert_csv.csv) #write the csv (defined above)
 			logging.debug('csv exist, append')
 			insert_csv.csv = str(csv_blob)
 			insert_csv.last_entry_date = data['timestamp']
