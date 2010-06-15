@@ -478,7 +478,7 @@ class ProtectedResourceHandler2(webapp.RequestHandler):
 			data_row['longitude'] = s.longitude
 			data_row['stressval'] = s.stressval
 			data_row['category'] = s.category
-			data_row['subcategory'] = s.category
+			data_row['subcategory'] = s.subcategory
 			data_row['comments'] = s.comments
 			data_row['version'] = s.version
 			data_row['hasphoto'] = s.hasphoto

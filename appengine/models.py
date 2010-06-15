@@ -1263,3 +1263,11 @@ class ClassList(db.Model):
 	created = db.DateTimeProperty(auto_now_add=True)
 # End ClassList Class
 
+
+class CSVList(db.Model):
+	csv = db.TextProperty()
+	last_updated = db.DateTimeProperty(auto_now=True)
+	page = db.IntegerProperty()
+	last_entry_date = db.DateTimeProperty()
+	count = db.IntegerProperty()
+	csv_type = db.StringProperty()

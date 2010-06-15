@@ -462,15 +462,6 @@ class QuarantineImage(webapp.RequestHandler):
 			self.redirect(data_redirect_str)
 			return
 
-		# if user not have permission, error
-		admin_flag = UserTable().all().filter('ckey =', sess['userid']).get()
-
-		if not admin_flag.admin:
-			sess['error'] = 'No observation exists with this key or you do not have permission to delete this observation'
-			sess.save()
-			self.redirect(data_redirect_str)
-			return
-
 		logging.debug('quarantine image for: '+str(observation.key()))
 		logging.debug('category: '+str(observation.category))
 		logging.debug('subcategory: '+str(observation.subcategory))
@@ -500,12 +491,93 @@ class QuarantineImage(webapp.RequestHandler):
 	# end put method
 # End QuarantineImage Class
 
+# handler for: /admin/get_csv_list
+class ShowCSVList(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/admin/get_csv_list'
+			sess.save()
+			self.redirect('/user/login')
+	  		return
+
+		admin_flag = UserTable().all().filter('ckey =', sess['userid']).get()
+
+		if not admin_flag.admin:
+			sess['error'] = 'You do not have permission to acces this page'
+			sess.save()
+			self.redirect('/')
+			return
+
+
+		path = os.path.join (os.path.dirname(__file__), 'views/list_csv.html')
+		self.response.out.write (helper.render(self, path, {}))
+	# end get method
+# End ShowCSVList Class
+
+# handler for: /admin/user_csv_list.csv
+class UserCSVList(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/admin/get_csv_list'
+			sess.save()
+			self.redirect('/user/login')
+	  		return
+
+		admin_flag = UserTable().all().filter('ckey =', sess['userid']).get()
+
+		if not admin_flag.admin:
+			sess['error'] = 'You do not have permission to acces this page'
+			sess.save()
+			self.redirect('/')
+			return
+
+		data_csv = CSVList().all().filter('csv_type =', 'user').get()
+
+		if data_csv is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data_csv.csv)
+			return
+
+	# end get method
+# End ShowCSVList Class
+
+class UserCSV(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+
+		if not self.request.get('key'):
+			sess['error'] = 'no key set'
+			return
+
+		db_key = db.Key(self.request.get('key'))
+
+		data_csv = db.get(db_key)
+
+		if data_csv is not None:
+			self.response.headers['Content-type'] = 'text/csv'
+			self.response.out.write(data_csv.csv)
+			return
+
+
+
+
 application = webapp.WSGIApplication(
 									 [
 									  ('/admin/data', AdminDataByDatePage),
 									  ('/admin/detail', SetupQuarantine),
 									  ('/admin/quarantine_observation', QuarantineObservation),
-									  ('/admin/quarantine_image', QuarantineImage)
+									  ('/admin/quarantine_image', QuarantineImage),
+									  ('/admin/get_csv_list', ShowCSVList),
+									  ('/admin/user_csv_list.csv', UserCSVList),
+									  ('/admin/user_file.csv', UserCSV)
 									 ],
 									 debug=True)
 

@@ -920,8 +920,19 @@ class UserPopulateCSVMemcache(webapp.RequestHandler):
 			if not user_data.has_key(str(s['username'])):
 				user_data[s['username']] = []
 			user_data[s['username']].append(s)
+	
+		ucount = 0
 
 		for key,user in user_data.iteritems():
+			ucount += 1
+			if self.request.get('lower'):
+				if ucount < int(self.request.get('lower')):
+					continue
+
+			if self.request.get('upper'):
+				if ucount >= int(self.request.get('upper')):
+					break
+
 			output = cStringIO.StringIO()
 			writer = csv.writer(output, delimiter=',')
 
@@ -1519,6 +1530,82 @@ class CleanPopulateCSVMemcache(webapp.RequestHandler):
 		output.close()
 		return
 
+class UserCSVList(webapp.RequestHandler):
+	def get(self):
+		#write to csv blob and update memcache
+		result = UserTable().all()
+
+		fulldata = {}
+		count = 0
+
+		classlist = memcache.get('classlist')
+		# if not exist, fetch from datastore
+		if not classlist:
+			cl = ClassList().all()
+
+			classlist = []
+			for c in cl:
+				classlist.append(c.classid)
+
+			# save to memcache to prevent this lookup from happening everytime
+			memcache.set('classlist', classlist)
+
+		output = cStringIO.StringIO()
+		writer = csv.writer(output, delimiter=',')
+
+
+		header_row = [	
+			'username',
+			'class_id',
+			'count',
+			'last_updated',
+			'csv_url'
+			]
+		writer.writerow(header_row)
+
+		# get user list
+		classid = 'testers'
+		for s in result.fetch(500):
+			classid = 'testers'
+			if s.classid not in classlist:
+				classid = 'testers'
+			else:
+				classid = s.classid
+
+			fulldata[s.ckey] = {}
+			fulldata[s.ckey]['username'] = s.username
+			fulldata[s.ckey]['classid'] = classid
+			
+		result = UserSurveyCSV().all()
+
+		for s in result.fetch(500):
+			username = 'Unknown'
+			classid = 'testers'
+			if fulldata.has_key(s.userid):
+				username = fulldata[s.userid]['username']
+				classid = fulldata[s.userid]['classid']
+			# write csv data row
+			new_row = [
+					username,
+					classid,
+					s.count,
+					s.last_updated,
+					'http://stresschill.appspot.com/admin/user_file.csv?user='+username+'&key='+str(s.key())
+					]
+			writer.writerow(new_row)
+			count += 1
+
+		q = CSVList().all().filter('page =', 1).filter('csv_type =', 'user').fetch(10)
+		db.delete(q)
+		insert_csv = CSVList()
+		insert_csv.csv = db.Text(output.getvalue())
+		insert_csv.count = count
+		insert_csv.page = 1
+		insert_csv.csv_type = 'user'
+		insert_csv.put()
+		output.close()
+
+		return
 
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
@@ -1589,6 +1676,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/approve_user', ApproveUser),
 									  ('/debug/user2mem', User2Mem),
 									  ('/debug/clean_csv', CleanPopulateCSVMemcache),
+									  ('/debug/user_csv_list', UserCSVList),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)
