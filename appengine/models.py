@@ -1261,6 +1261,7 @@ class ClassList(db.Model):
 	classid = db.StringProperty()
 	classname = db.StringProperty()
 	created = db.DateTimeProperty(auto_now_add=True)
+	active = db.BooleanProperty()
 # End ClassList Class
 
 

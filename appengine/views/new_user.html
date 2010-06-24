@@ -37,11 +37,16 @@
 			<label for="classid">Class ID:</label>
 		</div>
 		<div class="span-4 last">
-			<input type="test" name="classid">
+			<select name="classid">
+				<option value="0" selected="selected">Select a class:</option>
+				{% for class in classlist %}
+					<option value="{{class.id}}">{{class.name}}</option>
+				{% endfor %}
+			</select>
 		</div>
 
 		<div class="span-8 last">
-			<input type="submit" value="Login">
+			<input type="submit" value="Creat Account">
 			(* requried field)
 		</div>
 	</form>

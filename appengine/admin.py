@@ -549,6 +549,7 @@ class UserCSVList(webapp.RequestHandler):
 	# end get method
 # End ShowCSVList Class
 
+# handler for /admin/user_file.csv
 class UserCSV(webapp.RequestHandler):
 	def get(self):
 		sess = gmemsess.Session(self)
@@ -565,8 +566,109 @@ class UserCSV(webapp.RequestHandler):
 			self.response.headers['Content-type'] = 'text/csv'
 			self.response.out.write(data_csv.csv)
 			return
+	# end get method
+# End UserCSV Class
 
+# handler for /admin/create_new_class
+class CreateClass(webapp.RequestHandler):
+	def get(self):
+		sess = gmemsess.Session(self)
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/admin/create_new_class'
+			sess.save()
+			self.redirect('/user/login')
+	  		return
 
+		admin_flag = UserTable().all().filter('ckey =', sess['userid']).get()
+
+		if not admin_flag.admin:
+			sess['error'] = 'You do not have permission to acces this page'
+			sess.save()
+			self.redirect('/')
+			return
+
+		path = os.path.join (os.path.dirname(__file__), 'views/new_class.html')
+		self.response.out.write (helper.render(self, path, {}))
+	# end get method
+
+	def post(self):
+		sess = gmemsess.Session(self)
+		# redirect to login page if not logged in
+		if sess.is_new() or not sess.has_key('username'):
+			sess['error'] = 'Please log in to use this feature.'
+			sess['redirect'] = '/admin/create_new_class'
+			sess.save()
+			self.redirect('/user/login')
+	  		return
+
+		admin_flag = UserTable().all().filter('ckey =', sess['userid']).get()
+
+		if not admin_flag.admin:
+			sess['error'] = 'You do not have permission to acces this page'
+			sess.save()
+			self.redirect('/')
+			return
+
+		if not self.request.get('classname'):
+			sess['error'] = 'No Class Name set'
+			sess.save()
+			self.redirect('/admin/create_new_class')
+	  		return
+
+		if not self.request.get('classid'):
+			sess['error'] = 'No Class ID set'
+			sess.save()
+			self.redirect('/admin/create_new_class')
+	  		return
+
+		cl = ClassList().all()
+
+		classidlist = []
+		classnamelist = []
+		for c in cl:
+			classidlist.append(c.classid)
+			classnamelist.append(c.classname)
+
+		if self.request.get('classname') in classnamelist:
+			sess['error'] = 'Class Name already taken'
+			sess.save()
+			self.redirect('/admin/create_new_class')
+	  		return
+
+		if self.request.get('classid') in classidlist:
+			sess['error'] = 'Class ID already taken'
+			sess.save()
+			self.redirect('/admin/create_new_class')
+	  		return
+
+		newclass = ClassList()
+		newclass.classname = self.request.get('classname')
+		newclass.classid = self.request.get('classid')
+		newclass.active = True
+		newclass.put()
+			
+		if newclass.is_saved():
+			sess['success'] = 'Class successfully created'
+			sess.save()
+
+			cl = memcache.get('classlist')
+
+			if cl is not None:
+				cl.append(newclass.classid)
+				memcache.set('classlist', cl)
+
+			self.redirect('/')
+			return
+		else:
+			sess['error'] = 'Failed to create class'
+			sess.save()
+			self.redirect('/admin/create_new_class')
+			return
+			
+	# end post method
+# End CreateClass Class
 
 
 application = webapp.WSGIApplication(
@@ -577,7 +679,8 @@ application = webapp.WSGIApplication(
 									  ('/admin/quarantine_image', QuarantineImage),
 									  ('/admin/get_csv_list', ShowCSVList),
 									  ('/admin/user_csv_list.csv', UserCSVList),
-									  ('/admin/user_file.csv', UserCSV)
+									  ('/admin/user_file.csv', UserCSV),
+									  ('/admin/create_new_class', CreateClass)
 									 ],
 									 debug=True)
 

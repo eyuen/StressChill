@@ -73,8 +73,21 @@ class CreateUser(webapp.RequestHandler):
 	def post(self):
 		self.handle()
 	def handle(self):
+		q = ClassList().all().filter('active =', True)
+
+		classlist = []
+
+		for row in q:
+			classinfo = {
+					'name':str(row.classname),
+					'id':str(row.classid)
+					}
+			classlist.append(classinfo)
+
+		template_values = {'classlist':classlist}
+
 		path = os.path.join (os.path.dirname(__file__), 'views/new_user.html')
-		self.response.out.write (helper.render(self, path, {}))
+		self.response.out.write (helper.render(self, path, template_values))
 	# end handle method
 # End CreateUser class
 
@@ -86,6 +99,7 @@ class CreateUser(webapp.RequestHandler):
 #	- confirmpassword: string - must match password
 # optional:
 #	- email: string
+#	- classid: string
 class WebConfirmUser(webapp.RequestHandler):
 	def post(self):
 		sess = gmemsess.Session(self)
@@ -109,20 +123,23 @@ class WebConfirmUser(webapp.RequestHandler):
 			self.redirect('/create_user')
 			return
 
-		if not classid:
-			if not UserTable().create_user(username, password, email):
-				logging.error('could not create user (username taken or db error)')
-				sess['error'] = 'Username,' + username + ', is already in use. Please select another'
-				sess.save()
-				self.redirect('/create_user')
-				return
-		else:
-			if not UserTable().create_user(username, password, email, classid):
-				logging.error('could not create user (username taken or db error)')
-				sess['error'] = 'Username,' + username + ', is already in use. Please select another'
-				sess.save()
-				self.redirect('/create_user')
-				return
+		q = ClassList().all().filter('active =', True)
+
+		classlist = []
+
+		for row in q:
+			classlist.append(str(row.classid))
+
+		officialclassid = 'testers'
+		if classid in classlist:
+			officialclassid = classid
+
+		if not UserTable().create_user(username, password, email, officialclassid):
+			logging.error('could not create user (username taken or db error)')
+			sess['error'] = 'Username,' + username + ', is already in use. Please select another'
+			sess.save()
+			self.redirect('/create_user')
+			return
 
 		sess['success'] = 'User Created'
 		sess.save()

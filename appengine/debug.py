@@ -1607,6 +1607,16 @@ class UserCSVList(webapp.RequestHandler):
 
 		return
 
+# handler for /debug/deactivate_class
+class Deactivate(webapp.RequestHandler):
+	def get(self):
+		q = ClassList().all()
+
+		for row in q:
+			if not row.active:
+				row.active = False
+				row.put()
+
 class DeleteDatastore(webapp.RequestHandler):
 	def get(self):
 		self.handler()
@@ -1677,6 +1687,7 @@ application = webapp.WSGIApplication(
 									  ('/debug/user2mem', User2Mem),
 									  ('/debug/clean_csv', CleanPopulateCSVMemcache),
 									  ('/debug/user_csv_list', UserCSVList),
+									  ('/debug/deactivate_class', Deactivate),
 									  ('/debug/delete_all', DeleteDatastore)
 									  ],
 									 debug=True)

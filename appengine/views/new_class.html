@@ -1,0 +1,31 @@
+{% extends "template.html" %}
+
+{% block title %}StressChill - Create Class{% endblock %}
+
+{% block content %}
+<div class="span-8">
+	<form action="/admin/create_new_class" method="post">
+		<div class="span-4">
+			<label for="classname">Class Name*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="classname">
+		</div>
+
+		<div class="span-4">
+			<label for="classid">Class ID*:</label>
+		</div>
+		<div class="span-4 last">
+			<input type="text" name="classid">
+		</div>
+
+		<div class="span-8 last">
+			<input type="submit" value="Create">
+			(* requried field)
+		</div>
+	</form>
+</div>
+<div class="span-16 last">
+	&nbsp;
+</div>
+{% endblock%}
